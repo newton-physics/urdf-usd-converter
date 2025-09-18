@@ -1,0 +1,92 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Bug Report
+description: File a bug report
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of urdf-usd-converter are you running?
+      placeholder: "example: v1.0.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: installation_method
+    attributes:
+      label: Did you install official release artifacts or build from source?
+      options:
+        - Official release artifacts
+        - Built from Source
+    validations:
+      required: true
+
+  - type: dropdown
+    id: modifications
+    attributes:
+      label: Did you modify the sdist, whl, or source code (including the pyproject.toml or uv.lock)?
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
+
+  - type: input
+    id: py_version
+    attributes:
+      label: Python Version
+      description: What version of Python are you using?
+    validations:
+      required: true
+
+  - type: input
+    id: platform
+    attributes:
+      label: Operating System
+      description: What Operating System / Platform are you using?
+      placeholder: "example: Ubuntu 22.04 Linux x86_64"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug.
+      description: Also tell us, what did you expect to happen?
+      placeholder: XYZ occurred, I expected QRS results
+    validations:
+      required: true
+
+  - type: textarea
+    id: mvr
+    attributes:
+      label: Minimum reproducible example
+      description: Please supply a minimum reproducible example here
+      render: python
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please paste relevant error and log output here
+      render: shell
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://github.com/newton-physics/urdf-usd-converter/blob/HEAD/CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow urdf-usd-converter Code of Conduct
+          required: true
+        - label: I have searched the [open issues](https://github.com/newton-physics/urdf-usd-converter/issues) and have found no duplicates
+          required: true
