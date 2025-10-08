@@ -1,0 +1,148 @@
+[project]
+name = "urdf-usd-converter"
+dynamic = ["version"]
+description = "A URDF to OpenUSD Data Converter"
+authors = [{name = "NVIDIA"}]
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    "usd-exchange>=2.1.0a3", # locked to USD 25.05
+    "numpy-stl>=3.2",
+    "tinyobjloader>=2.0.0rc13",
+]
+
+[project.urls]
+Documentation = "https://github.com/newton-physics/urdf-usd-converter/#readme"
+Repository = "https://github.com/newton-physics/urdf-usd-converter"
+Changelog = "https://github.com/newton-physics/urdf-usd-converter/blob/main/CHANGELOG.md"
+
+[project.scripts]
+urdf_usd_converter = "urdf_usd_converter.__main__:run"
+
+[dependency-groups]
+dev = [
+    "poethepoet>=0.34",
+    "ruff>=0.11",
+    "black>=25.1",
+    "coverage>=7.4",
+    "unittest-xml-reporting>=3.2.0",
+    "pyyaml>=6.0",
+    "usd-exchange[test]",
+]
+
+[tool.hatch.version]
+path = "urdf_usd_converter/_version.py"
+
+[tool.uv]
+package = true
+python-preference = "only-managed"
+
+# Dev Tools
+
+[tool.poe.tasks.test]
+help = "Run the unittests"
+cmd = "python -m unittest discover -v -s ./tests"
+
+[tool.poe.tasks.test-ci]
+help = "Run the unittests with results and coverage reporting printed to console (for CI)"
+sequence = ["test-report", "generate-coverage-xml", "show-coverage-report"]
+
+[tool.poe.tasks.test-report]
+help = "Run the unittests with coverage tracking and generate test report"
+cmd = "coverage run --source=urdf_usd_converter -m xmlrunner discover -v -s ./tests --output-file=.results.xml"
+
+[tool.poe.tasks.generate-coverage-xml]
+help = "Generate coverage XML report"
+cmd = "coverage xml -o .coverage.xml"
+
+[tool.poe.tasks.show-coverage-report]
+help = "Show coverage report in terminal"
+cmd = "coverage report -m"
+
+[tool.poe.tasks.lint]
+help = "Run all lint tools on the code base"
+sequence = ["uv-check", "lint-license", "lint-black", "lint-ruff"]
+ignore_fail = "return_non_zero"
+
+[tool.poe.tasks.uv-check]
+help = "Run uv check on code base"
+cmd  = "uv lock --check"
+
+[tool.poe.tasks.lint-license]
+help = "Run license conformance checks on code base"
+cmd  = "python tools/license_format.py --check"
+
+[tool.poe.tasks.lint-ruff]
+help = "Run ruff check on code base"
+cmd  = "ruff check"
+
+[tool.poe.tasks.lint-black]
+help = "Run black check on the code base"
+cmd  = "black . --check --diff"
+
+[tool.poe.tasks.format]
+help = "Run all formatting tools on the code base"
+sequence = ["format-license", "format-ruff", "format-black"]
+ignore_fail = "return_non_zero"
+
+[tool.poe.tasks.format-license]
+help = "Run license conformance checks on code base"
+cmd  = "python tools/license_format.py --fix"
+
+[tool.poe.tasks.format-ruff]
+help = "Run ruff fixer on code base"
+cmd  = "ruff check . --fix-only"
+
+[tool.poe.tasks.format-black]
+help = "Run black on the code base"
+cmd  = "black ."
+
+[tool.poe.tasks.update-readme]
+help = "Update README.md for PyPI by replacing local links with GitHub URLs"
+cmd  = "python tools/update_markdown_for_pypi.py README.md"
+
+[build-system]
+requires = ["hatchling", "requests"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["urdf_usd_converter"]
+
+[tool.ruff]
+line-length = 150
+exclude = [".venv", "dist"]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",     # error
+    "F",     # pyflakes
+    "I",     # isort
+    "W",     # warning
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "YTT",   # flake8-2020
+    "ASYNC", # flake8-async
+    "C4",    # flake8-comprehensions
+    "T10",   # flake8-debugger
+    "G",     # flake8-logging-format
+    "PIE",   # flake8-pie
+    "PYI",   # flake8-pyi
+    "PT",    # flake8-pytest-style
+    "Q",     # flake8-quotes
+    "SIM",   # flake8-simplify
+    "PTH",   # flake8-use-pathlib
+    "PGH",   # pygrep-hooks
+    "PERF",  # perflint
+    "RUF",   # ruff-specific rules
+]
+ignore = [
+    "PT009",  # unittest-style asserts are fine
+    "PT027",  # unittest-style assertRaises is fine
+]
+
+[tool.black]
+line-length = 150
+exclude = "(.venv|dist)"
+target-version = ['py310']
