@@ -4,7 +4,7 @@
 # Elements defined in the URDF Schema.
 #   https://raw.githubusercontent.com/ros/urdfdom/master/xsd/urdf.xsd
 
-from typing import Any
+from typing import Any, ClassVar
 
 from pxr import Gf
 
@@ -53,13 +53,13 @@ __all__ = [
 
 class ElementBase:
     # Allowed tags for parent elements.
-    allowed_parent_tags: list[str] = []
+    allowed_parent_tags: ClassVar[list[str]] = []
 
     # Available tag names.
-    available_tag_names: list[str] = []
+    available_tag_names: ClassVar[list[str]] = []
 
     # Default values.
-    _defaults: dict[str, Any] = {}
+    _defaults: ClassVar[dict[str, Any]] = {}
 
     def __init__(self):
         # Tag name.
@@ -92,10 +92,10 @@ class ElementUndefined(ElementBase):
 
 
 class ElementPose(ElementBase):
-    allowed_parent_tags = ["inertial", "visual", "collision", "joint", "sensor"]
-    available_tag_names = ["origin"]
+    allowed_parent_tags: ClassVar[list[str]] = ["inertial", "visual", "collision", "joint", "sensor"]
+    available_tag_names: ClassVar[list[str]] = ["origin"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "xyz": Gf.Vec3d(0.0, 0.0, 0.0),
         "rpy": Gf.Vec3d(0.0, 0.0, 0.0),
     }
@@ -109,10 +109,10 @@ class ElementPose(ElementBase):
 
 
 class ElementColor(ElementBase):
-    allowed_parent_tags = ["material"]
-    available_tag_names = ["color"]
+    allowed_parent_tags: ClassVar[list[str]] = ["material"]
+    available_tag_names: ClassVar[list[str]] = ["color"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "rgba": Gf.Vec4d(0.0, 0.0, 0.0, 0.0),
     }
 
@@ -124,8 +124,8 @@ class ElementColor(ElementBase):
 
 
 class ElementVerbose(ElementBase):
-    allowed_parent_tags = ["collision"]
-    available_tag_names = ["verbose"]
+    allowed_parent_tags: ClassVar[list[str]] = ["collision"]
+    available_tag_names: ClassVar[list[str]] = ["verbose"]
 
     def __init__(self):
         super().__init__()
@@ -135,8 +135,8 @@ class ElementVerbose(ElementBase):
 
 
 class ElementName(ElementBase):
-    allowed_parent_tags = ["transmission"]
-    available_tag_names = ["actuator", "joint"]
+    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
+    available_tag_names: ClassVar[list[str]] = ["actuator", "joint"]
 
     def __init__(self):
         super().__init__()
@@ -146,10 +146,10 @@ class ElementName(ElementBase):
 
 
 class ElementMass(ElementBase):
-    allowed_parent_tags = ["inertial"]
-    available_tag_names = ["mass"]
+    allowed_parent_tags: ClassVar[list[str]] = ["inertial"]
+    available_tag_names: ClassVar[list[str]] = ["mass"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "mass": 0.0,
     }
 
@@ -161,10 +161,10 @@ class ElementMass(ElementBase):
 
 
 class ElementInertia(ElementBase):
-    allowed_parent_tags = ["inertial"]
-    available_tag_names = ["inertia"]
+    allowed_parent_tags: ClassVar[list[str]] = ["inertial"]
+    available_tag_names: ClassVar[list[str]] = ["inertia"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "ixx": 0.0,
         "iyy": 0.0,
         "izz": 0.0,
@@ -186,10 +186,10 @@ class ElementInertia(ElementBase):
 
 
 class ElementInertial(ElementBase):
-    allowed_parent_tags = ["link"]
-    available_tag_names = ["inertial"]
+    allowed_parent_tags: ClassVar[list[str]] = ["link"]
+    available_tag_names: ClassVar[list[str]] = ["inertial"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "mass": 0.0,
     }
 
@@ -203,10 +203,10 @@ class ElementInertial(ElementBase):
 
 
 class ElementBox(ElementBase):
-    allowed_parent_tags = ["geometry"]
-    available_tag_names = ["box"]
+    allowed_parent_tags: ClassVar[list[str]] = ["geometry"]
+    available_tag_names: ClassVar[list[str]] = ["box"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "size": Gf.Vec3d(0.0, 0.0, 0.0),
     }
 
@@ -218,8 +218,8 @@ class ElementBox(ElementBase):
 
 
 class ElementCylinder(ElementBase):
-    allowed_parent_tags = ["geometry"]
-    available_tag_names = ["cylinder"]
+    allowed_parent_tags: ClassVar[list[str]] = ["geometry"]
+    available_tag_names: ClassVar[list[str]] = ["cylinder"]
 
     def __init__(self):
         super().__init__()
@@ -230,8 +230,8 @@ class ElementCylinder(ElementBase):
 
 
 class ElementSphere(ElementBase):
-    allowed_parent_tags = ["geometry"]
-    available_tag_names = ["sphere"]
+    allowed_parent_tags: ClassVar[list[str]] = ["geometry"]
+    available_tag_names: ClassVar[list[str]] = ["sphere"]
 
     def __init__(self):
         super().__init__()
@@ -241,10 +241,10 @@ class ElementSphere(ElementBase):
 
 
 class ElementMesh(ElementBase):
-    allowed_parent_tags = ["geometry"]
-    available_tag_names = ["mesh"]
+    allowed_parent_tags: ClassVar[list[str]] = ["geometry"]
+    available_tag_names: ClassVar[list[str]] = ["mesh"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "scale": Gf.Vec3d(1.0, 1.0, 1.0),
     }
 
@@ -257,8 +257,8 @@ class ElementMesh(ElementBase):
 
 
 class ElementGeometry(ElementBase):
-    allowed_parent_tags = ["visual", "collision"]
-    available_tag_names = ["geometry"]
+    allowed_parent_tags: ClassVar[list[str]] = ["visual", "collision"]
+    available_tag_names: ClassVar[list[str]] = ["geometry"]
 
     def __init__(self):
         super().__init__()
@@ -268,8 +268,8 @@ class ElementGeometry(ElementBase):
 
 
 class ElementTexture(ElementBase):
-    allowed_parent_tags = ["material"]
-    available_tag_names = ["texture"]
+    allowed_parent_tags: ClassVar[list[str]] = ["material"]
+    available_tag_names: ClassVar[list[str]] = ["texture"]
 
     def __init__(self):
         super().__init__()
@@ -279,8 +279,8 @@ class ElementTexture(ElementBase):
 
 
 class ElementMaterial(ElementBase):
-    allowed_parent_tags = ["visual"]
-    available_tag_names = ["material"]
+    allowed_parent_tags: ClassVar[list[str]] = ["visual"]
+    available_tag_names: ClassVar[list[str]] = ["material"]
 
     def __init__(self):
         super().__init__()
@@ -294,8 +294,8 @@ class ElementMaterial(ElementBase):
 
 
 class ElementMaterialGlobal(ElementBase):
-    allowed_parent_tags = ["robot"]
-    available_tag_names = ["material"]
+    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["material"]
 
     def __init__(self):
         super().__init__()
@@ -309,8 +309,8 @@ class ElementMaterialGlobal(ElementBase):
 
 
 class ElementVisual(ElementBase):
-    allowed_parent_tags = ["link"]
-    available_tag_names = ["visual"]
+    allowed_parent_tags: ClassVar[list[str]] = ["link"]
+    available_tag_names: ClassVar[list[str]] = ["visual"]
 
     def __init__(self):
         super().__init__()
@@ -322,8 +322,8 @@ class ElementVisual(ElementBase):
 
 
 class ElementCollision(ElementBase):
-    allowed_parent_tags = ["link"]
-    available_tag_names = ["collision"]
+    allowed_parent_tags: ClassVar[list[str]] = ["link"]
+    available_tag_names: ClassVar[list[str]] = ["collision"]
 
     def __init__(self):
         super().__init__()
@@ -338,8 +338,8 @@ class ElementCollision(ElementBase):
 
 
 class ElementLink(ElementBase):
-    allowed_parent_tags = ["robot"]
-    available_tag_names = ["link"]
+    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["link"]
 
     def __init__(self):
         super().__init__()
@@ -355,8 +355,8 @@ class ElementLink(ElementBase):
 
 
 class ElementParent(ElementBase):
-    allowed_parent_tags = ["joint", "sensor"]
-    available_tag_names = ["parent"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint", "sensor"]
+    available_tag_names: ClassVar[list[str]] = ["parent"]
 
     def __init__(self):
         super().__init__()
@@ -366,8 +366,8 @@ class ElementParent(ElementBase):
 
 
 class ElementChild(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["child"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["child"]
 
     def __init__(self):
         super().__init__()
@@ -377,10 +377,10 @@ class ElementChild(ElementBase):
 
 
 class ElementAxis(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["axis"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["axis"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "xyz": Gf.Vec3d(1.0, 0.0, 0.0),
     }
 
@@ -392,8 +392,8 @@ class ElementAxis(ElementBase):
 
 
 class ElementCalibration(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["calibration"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["calibration"]
 
     def __init__(self):
         super().__init__()
@@ -405,10 +405,10 @@ class ElementCalibration(ElementBase):
 
 
 class ElementDynamics(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["dynamics"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["dynamics"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "damping": 0.0,
         "friction": 0.0,
     }
@@ -422,10 +422,10 @@ class ElementDynamics(ElementBase):
 
 
 class ElementLimit(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["limit"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["limit"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "lower": 0.0,
         "upper": 0.0,
         "effort": 0.0,
@@ -443,10 +443,10 @@ class ElementLimit(ElementBase):
 
 
 class ElementSafetyController(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["safety_controller"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["safety_controller"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "soft_lower_limit": 0.0,
         "soft_upper_limit": 0.0,
         "k_position": 0.0,
@@ -463,10 +463,10 @@ class ElementSafetyController(ElementBase):
 
 
 class ElementMimic(ElementBase):
-    allowed_parent_tags = ["joint"]
-    available_tag_names = ["mimic"]
+    allowed_parent_tags: ClassVar[list[str]] = ["joint"]
+    available_tag_names: ClassVar[list[str]] = ["mimic"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "multiplier": 1.0,
         "offset": 0.0,
     }
@@ -481,8 +481,8 @@ class ElementMimic(ElementBase):
 
 
 class ElementActuatorTransmission(ElementBase):
-    allowed_parent_tags = ["transmission"]
-    available_tag_names = ["leftActuator", "rightActuator", "flexJoint", "rollJoint"]
+    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
+    available_tag_names: ClassVar[list[str]] = ["leftActuator", "rightActuator", "flexJoint", "rollJoint"]
 
     def __init__(self):
         super().__init__()
@@ -493,8 +493,8 @@ class ElementActuatorTransmission(ElementBase):
 
 
 class ElementGapJointTransmission(ElementBase):
-    allowed_parent_tags = ["transmission"]
-    available_tag_names = ["gap_joint"]
+    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
+    available_tag_names: ClassVar[list[str]] = ["gap_joint"]
 
     def __init__(self):
         super().__init__()
@@ -515,8 +515,8 @@ class ElementGapJointTransmission(ElementBase):
 
 
 class ElementPassiveJointTransmission(ElementBase):
-    allowed_parent_tags = ["transmission"]
-    available_tag_names = ["passive_joint"]
+    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
+    available_tag_names: ClassVar[list[str]] = ["passive_joint"]
 
     def __init__(self):
         super().__init__()
@@ -526,8 +526,8 @@ class ElementPassiveJointTransmission(ElementBase):
 
 
 class ElementTransmission(ElementBase):
-    allowed_parent_tags = ["robot"]
-    available_tag_names = ["transmission"]
+    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["transmission"]
 
     def __init__(self):
         super().__init__()
@@ -549,8 +549,8 @@ class ElementTransmission(ElementBase):
 
 
 class ElementImage(ElementBase):
-    allowed_parent_tags = ["robot"]
-    available_tag_names = ["image"]
+    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["image"]
 
     def __init__(self):
         super().__init__()
@@ -565,8 +565,8 @@ class ElementImage(ElementBase):
 
 
 class ElementCamera(ElementBase):
-    allowed_parent_tags = ["sensor"]
-    available_tag_names = ["camera"]
+    allowed_parent_tags: ClassVar[list[str]] = ["sensor"]
+    available_tag_names: ClassVar[list[str]] = ["camera"]
 
     def __init__(self):
         super().__init__()
@@ -576,10 +576,10 @@ class ElementCamera(ElementBase):
 
 
 class ElementLaserRay(ElementBase):
-    allowed_parent_tags = ["ray"]
-    available_tag_names = ["horizontal", "vertical"]
+    allowed_parent_tags: ClassVar[list[str]] = ["ray"]
+    available_tag_names: ClassVar[list[str]] = ["horizontal", "vertical"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "samples": 1,
         "resolution": 1,
         "min_angle": 0.0,
@@ -597,8 +597,8 @@ class ElementLaserRay(ElementBase):
 
 
 class ElementRay(ElementBase):
-    allowed_parent_tags = ["sensor"]
-    available_tag_names = ["ray"]
+    allowed_parent_tags: ClassVar[list[str]] = ["sensor"]
+    available_tag_names: ClassVar[list[str]] = ["ray"]
 
     def __init__(self):
         super().__init__()
@@ -609,10 +609,10 @@ class ElementRay(ElementBase):
 
 
 class ElementSensor(ElementBase):
-    allowed_parent_tags = ["robot"]
-    available_tag_names = ["sensor"]
+    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["sensor"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "version": "1.0",
     }
 
@@ -631,8 +631,8 @@ class ElementSensor(ElementBase):
 
 
 class ElementJoint(ElementBase):
-    allowed_parent_tags = ["robot"]
-    available_tag_names = ["joint"]
+    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["joint"]
 
     def __init__(self):
         super().__init__()
@@ -654,9 +654,9 @@ class ElementJoint(ElementBase):
 
 
 class ElementRobot(ElementBase):
-    available_tag_names = ["robot"]
+    available_tag_names: ClassVar[list[str]] = ["robot"]
 
-    _defaults = {
+    _defaults: ClassVar[dict[str, Any]] = {
         "version": "1.0",
     }
 

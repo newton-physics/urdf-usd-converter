@@ -18,7 +18,7 @@ class LineNumberContentHandler(ContentHandler):
         self.element_stack = []
         self.line_offset = 0  # Number of lines skipped (e.g., XML declarations)
 
-    def startElement(self, name, attrs):
+    def startElement(self, name, attrs):  # noqa: N802
         # Record current line number
         line_number = self._locator.getLineNumber() if hasattr(self, "_locator") else None
         element_info = {"tag": name, "line": line_number, "attrs": dict(attrs), "children": []}
@@ -32,11 +32,11 @@ class LineNumberContentHandler(ContentHandler):
 
         self.element_stack.append(element_info)
 
-    def endElement(self, name):
+    def endElement(self, name):  # noqa: N802
         if self.element_stack:
             self.element_stack.pop()
 
-    def setDocumentLocator(self, locator):
+    def setDocumentLocator(self, locator):  # noqa: N802
         self._locator = locator
 
 
@@ -86,7 +86,7 @@ class LineNumberTrackingParser:
         lines = []
         line_offset = 0
 
-        with open(file_path, encoding="utf-8") as f:
+        with Path.open(file_path, encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 line_strip = line.strip()
                 if line_strip.startswith("<?xml") and line_strip.endswith("?>"):

@@ -7,7 +7,42 @@ from pathlib import Path
 from pxr import Gf
 
 from .convert_to_usd import convert_vec3d, convert_vec4d
-from .elements import *
+from .elements import (
+    ElementActuatorTransmission,
+    ElementAxis,
+    ElementBase,
+    ElementCalibration,
+    ElementCamera,
+    ElementChild,
+    ElementCollision,
+    ElementColor,
+    ElementDynamics,
+    ElementGapJointTransmission,
+    ElementGeometry,
+    ElementImage,
+    ElementInertia,
+    ElementInertial,
+    ElementJoint,
+    ElementLaserRay,
+    ElementLimit,
+    ElementLink,
+    ElementMass,
+    ElementMaterial,
+    ElementMaterialGlobal,
+    ElementMesh,
+    ElementMimic,
+    ElementParent,
+    ElementPassiveJointTransmission,
+    ElementRay,
+    ElementRobot,
+    ElementSafetyController,
+    ElementSensor,
+    ElementTexture,
+    ElementTransmission,
+    ElementUndefined,
+    ElementVerbose,
+    ElementVisual,
+)
 from .line_number_parser import LineNumberTrackingParser
 from .reserved_element_attribute_names import check_element_attribute_name, check_element_name
 from .undefined_data import UndefinedData
@@ -33,10 +68,7 @@ class URDFParser:
         self.texture_paths: list[str] = []
 
     def get_error_message(self, message: str, element: ElementBase | ET.Element) -> str:
-        if isinstance(element, ET.Element):
-            line_number = self.get_element_line_number(element)
-        else:
-            line_number = element.line_number
+        line_number = self.get_element_line_number(element) if isinstance(element, ET.Element) else element.line_number
         return f"{element.tag}: {message} (line: {line_number})"
 
     def parse_xml_elements(self, node: ET.Element, prev_element: ElementBase = None) -> ElementBase:
@@ -58,9 +90,8 @@ class URDFParser:
         current_path = f"{prev_element.path}/{node.tag}" if prev_element else f"/{node.tag}"
 
         # Check if the geometry type is valid.
-        if prev_element_type == ElementGeometry:
-            if node.tag not in geometry_type_list:
-                raise ValueError(self.get_error_message("Invalid geometry type", node))
+        if prev_element_type == ElementGeometry and node.tag not in geometry_type_list:
+            raise ValueError(self.get_error_message("Invalid geometry type", node))
 
         element = None
 
@@ -86,20 +117,21 @@ class URDFParser:
             element.name = node.attrib["name"]
         else:
             # If the name does not exist and a name is required, an error occurs.
-            if (
-                type(element) == ElementRobot
-                or type(element) == ElementMaterialGlobal
-                or type(element) == ElementLink
-                or type(element) == ElementJoint
-                or type(element) == ElementSensor
-                or type(element) == ElementActuatorTransmission
-                or type(element) == ElementGapJointTransmission
-                or type(element) == ElementPassiveJointTransmission
-                or type(element) == ElementTransmission
+            if isinstance(
+                element,
+                ElementRobot
+                | ElementMaterialGlobal
+                | ElementLink
+                | ElementJoint
+                | ElementSensor
+                | ElementActuatorTransmission
+                | ElementGapJointTransmission
+                | ElementPassiveJointTransmission
+                | ElementTransmission,
             ):
                 raise ValueError(self.get_error_message("name is required", node))
 
-        if type(element) == ElementJoint:
+        if isinstance(element, ElementJoint):
             if node.attrib.get("type"):
                 element.type = node.attrib["type"]
                 if element.type not in joint_type_list:
@@ -137,26 +169,26 @@ class URDFParser:
         if "version" in node.attrib:
             element.version = node.attrib["version"]
 
-        if type(element) == ElementUndefined:
+        if isinstance(element, ElementUndefined):
             for key, value in node.attrib.items():
                 element.undefined_attributes[key] = value
 
-        elif type(element) == ElementColor:
+        elif isinstance(element, ElementColor):
             if "rgba" in node.attrib:
                 try:
                     element.rgba = convert_vec4d(node.attrib["rgba"])
                 except Exception as e:
                     raise ValueError(self.get_error_message(f"Invalid rgba: {e}", node))
 
-        elif type(element) == ElementTexture:
+        elif isinstance(element, ElementTexture):
             if "filename" in node.attrib:
                 element.filename = node.attrib["filename"]
 
-        elif type(element) == ElementMass:
+        elif isinstance(element, ElementMass):
             if "mass" in node.attrib:
                 element.mass = float(node.attrib["mass"])
 
-        elif type(element) == ElementMesh:
+        elif isinstance(element, ElementMesh):
             if "scale" in node.attrib:
                 try:
                     element.scale = convert_vec3d(node.attrib["scale"])
@@ -167,7 +199,7 @@ class URDFParser:
             else:
                 raise ValueError(self.get_error_message("Filename is required", node))
 
-        elif type(element) == ElementSafetyController:
+        elif isinstance(element, ElementSafetyController):
             if "soft_lower_limit" in node.attrib:
                 element.soft_lower_limit = float(node.attrib["soft_lower_limit"])
             if "soft_upper_limit" in node.attrib:
@@ -179,7 +211,7 @@ class URDFParser:
             else:
                 raise ValueError(self.get_error_message("k_velocity is required", node))
 
-        elif type(element) == ElementInertia:
+        elif isinstance(element, ElementInertia):
             if "ixx" in node.attrib:
                 element.ixx = float(node.attrib["ixx"])
             if "iyy" in node.attrib:
@@ -193,7 +225,7 @@ class URDFParser:
             if "iyz" in node.attrib:
                 element.iyz = float(node.attrib["iyz"])
 
-        elif type(element) == ElementMimic:
+        elif isinstance(element, ElementMimic):
             if "joint" in node.attrib:
                 element.joint = node.attrib["joint"]
             else:
@@ -203,7 +235,7 @@ class URDFParser:
             if "offset" in node.attrib:
                 element.offset = float(node.attrib["offset"])
 
-        elif type(element) == ElementLimit:
+        elif isinstance(element, ElementLimit):
             if "lower" in node.attrib:
                 element.lower = float(node.attrib["lower"])
             if "upper" in node.attrib:
@@ -213,7 +245,7 @@ class URDFParser:
             if "velocity" in node.attrib:
                 element.velocity = float(node.attrib["velocity"])
 
-        elif type(element) == ElementCalibration:
+        elif isinstance(element, ElementCalibration):
             if "reference_position" in node.attrib:
                 element.reference_position = float(node.attrib["reference_position"])
             if "rising" in node.attrib:
@@ -221,34 +253,34 @@ class URDFParser:
             if "falling" in node.attrib:
                 element.falling = float(node.attrib["falling"])
 
-        elif type(element) == ElementDynamics:
+        elif isinstance(element, ElementDynamics):
             if "damping" in node.attrib:
                 element.damping = float(node.attrib["damping"])
             if "friction" in node.attrib:
                 element.friction = float(node.attrib["friction"])
 
-        elif type(element) == ElementParent or type(element) == ElementChild:
+        elif isinstance(element, ElementParent | ElementChild):
             if "link" in node.attrib:
                 element.link = node.attrib["link"]
             else:
                 raise ValueError(self.get_error_message("Link is required", node))
 
-        elif type(element) == ElementAxis:
+        elif isinstance(element, ElementAxis):
             if "xyz" in node.attrib:
                 try:
                     element.xyz = convert_vec3d(node.attrib["xyz"])
                 except Exception as e:
                     raise ValueError(self.get_error_message(f"Invalid xyz: {e}", node))
 
-        elif type(element) == ElementVerbose:
+        elif isinstance(element, ElementVerbose):
             if "value" in node.attrib:
                 element.value = node.attrib["value"]
 
-        elif type(element) == ElementActuatorTransmission:
+        elif isinstance(element, ElementActuatorTransmission):
             if "mechanicalReduction" in node.attrib:
                 element.mechanicalReduction = float(node.attrib["mechanicalReduction"])
 
-        elif type(element) == ElementGapJointTransmission:
+        elif isinstance(element, ElementGapJointTransmission):
             if "L0" in node.attrib:
                 element.L0 = float(node.attrib["L0"])
             if "a" in node.attrib:
@@ -272,7 +304,7 @@ class URDFParser:
             if "theta0" in node.attrib:
                 element.theta0 = float(node.attrib["theta0"])
 
-        elif type(element) == ElementTransmission:
+        elif isinstance(element, ElementTransmission):
             if "type" in node.attrib:
                 element.type = node.attrib["type"]
             else:
@@ -280,7 +312,7 @@ class URDFParser:
             if "mechanicalReduction" in node.attrib:
                 element.mechanicalReduction = float(node.attrib["mechanicalReduction"])
 
-        elif type(element) == ElementImage:
+        elif isinstance(element, ElementImage):
             if "width" in node.attrib:
                 element.width = int(node.attrib["width"])
             if "height" in node.attrib:
@@ -294,7 +326,7 @@ class URDFParser:
             if "far" in node.attrib:
                 element.far = float(node.attrib["far"])
 
-        elif type(element) == ElementLaserRay:
+        elif isinstance(element, ElementLaserRay):
             if "samples" in node.attrib:
                 element.samples = int(node.attrib["samples"])
             if "resolution" in node.attrib:
@@ -304,7 +336,7 @@ class URDFParser:
             if "max_angle" in node.attrib:
                 element.max_angle = float(node.attrib["max_angle"])
 
-        elif type(element) == ElementSensor:
+        elif isinstance(element, ElementSensor):
             if "update_rate" in node.attrib:
                 element.update_rate = float(node.attrib["update_rate"])
             if "version" in node.attrib:
@@ -320,7 +352,7 @@ class URDFParser:
                 if element.name in [link.name for link in prev_element.links]:
                     raise ValueError(self.get_error_message(f"Link name '{element.name}' already exists", node))
                 prev_element.links.append(element)
-            elif node.tag == "material" and type(element) == ElementMaterialGlobal:
+            elif node.tag == "material" and isinstance(element, ElementMaterialGlobal):
                 if element.name in [material.name for material in prev_element.materials]:
                     raise ValueError(self.get_error_message(f"Material name '{element.name}' already exists", node))
                 prev_element.materials.append(element)
@@ -329,7 +361,7 @@ class URDFParser:
                     raise ValueError(self.get_error_message(f"Joint name '{element.name}' already exists", node))
                 prev_element.joints.append(element)
 
-        elif prev_element_type == ElementMaterialGlobal or prev_element_type == ElementMaterial:
+        elif prev_element_type in (ElementMaterialGlobal, ElementMaterial):
             if node.tag == "color":
                 prev_element.color = element
             elif node.tag == "texture":
@@ -343,7 +375,7 @@ class URDFParser:
             elif node.tag == "inertial":
                 prev_element.inertial = element
 
-        elif prev_element_type == ElementVisual or prev_element_type == ElementCollision:
+        elif prev_element_type in (ElementVisual, ElementCollision):
             if node.tag == "geometry":
                 prev_element.geometry = element
             elif node.tag == "origin":
@@ -422,7 +454,7 @@ class URDFParser:
                 prev_element.parent = element
 
         # Stores undefined elements.
-        if prev_element_type == ElementUndefined or type(element) == ElementUndefined:
+        if prev_element_type == ElementUndefined or isinstance(element, ElementUndefined):
             prev_element.undefined_elements.append(element)
         else:
             # Gets and stores the names and values ​​of elements that are not defined in node.attrib.
@@ -473,15 +505,17 @@ class URDFParser:
         if not self.root_element:
             return
 
-        base_file_dir = self.input_file.parent
-
         # If there is a material name in the link, check if there is a material with that name in self.root_element.materials.
         for link in self.root_element.links:
             if link.visual and link.visual.material:
                 material = link.visual.material
-                if material.name and not material.color and not material.texture:
-                    if material.name not in [material.name for material in self.root_element.materials]:
-                        raise ValueError(self.get_error_message(f"link: Material name '{material.name}' not found", material))
+                if (
+                    material.name
+                    and not material.color
+                    and not material.texture
+                    and material.name not in [material.name for material in self.root_element.materials]
+                ):
+                    raise ValueError(self.get_error_message(f"link: Material name '{material.name}' not found", material))
 
         for joint in self.root_element.joints:
             # Checks if parent and child links exist.
@@ -546,11 +580,11 @@ class URDFParser:
         for link in self.root_element.links:
             if link.visual and link.visual.geometry:
                 geometry = link.visual.geometry.geometry
-                if geometry and type(geometry) == ElementMesh:
+                if geometry and isinstance(geometry, ElementMesh):
                     geometry_list.append(geometry)
             if link.collision and link.collision.geometry:
                 geometry = link.collision.geometry.geometry
-                if geometry and type(geometry) == ElementMesh:
+                if geometry and isinstance(geometry, ElementMesh):
                     geometry_list.append(geometry)
 
         for geometry in geometry_list:
@@ -597,7 +631,7 @@ class URDFParser:
                 undefined_data = UndefinedData(element, False)
                 undefined_elements.append(undefined_data)
 
-        if type(element) == ElementRobot:
+        if isinstance(element, ElementRobot):
             for e in element.materials:
                 self.get_undefined_elements_nested(e, undefined_elements)
             for e in element.links:
