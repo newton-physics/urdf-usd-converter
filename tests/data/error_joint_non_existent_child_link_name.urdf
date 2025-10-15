@@ -1,0 +1,38 @@
+<robot name="error_check">
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1"/>
+  </material>
+
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+
+  <joint name="JointA" type="fixed">
+    <parent link="BaseLink"/>
+    <!-- This is a deliberate mistake.  -->
+    <!-- The specified link does not exist. -->
+    <child link="link_dummy" />
+  </joint>
+</robot>

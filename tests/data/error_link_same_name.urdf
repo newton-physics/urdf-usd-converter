@@ -1,0 +1,43 @@
+<robot name="error_check">
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1"/>
+  </material>
+
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+
+  <!-- This is a deliberate mistake.  -->
+  <!-- The link name is the same as the existing link name. -->
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="2 0 0.5"/>
+      <geometry>
+        <cylinder radius="0.5" length="1"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+</robot>

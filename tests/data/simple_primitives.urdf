@@ -1,0 +1,60 @@
+<?xml verison="1.0"?>
+<robot name="simple_primitives">
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1"/>
+  </material>
+  <material name="texture">
+    <texture filename="assets/grid.png"/>
+  </material>
+
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+
+      <!-- Custom elements -->
+      <custom>
+        <item1 name="data1" value="1"/>
+        <item2 name="data2" value="2"/>
+      </custom>
+
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+  <link name="link2">
+    <visual data="custom_data">  <!-- With custom attribute -->
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+  <link name="link3">
+    <visual>
+      <origin rpy="0 0 0" xyz="2 0 0.5"/>
+      <geometry>
+        <cylinder radius="0.5" length="1"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+  </link>
+
+  <joint name="JointA" type="fixed">
+    <parent link="BaseLink"/>
+    <child link="link2" />
+  </joint>
+  <joint name="JointB" type="fixed">
+    <parent link="link2"/>
+    <child link="link3" />
+  </joint>
+
+</robot>
