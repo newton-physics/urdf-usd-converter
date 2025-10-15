@@ -19,7 +19,7 @@ This project is part of [Newton](https://github.com/newton-physics), a [Linux Fo
 
 ## Implementation Details & Dependencies
 
-Specific implementation details are based on the "URDF to USD Conceptual Data Mapping" document. This document will be made public once the project moves out of the alpha phase.
+Specific implementation details are based on our [URDF to USD Conceptual Data Mapping](./docs/concept_mapping.md).
 
 The output asset structure is based on NVIDIA's [Principles of Scalable Asset Structure in OpenUSD](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html).
 
