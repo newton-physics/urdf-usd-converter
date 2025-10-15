@@ -18,7 +18,7 @@ Repository = "https://github.com/newton-physics/urdf-usd-converter"
 Changelog = "https://github.com/newton-physics/urdf-usd-converter/blob/main/CHANGELOG.md"
 
 [project.scripts]
-urdf_usd_converter = "urdf_usd_converter.__main__:run"
+urdf_usd_converter = "urdf_usd_converter.__main__:cli_main"
 
 [dependency-groups]
 dev = [
