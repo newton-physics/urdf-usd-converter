@@ -78,7 +78,7 @@ def __create_parser() -> argparse.ArgumentParser:
         "output_dir",
         type=Path,
         help="""
-        Path to the output USD directory. The primary USD file will be <output_dir>/<modelname>.usda
+        Path to the output USD directory. The primary USD file will be <output_dir>/<robotname>.usda
         and it will be an Atomic Component with Asset Interface layer and payloaded contents
         (unless --no-layer-structure is used)
         """,
