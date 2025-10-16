@@ -1,5 +1,5 @@
 <?xml verison="1.0"?>
-<robot name="simple_primitives">
+<robot name="verifying_elements">
   <material name="red">
     <color rgba="1.0 0.0 0.0 1"/>
   </material>
@@ -40,12 +40,19 @@
   </link>
   <link name="link3">
     <visual>
-      <origin rpy="0 0 0" xyz="2 0 0.5"/>
+      <origin xyz="2 0 0.5"/>  <!-- Omit rpy -->
       <geometry>
         <cylinder radius="0.5" length="1"/>
       </geometry>
       <material name="blue"/>
     </visual>
+    <collision>
+      <origin xyz="2 0 0.5"/>  <!-- Omit rpy -->
+      <geometry>
+        <cylinder radius="0.5" length="1"/>
+      </geometry>
+      <verbose value="verbose_data"/>
+    </collision>
   </link>
 
   <joint name="JointA" type="fixed">
@@ -57,4 +64,14 @@
     <child link="link3" />
   </joint>
 
+  <transmission name="simple_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="foo_joint">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="foo_motor">
+      <mechanicalReduction>50</mechanicalReduction>
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </actuator>
+  </transmission>
 </robot>

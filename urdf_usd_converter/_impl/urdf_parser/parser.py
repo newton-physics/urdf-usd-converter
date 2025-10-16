@@ -4,11 +4,7 @@
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from pxr import Gf
-
-from .convert_to_usd import convert_vec3d, convert_vec4d
 from .elements import (
-    ElementActuatorTransmission,
     ElementAxis,
     ElementBase,
     ElementCalibration,
@@ -17,7 +13,6 @@ from .elements import (
     ElementCollision,
     ElementColor,
     ElementDynamics,
-    ElementGapJointTransmission,
     ElementGeometry,
     ElementImage,
     ElementInertia,
@@ -32,13 +27,17 @@ from .elements import (
     ElementMesh,
     ElementMimic,
     ElementParent,
-    ElementPassiveJointTransmission,
     ElementRay,
     ElementRobot,
     ElementSafetyController,
     ElementSensor,
     ElementTexture,
     ElementTransmission,
+    ElementTransmissionActuator,
+    ElementTransmissionHardwareInterface,
+    ElementTransmissionJoint,
+    ElementTransmissionMechanicalReduction,
+    ElementTransmissionType,
     ElementUndefined,
     ElementVerbose,
     ElementVisual,
@@ -49,9 +48,19 @@ from .undefined_data import UndefinedData
 
 __all__ = ["URDFParser"]
 
-joint_type_list = ["revolute", "continuous", "prismatic", "fixed", "floating", "planar"]
 
-geometry_type_list = ["box", "sphere", "cylinder", "mesh"]
+def _convert_float3(value: str) -> tuple[float, float, float]:
+    values = value.split(" ")
+    if len(values) != 3:
+        raise ValueError(f"Invalid value: {value}")
+    return (float(values[0]), float(values[1]), float(values[2]))
+
+
+def _convert_float4(value: str) -> tuple[float, float, float, float]:
+    values = value.split(" ")
+    if len(values) != 4:
+        raise ValueError(f"Invalid value: {value}")
+    return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
 
 # -----------------------------------------------------------.
@@ -63,15 +72,102 @@ class URDFParser:
         self.line_tracking_parser = LineNumberTrackingParser()
 
         # A list of mesh file paths and scales.
-        self.meshs: list[tuple[str, Gf.Vec3d]] = []
+        self.meshes: list[tuple[str, tuple[float, float, float]]] = []
 
         self.texture_paths: list[str] = []
 
-    def get_error_message(self, message: str, element: ElementBase | ET.Element) -> str:
-        line_number = self.get_element_line_number(element) if isinstance(element, ET.Element) else element.line_number
+    def parse(self):
+        """
+        Parse the XML file.
+        """
+        # Check if the file exists.
+        if not self.input_file.exists():
+            raise FileNotFoundError(f"File not found: {self.input_file}")
+
+        # Parse XML with line number tracking.
+        try:
+            tree_root, self.line_info = self.line_tracking_parser.parse_with_line_numbers(self.input_file)
+            self.root_element = self._parse_xml_elements(tree_root)
+
+            # Validate the parsed elements.
+            self._validate()
+
+            # Store the meshes data.
+            self._store_meshes()
+
+        except Exception as e:
+            raise RuntimeError(f"Error parsing XML: {e}")
+
+    def get_root_element(self) -> ElementRobot:
+        """
+        Get the root element (robot).
+
+        Returns:
+            The root element.
+        """
+        return self.root_element
+
+    def find_material_by_name(self, name: str) -> ElementMaterial:
+        """
+        Find a material by name.
+
+        Args:
+            name: The name of the global material to find.
+
+        Returns:
+            The material if found, otherwise None.
+        """
+        for material in self.root_element.materials:
+            if material.name == name:
+                return material
+        return None
+
+    def get_robot_name(self) -> str:
+        """
+        Get the robot name.
+
+        Returns:
+            The robot name.
+        """
+        return self.root_element.name
+
+    def get_meshes(self) -> list[tuple[str, tuple[float, float, float]]]:
+        """
+        Get the meshes.
+
+        Returns:
+            A list of tuples containing the mesh filename and scale.
+        """
+        return self.meshes
+
+    def get_undefined_elements(self) -> list[UndefinedData]:
+        """
+        Get undefined elements.
+
+        Returns:
+            A list of UndefinedData objects containing undefined elements and attributes.
+        """
+        # Trace undefined elements in the root "robot" element.
+        undefined_elements: list[UndefinedData] = []
+        self._get_undefined_elements_nested(self.root_element, undefined_elements)
+
+        return undefined_elements
+
+    def _get_error_message(self, message: str, element: ElementBase | ET.Element) -> str:
+        """
+        Get an error message for an element.
+
+        Args:
+            message: The error message.
+            element: The element to get the error message for.
+
+        Returns:
+            The error message.
+        """
+        line_number = self._get_element_line_number(element) if isinstance(element, ET.Element) else element.line_number
         return f"{element.tag}: {message} (line: {line_number})"
 
-    def parse_xml_elements(self, node: ET.Element, prev_element: ElementBase = None) -> ElementBase:
+    def _parse_xml_elements(self, node: ET.Element, prev_element: ElementBase = None) -> ElementBase:
         """
         Parse the XML recursively and store each element.
 
@@ -90,8 +186,8 @@ class URDFParser:
         current_path = f"{prev_element.path}/{node.tag}" if prev_element else f"/{node.tag}"
 
         # Check if the geometry type is valid.
-        if prev_element_type == ElementGeometry and node.tag not in geometry_type_list:
-            raise ValueError(self.get_error_message("Invalid geometry type", node))
+        if prev_element_type == ElementGeometry and node.tag not in ElementGeometry.available_geometry_types:
+            raise ValueError(self._get_error_message("Invalid geometry type", node))
 
         element = None
 
@@ -101,17 +197,17 @@ class URDFParser:
             element = ElementUndefined()
         else:
             # Get the element class that can use the specified tag name.
-            element_class = self.get_element_class(node.tag, prev_element_tag)
+            element_class = self._get_element_class(node.tag, prev_element_tag)
             if element_class:
                 element = element_class()
 
         # Error if using reserved tags but structure is different.
         if not element:
-            raise ValueError(self.get_error_message("Invalid element type. This uses a reserved tag, but in the wrong place", node))
+            raise ValueError(self._get_error_message("Invalid element type. This uses a reserved tag, but in the wrong place", node))
 
         element.tag = node.tag
         element.path = current_path
-        element.line_number = self.get_element_line_number(node)
+        element.line_number = self._get_element_line_number(node)
 
         if node.attrib.get("name"):
             element.name = node.attrib["name"]
@@ -124,47 +220,46 @@ class URDFParser:
                 | ElementLink
                 | ElementJoint
                 | ElementSensor
-                | ElementActuatorTransmission
-                | ElementGapJointTransmission
-                | ElementPassiveJointTransmission
-                | ElementTransmission,
+                | ElementTransmission
+                | ElementTransmissionActuator
+                | ElementTransmissionJoint,
             ):
-                raise ValueError(self.get_error_message("name is required", node))
+                raise ValueError(self._get_error_message("name is required", node))
 
         if isinstance(element, ElementJoint):
             if node.attrib.get("type"):
                 element.type = node.attrib["type"]
-                if element.type not in joint_type_list:
-                    raise ValueError(self.get_error_message(f"Invalid joint type: {element.type}", node))
+                if element.type not in ElementJoint.available_joint_types:
+                    raise ValueError(self._get_error_message(f"Invalid joint type: {element.type}", node))
             else:
-                raise ValueError(self.get_error_message("Type is required", node))
+                raise ValueError(self._get_error_message("Type is required", node))
 
         # Get and store attributes.
         if "size" in node.attrib:
             try:
-                element.size = convert_vec3d(node.attrib["size"])
+                element.size = _convert_float3(node.attrib["size"])
             except Exception as e:
-                raise ValueError(self.get_error_message(f"Invalid size: {e}", node))
+                raise ValueError(self._get_error_message(f"Invalid size: {e}", node))
         if "xyz" in node.attrib:
             try:
-                element.xyz = convert_vec3d(node.attrib["xyz"])
+                element.xyz = _convert_float3(node.attrib["xyz"])
             except Exception as e:
-                raise ValueError(self.get_error_message(f"Invalid xyz: {e}", node))
+                raise ValueError(self._get_error_message(f"Invalid xyz: {e}", node))
         if "rpy" in node.attrib:
             try:
-                element.rpy = convert_vec3d(node.attrib["rpy"])
+                element.rpy = _convert_float3(node.attrib["rpy"])
             except Exception as e:
-                raise ValueError(self.get_error_message(f"Invalid rpy: {e}", node))
+                raise ValueError(self._get_error_message(f"Invalid rpy: {e}", node))
         if "radius" in node.attrib:
             try:
                 element.radius = float(node.attrib["radius"])
             except Exception as e:
-                raise ValueError(self.get_error_message(f"Invalid radius: {e}", node))
+                raise ValueError(self._get_error_message(f"Invalid radius: {e}", node))
         if "length" in node.attrib:
             try:
                 element.length = float(node.attrib["length"])
             except Exception as e:
-                raise ValueError(self.get_error_message(f"Invalid length: {e}", node))
+                raise ValueError(self._get_error_message(f"Invalid length: {e}", node))
 
         if "version" in node.attrib:
             element.version = node.attrib["version"]
@@ -176,9 +271,9 @@ class URDFParser:
         elif isinstance(element, ElementColor):
             if "rgba" in node.attrib:
                 try:
-                    element.rgba = convert_vec4d(node.attrib["rgba"])
+                    element.rgba = _convert_float4(node.attrib["rgba"])
                 except Exception as e:
-                    raise ValueError(self.get_error_message(f"Invalid rgba: {e}", node))
+                    raise ValueError(self._get_error_message(f"Invalid rgba: {e}", node))
 
         elif isinstance(element, ElementTexture):
             if "filename" in node.attrib:
@@ -191,13 +286,13 @@ class URDFParser:
         elif isinstance(element, ElementMesh):
             if "scale" in node.attrib:
                 try:
-                    element.scale = convert_vec3d(node.attrib["scale"])
+                    element.scale = _convert_float3(node.attrib["scale"])
                 except Exception as e:
-                    raise ValueError(self.get_error_message(f"Invalid scale: {e}", node))
+                    raise ValueError(self._get_error_message(f"Invalid scale: {e}", node))
             if "filename" in node.attrib:
                 element.filename = node.attrib["filename"]
             else:
-                raise ValueError(self.get_error_message("Filename is required", node))
+                raise ValueError(self._get_error_message("Filename is required", node))
 
         elif isinstance(element, ElementSafetyController):
             if "soft_lower_limit" in node.attrib:
@@ -209,7 +304,7 @@ class URDFParser:
             if "k_velocity" in node.attrib:
                 element.k_velocity = float(node.attrib["k_velocity"])
             else:
-                raise ValueError(self.get_error_message("k_velocity is required", node))
+                raise ValueError(self._get_error_message("k_velocity is required", node))
 
         elif isinstance(element, ElementInertia):
             if "ixx" in node.attrib:
@@ -229,7 +324,7 @@ class URDFParser:
             if "joint" in node.attrib:
                 element.joint = node.attrib["joint"]
             else:
-                raise ValueError(self.get_error_message("Joint is required", node))
+                raise ValueError(self._get_error_message("Joint is required", node))
             if "multiplier" in node.attrib:
                 element.multiplier = float(node.attrib["multiplier"])
             if "offset" in node.attrib:
@@ -263,54 +358,30 @@ class URDFParser:
             if "link" in node.attrib:
                 element.link = node.attrib["link"]
             else:
-                raise ValueError(self.get_error_message("Link is required", node))
+                raise ValueError(self._get_error_message("Link is required", node))
 
         elif isinstance(element, ElementAxis):
             if "xyz" in node.attrib:
                 try:
-                    element.xyz = convert_vec3d(node.attrib["xyz"])
+                    element.xyz = _convert_float3(node.attrib["xyz"])
                 except Exception as e:
-                    raise ValueError(self.get_error_message(f"Invalid xyz: {e}", node))
+                    raise ValueError(self._get_error_message(f"Invalid xyz: {e}", node))
 
         elif isinstance(element, ElementVerbose):
             if "value" in node.attrib:
                 element.value = node.attrib["value"]
 
-        elif isinstance(element, ElementActuatorTransmission):
-            if "mechanicalReduction" in node.attrib:
-                element.mechanicalReduction = float(node.attrib["mechanicalReduction"])
+        elif isinstance(element, ElementTransmissionHardwareInterface):
+            if node.text:
+                element.text = node.text
 
-        elif isinstance(element, ElementGapJointTransmission):
-            if "L0" in node.attrib:
-                element.L0 = float(node.attrib["L0"])
-            if "a" in node.attrib:
-                element.a = float(node.attrib["a"])
-            if "b" in node.attrib:
-                element.b = float(node.attrib["b"])
-            if "gear_ratio" in node.attrib:
-                element.gear_ratio = float(node.attrib["gear_ratio"])
-            if "h" in node.attrib:
-                element.h = float(node.attrib["h"])
-            if "mechanical_reduction" in node.attrib:
-                element.mechanical_reduction = float(node.attrib["mechanical_reduction"])
-            if "phi0" in node.attrib:
-                element.phi0 = float(node.attrib["phi0"])
-            if "r" in node.attrib:
-                element.r = float(node.attrib["r"])
-            if "screw_reduction" in node.attrib:
-                element.screw_reduction = float(node.attrib["screw_reduction"])
-            if "t0" in node.attrib:
-                element.t0 = float(node.attrib["t0"])
-            if "theta0" in node.attrib:
-                element.theta0 = float(node.attrib["theta0"])
+        elif isinstance(element, ElementTransmissionMechanicalReduction):
+            if node.text:
+                element.text = float(node.text)
 
-        elif isinstance(element, ElementTransmission):
-            if "type" in node.attrib:
-                element.type = node.attrib["type"]
-            else:
-                raise ValueError(self.get_error_message("Transmission type is required", node))
-            if "mechanicalReduction" in node.attrib:
-                element.mechanicalReduction = float(node.attrib["mechanicalReduction"])
+        elif isinstance(element, ElementTransmissionType):
+            if node.text:
+                element.text = node.text
 
         elif isinstance(element, ElementImage):
             if "width" in node.attrib:
@@ -344,22 +415,26 @@ class URDFParser:
 
         # Parse child elements.
         for child in node:
-            self.parse_xml_elements(child, element)
+            self._parse_xml_elements(child, element)
 
         # The elements are associated so that they form a hierarchical structure.
         if prev_element_type == ElementRobot:
             if node.tag == "link":
                 if element.name in [link.name for link in prev_element.links]:
-                    raise ValueError(self.get_error_message(f"Link name '{element.name}' already exists", node))
+                    raise ValueError(self._get_error_message(f"Link name '{element.name}' already exists", node))
                 prev_element.links.append(element)
             elif node.tag == "material" and isinstance(element, ElementMaterialGlobal):
                 if element.name in [material.name for material in prev_element.materials]:
-                    raise ValueError(self.get_error_message(f"Material name '{element.name}' already exists", node))
+                    raise ValueError(self._get_error_message(f"Material name '{element.name}' already exists", node))
                 prev_element.materials.append(element)
             elif node.tag == "joint":
                 if element.name in [joint.name for joint in prev_element.joints]:
-                    raise ValueError(self.get_error_message(f"Joint name '{element.name}' already exists", node))
+                    raise ValueError(self._get_error_message(f"Joint name '{element.name}' already exists", node))
                 prev_element.joints.append(element)
+            elif node.tag == "transmission":
+                if element.name in [transmission.name for transmission in prev_element.transmissions]:
+                    raise ValueError(self._get_error_message(f"Transmission name '{element.name}' already exists", node))
+                prev_element.transmissions.append(element)
 
         elif prev_element_type in (ElementMaterialGlobal, ElementMaterial):
             if node.tag == "color":
@@ -422,18 +497,18 @@ class URDFParser:
                 prev_element.actuator = element
             elif node.tag == "joint":
                 prev_element.joint = element
-            elif node.tag == "leftActuator":
-                prev_element.leftActuator = element
-            elif node.tag == "rightActuator":
-                prev_element.rightActuator = element
-            elif node.tag == "flexJoint":
-                prev_element.flexJoint = element
-            elif node.tag == "rollJoint":
-                prev_element.rollJoint = element
-            elif node.tag == "gap_joint":
-                prev_element.gap_joint = element
-            elif node.tag == "passive_joint":
-                prev_element.passive_joint = element
+            elif node.tag == "type":
+                prev_element.type = element
+
+        elif prev_element_type == ElementTransmissionActuator:
+            if node.tag == "mechanicalReduction":
+                prev_element.mechanicalReduction = element
+            elif node.tag == "hardwareInterface":
+                prev_element.hardwareInterface = element
+
+        elif prev_element_type == ElementTransmissionJoint:
+            if node.tag == "hardwareInterface":
+                prev_element.hardwareInterface = element
 
         elif prev_element_type == ElementCamera:
             if node.tag == "image":
@@ -464,43 +539,21 @@ class URDFParser:
 
         return element
 
-    def parse(self):
-        """
-        Parse the XML file.
-        """
-        # Check if the file exists.
-        if not self.input_file.exists():
-            raise FileNotFoundError(f"File not found: {self.input_file}")
-
-        # Parse XML with line number tracking.
-        try:
-            tree_root, self.line_info = self.line_tracking_parser.parse_with_line_numbers(self.input_file)
-            self.root_element = self.parse_xml_elements(tree_root)
-
-            # Validate the parsed elements.
-            self.validate()
-
-            # Store the meshs data.
-            self.store_meshs()
-
-        except Exception as e:
-            raise RuntimeError(f"Error parsing XML: {e}")
-
-    def get_root_element(self):
-        """
-        Get the root element
-        """
-        return self.root_element
-
-    def get_element_line_number(self, element: ET.Element) -> int:
+    def _get_element_line_number(self, element: ET.Element) -> int:
         """
         Get the line number of an element
+
+        Args:
+            element: The element to get the line number for.
+
+        Returns:
+            The line number of the element.
         """
         return self.line_info.get(element, -1)
 
-    def validate(self):
+    def _validate(self):
         """
-        Validate the parsed elements
+        Validate the parsed elements.
         """
         if not self.root_element:
             return
@@ -515,21 +568,21 @@ class URDFParser:
                     and not material.texture
                     and material.name not in [material.name for material in self.root_element.materials]
                 ):
-                    raise ValueError(self.get_error_message(f"link: Material name '{material.name}' not found", material))
+                    raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
 
         for joint in self.root_element.joints:
             # Checks if parent and child links exist.
             if not joint.parent:
-                raise ValueError(self.get_error_message("joint: Parent link is required", joint))
+                raise ValueError(self._get_error_message("joint: Parent link is required", joint))
             if not joint.child:
-                raise ValueError(self.get_error_message("joint: Child link is required", joint))
+                raise ValueError(self._get_error_message("joint: Child link is required", joint))
 
         # If the link name does not exist, an error occurs.
         for joint in self.root_element.joints:
             if joint.parent and joint.parent.link not in [link.name for link in self.root_element.links]:
-                raise ValueError(self.get_error_message(f"joint: Parent link '{joint.parent.link}' not found", joint.parent))
+                raise ValueError(self._get_error_message(f"joint: Parent link '{joint.parent.link}' not found", joint.parent))
             if joint.child and joint.child.link not in [link.name for link in self.root_element.links]:
-                raise ValueError(self.get_error_message(f"joint: Child link '{joint.child.link}' not found", joint.child))
+                raise ValueError(self._get_error_message(f"joint: Child link '{joint.child.link}' not found", joint.child))
 
         # If no elements exist within the geometry tab of the link, an error occurs.
         for link in self.root_element.links:
@@ -537,23 +590,26 @@ class URDFParser:
                 geometry = link.visual.geometry.geometry
                 if not geometry:
                     raise ValueError(
-                        self.get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.visual.geometry)
+                        self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.visual.geometry)
                     )
             if link.collision and link.collision.geometry:
                 geometry = link.collision.geometry.geometry
                 if not geometry:
                     raise ValueError(
-                        self.get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.collision.geometry)
+                        self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.collision.geometry)
                     )
 
-    def get_model_name(self) -> str:
+    def _get_element_class(self, tag_name: str, prev_element_tag: str) -> type[ElementBase]:
         """
-        Get the model name.
-        """
-        return self.root_element.name
+        Get the element class that can use the specified tag name.
 
-    def get_element_class(self, tag_name: str, prev_element_tag: str) -> type[ElementBase]:
-        """Get the element class that can use the specified tag name."""
+        Args:
+            tag_name: The tag name of the element.
+            prev_element_tag: The tag name of the previous element.
+
+        Returns:
+            The element class that can use the specified tag name.
+        """
         if tag_name == "robot" and not prev_element_tag:
             return ElementRobot
 
@@ -562,18 +618,9 @@ class URDFParser:
                 return element_class
         return None
 
-    def find_material_by_name(self, name: str) -> ElementMaterial:
+    def _store_meshes(self):
         """
-        Find a material by name.
-        """
-        for material in self.root_element.materials:
-            if material.name == name:
-                return material
-        return None
-
-    def store_meshs(self):
-        """
-        Store the meshs.
+        Store the meshes.
         A mesh has a filename and a scale.
         """
         geometry_list = []
@@ -589,29 +636,20 @@ class URDFParser:
 
         for geometry in geometry_list:
             scale = geometry.get_with_default("scale")
-            for mesh in self.meshs:
+            for mesh in self.meshes:
                 if mesh[0] == geometry.filename and mesh[1] == scale:
                     break
             else:
-                self.meshs.append((geometry.filename, scale))
+                self.meshes.append((geometry.filename, scale))
 
-    def get_meshs(self) -> list[tuple[str, Gf.Vec3d]]:
+    def _get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         """
-        Get the meshs.
-        """
-        return self.meshs
+        Get undefined elements nested in an element.
 
-    def get_undefined_elements(self) -> list[UndefinedData]:
+        Args:
+            element: The element to get the undefined elements for.
+            undefined_elements: The list to store the undefined elements in.
         """
-        Get undefined elements.
-        """
-        # Trace undefined elements in the root "robot" element.
-        undefined_elements: list[UndefinedData] = []
-        self.get_undefined_elements_nested(self.root_element, undefined_elements)
-
-        return undefined_elements
-
-    def get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         # If there are any undefined elements, they are stored.
         for e in element.undefined_elements:
             for undefined_data in undefined_elements:
@@ -620,7 +658,7 @@ class URDFParser:
             else:
                 undefined_data = UndefinedData(e, True)
                 undefined_elements.append(undefined_data)
-                self.get_undefined_elements_nested(e, undefined_elements)
+                self._get_undefined_elements_nested(e, undefined_elements)
 
         # If there are any undefined attributes, they are stored.
         if len(element.undefined_attributes) > 0:
@@ -633,14 +671,14 @@ class URDFParser:
 
         if isinstance(element, ElementRobot):
             for e in element.materials:
-                self.get_undefined_elements_nested(e, undefined_elements)
+                self._get_undefined_elements_nested(e, undefined_elements)
             for e in element.links:
-                self.get_undefined_elements_nested(e, undefined_elements)
+                self._get_undefined_elements_nested(e, undefined_elements)
             for e in element.joints:
-                self.get_undefined_elements_nested(e, undefined_elements)
+                self._get_undefined_elements_nested(e, undefined_elements)
             for e in element.transmissions:
-                self.get_undefined_elements_nested(e, undefined_elements)
+                self._get_undefined_elements_nested(e, undefined_elements)
         else:
             for e in element.__dict__:
                 if isinstance(element.__dict__[e], ElementBase):
-                    self.get_undefined_elements_nested(element.__dict__[e], undefined_elements)
+                    self._get_undefined_elements_nested(element.__dict__[e], undefined_elements)

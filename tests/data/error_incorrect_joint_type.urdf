@@ -1,4 +1,4 @@
-<robot name="error_check">
+<robot name="incorrect_joint_type">
   <link name="BaseLink">
     <visual>
       <origin rpy="0 0 0" xyz="-2 0 0.5"/>

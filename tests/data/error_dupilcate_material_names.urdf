@@ -1,7 +1,4 @@
-<robot name="error_check">
-  <material name="red">
-    <color rgba="1.0 0.0 0.0 1"/>
-  </material>
+<robot name="duplicate_material_names">
   <material name="green">
     <color rgba="0.0 1.0 0.0 1"/>
   </material>

@@ -6,10 +6,7 @@
 
 from typing import Any, ClassVar
 
-from pxr import Gf
-
 __all__ = [
-    "ElementActuatorTransmission",
     "ElementAxis",
     "ElementBase",
     "ElementBox",
@@ -20,7 +17,6 @@ __all__ = [
     "ElementColor",
     "ElementCylinder",
     "ElementDynamics",
-    "ElementGapJointTransmission",
     "ElementGeometry",
     "ElementImage",
     "ElementInertia",
@@ -34,9 +30,7 @@ __all__ = [
     "ElementMaterialGlobal",
     "ElementMesh",
     "ElementMimic",
-    "ElementName",
     "ElementParent",
-    "ElementPassiveJointTransmission",
     "ElementPose",
     "ElementRay",
     "ElementRobot",
@@ -45,6 +39,11 @@ __all__ = [
     "ElementSphere",
     "ElementTexture",
     "ElementTransmission",
+    "ElementTransmissionActuator",
+    "ElementTransmissionHardwareInterface",
+    "ElementTransmissionJoint",
+    "ElementTransmissionMechanicalReduction",
+    "ElementTransmissionType",
     "ElementUndefined",
     "ElementVerbose",
     "ElementVisual",
@@ -96,16 +95,16 @@ class ElementPose(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["origin"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "xyz": Gf.Vec3d(0.0, 0.0, 0.0),
-        "rpy": Gf.Vec3d(0.0, 0.0, 0.0),
+        "xyz": (0.0, 0.0, 0.0),
+        "rpy": (0.0, 0.0, 0.0),
     }
 
     def __init__(self):
         super().__init__()
 
         # attributes.
-        self.xyz: Gf.Vec3d | None = None
-        self.rpy: Gf.Vec3d | None = None
+        self.xyz: tuple[float, float, float] | None = None
+        self.rpy: tuple[float, float, float] | None = None
 
 
 class ElementColor(ElementBase):
@@ -113,14 +112,14 @@ class ElementColor(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["color"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "rgba": Gf.Vec4d(0.0, 0.0, 0.0, 0.0),
+        "rgba": (0.0, 0.0, 0.0, 0.0),
     }
 
     def __init__(self):
         super().__init__()
 
         # attributes.
-        self.rgba: Gf.Vec4d | None = None
+        self.rgba: tuple[float, float, float, float] | None = None
 
 
 class ElementVerbose(ElementBase):
@@ -134,15 +133,66 @@ class ElementVerbose(ElementBase):
         self.value: str | None = None
 
 
-class ElementName(ElementBase):
+class ElementTransmissionJoint(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["actuator", "joint"]
+    available_tag_names: ClassVar[list[str]] = ["joint"]
 
     def __init__(self):
         super().__init__()
 
         # attributes.
         self.name: str | None = None
+
+        # elements.
+        self.hardwareInterface: ElementTransmissionHardwareInterface | None = None
+
+
+class ElementTransmissionActuator(ElementBase):
+    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
+    available_tag_names: ClassVar[list[str]] = ["actuator"]
+
+    def __init__(self):
+        super().__init__()
+
+        # attributes.
+        self.name: str | None = None
+
+        # elements.
+        self.mechanicalReduction: ElementTransmissionMechanicalReduction | None = None
+        self.hardwareInterface: ElementTransmissionHardwareInterface | None = None
+
+
+class ElementTransmissionHardwareInterface(ElementBase):
+    allowed_parent_tags: ClassVar[list[str]] = ["actuator", "joint"]
+    available_tag_names: ClassVar[list[str]] = ["hardwareInterface"]
+
+    def __init__(self):
+        super().__init__()
+
+        # text value.
+        self.text: str | None = None
+
+
+class ElementTransmissionMechanicalReduction(ElementBase):
+    allowed_parent_tags: ClassVar[list[str]] = ["actuator"]
+    available_tag_names: ClassVar[list[str]] = ["mechanicalReduction"]
+
+    def __init__(self):
+        super().__init__()
+
+        # text value.
+        self.text: float | None = None
+
+
+class ElementTransmissionType(ElementBase):
+    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
+    available_tag_names: ClassVar[list[str]] = ["type"]
+
+    def __init__(self):
+        super().__init__()
+
+        # text value.
+        self.text: str | None = None
 
 
 class ElementMass(ElementBase):
@@ -207,14 +257,14 @@ class ElementBox(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["box"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "size": Gf.Vec3d(0.0, 0.0, 0.0),
+        "size": (0.0, 0.0, 0.0),
     }
 
     def __init__(self):
         super().__init__()
 
         # attributes.
-        self.size: Gf.Vec3d | None = None
+        self.size: tuple[float, float, float] | None = None
 
 
 class ElementCylinder(ElementBase):
@@ -245,7 +295,7 @@ class ElementMesh(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["mesh"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "scale": Gf.Vec3d(1.0, 1.0, 1.0),
+        "scale": (1.0, 1.0, 1.0),
     }
 
     def __init__(self):
@@ -253,12 +303,13 @@ class ElementMesh(ElementBase):
 
         # attributes.
         self.filename: str = None
-        self.scale: Gf.Vec3d | None = None
+        self.scale: tuple[float, float, float] | None = None
 
 
 class ElementGeometry(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["visual", "collision"]
     available_tag_names: ClassVar[list[str]] = ["geometry"]
+    available_geometry_types: ClassVar[list[str]] = ["box", "sphere", "cylinder", "mesh"]
 
     def __init__(self):
         super().__init__()
@@ -381,14 +432,14 @@ class ElementAxis(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["axis"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "xyz": Gf.Vec3d(1.0, 0.0, 0.0),
+        "xyz": (1.0, 0.0, 0.0),
     }
 
     def __init__(self):
         super().__init__()
 
         # attributes.
-        self.xyz: Gf.Vec3d | None = None
+        self.xyz: tuple[float, float, float] | None = None
 
 
 class ElementCalibration(ElementBase):
@@ -480,51 +531,6 @@ class ElementMimic(ElementBase):
         self.offset: float | None = None
 
 
-class ElementActuatorTransmission(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["leftActuator", "rightActuator", "flexJoint", "rollJoint"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.mechanicalReduction: float = None
-        self.name: str = None
-
-
-class ElementGapJointTransmission(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["gap_joint"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.L0: float = None
-        self.a: float = None
-        self.b: float = None
-        self.gear_ratio: float = None
-        self.h: float = None
-        self.mechanical_reduction: float = None
-        self.name: str = None
-        self.phi0: float = None
-        self.r: float = None
-        self.screw_reduction: float = None
-        self.t0: float = None
-        self.theta0: float = None
-
-
-class ElementPassiveJointTransmission(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["passive_joint"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.name: str = None
-
-
 class ElementTransmission(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["robot"]
     available_tag_names: ClassVar[list[str]] = ["transmission"]
@@ -534,18 +540,11 @@ class ElementTransmission(ElementBase):
 
         # attributes.
         self.name: str = None
-        self.type: str = None
+        self.type: ElementTransmissionType | None = None
 
         # elements.
-        self.actuator: ElementName | None = None
-        self.joint: ElementName | None = None
-        self.leftActuator: ElementActuatorTransmission | None = None
-        self.rightActuator: ElementActuatorTransmission | None = None
-        self.flexJoint: ElementActuatorTransmission | None = None
-        self.rollJoint: ElementActuatorTransmission | None = None
-        self.gap_joint: ElementGapJointTransmission | None = None
-        self.passive_joint: ElementPassiveJointTransmission | None = None
-        self.mechanicalReduction: float | None = None
+        self.actuator: ElementTransmissionActuator | None = None
+        self.joint: ElementTransmissionJoint | None = None
 
 
 class ElementImage(ElementBase):
@@ -633,6 +632,7 @@ class ElementSensor(ElementBase):
 class ElementJoint(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["robot"]
     available_tag_names: ClassVar[list[str]] = ["joint"]
+    available_joint_types: ClassVar[list[str]] = ["revolute", "continuous", "prismatic", "fixed", "floating", "planar"]
 
     def __init__(self):
         super().__init__()

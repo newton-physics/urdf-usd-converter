@@ -1,8 +1,4 @@
-<robot name="error_check">
-  <material name="red">
-    <color rgba="1.0 0.0 0.0 1"/>
-  </material>
-
+<robot name="no_material_name">
   <!-- This is a deliberate mistake.  -->
   <!-- The material name does not exist. -->
   <material>

@@ -1,0 +1,12 @@
+<robot name="incorrect_visual_geometry_name">
+  <link name="BaseLink">
+    <visual>
+      <!-- This is a deliberate mistake.  -->
+      <!-- The specified geometry type is invalid. -->
+      <geometry>
+        <foo size="1 1 1"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+</robot>

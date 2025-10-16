@@ -18,16 +18,14 @@ reserved_element_names = [
     "color",
     "cylinder",
     "dynamics",
-    "flexJoint",
-    "gap_joint",
     "gazebo",
     "geometry",
+    "hardwareInterface",
     "horizontal",
     "image",
     "inertia",
     "inertial",
     "joint",
-    "leftActuator",
     "limit",
     "link",
     "mass",
@@ -37,17 +35,14 @@ reserved_element_names = [
     "mimic",
     "origin",
     "parent",
-    "passive_joint",
     "ray",
-    "rightActuator",
     "robot",
-    "rollJoint",
     "safety_controller",
     "sensor",
     "sphere",
     "texture",
     "transmission",
-    "use_simulated_gripper_joint",
+    "type",
     "verbose",
     "vertical",
     "visual",
@@ -55,10 +50,11 @@ reserved_element_names = [
 
 reserved_element_attribute_names = [
     {
-        "element": "actuator_transmission",
+        "element": "actuator",
         "attributes": [
-            "mechanicalReduction",
             "name",
+            "mechanicalReduction",
+            "hardwareInterface",
         ],
     },
     {
@@ -114,21 +110,8 @@ reserved_element_attribute_names = [
         ],
     },
     {
-        "element": "gap_joint_transmission",
-        "attributes": [
-            "L0",
-            "a",
-            "b",
-            "gear_ratio",
-            "h",
-            "mechanical_reduction",
-            "name",
-            "phi0",
-            "r",
-            "screw_reduction",
-            "t0",
-            "theta0",
-        ],
+        "element": "hardwareInterface",
+        "attributes": [],
     },
     {
         "element": "image",
@@ -155,8 +138,11 @@ reserved_element_attribute_names = [
     {
         "element": "joint",
         "attributes": [
+            # joint attributes.
             "name",
             "type",
+            # transmission-Joint attributes.
+            "hardwareInterface",
         ],
     },
     {
@@ -196,6 +182,10 @@ reserved_element_attribute_names = [
         ],
     },
     {
+        "element": "mechanicalReduction",
+        "attributes": [],
+    },
+    {
         "element": "mesh",
         "attributes": [
             "filename",
@@ -221,12 +211,6 @@ reserved_element_attribute_names = [
         "element": "parent",
         "attributes": [
             "link",
-        ],
-    },
-    {
-        "element": "passive_joint_transmission",
-        "attributes": [
-            "name",
         ],
     },
     {
@@ -268,8 +252,11 @@ reserved_element_attribute_names = [
         "element": "transmission",
         "attributes": [
             "name",
-            "type",
         ],
+    },
+    {
+        "element": "type",
+        "attributes": [],
     },
     {
         "element": "verbose",
