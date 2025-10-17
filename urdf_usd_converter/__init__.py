@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
+from ._impl.convert import Converter
 from ._version import __version__
 
-__all__ = ["__version__"]
+__all__ = ["Converter", "__version__"]

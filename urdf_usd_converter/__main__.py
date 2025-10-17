@@ -2,10 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import sys
 
-
-def run() -> int:
-    print("Not implemented yet")
-    return 0
-
+from ._impl.cli import run
 
 sys.exit(run())
