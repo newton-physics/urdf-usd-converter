@@ -3,6 +3,9 @@
 
 # Elements defined in the URDF Schema.
 #   https://raw.githubusercontent.com/ros/urdfdom/master/xsd/urdf.xsd
+#
+# The Transmission and Sensor refer to the following specifications.
+#   https://wiki.ros.org/urdf/XML
 
 from typing import Any, ClassVar
 
@@ -75,6 +78,9 @@ class ElementBase:
 
         # Undefined elements.
         self.undefined_elements: list[ElementUndefined] = []
+
+        # Undefined text.
+        self.undefined_text: str = None
 
     def get_with_default(self, attr_name: str) -> Any:
         """Get the value of the attribute with the default value."""

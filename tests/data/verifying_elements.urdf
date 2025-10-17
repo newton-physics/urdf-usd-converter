@@ -21,6 +21,7 @@
       <custom>
         <item1 name="data1" value="1"/>
         <item2 name="data2" value="2"/>
+        <data attr="attr foo">custom text</data>
       </custom>
 
       <geometry>

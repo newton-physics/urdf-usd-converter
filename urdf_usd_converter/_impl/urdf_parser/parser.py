@@ -267,6 +267,7 @@ class URDFParser:
         if isinstance(element, ElementUndefined):
             for key, value in node.attrib.items():
                 element.undefined_attributes[key] = value
+            element.undefined_text = node.text
 
         elif isinstance(element, ElementColor):
             if "rgba" in node.attrib:

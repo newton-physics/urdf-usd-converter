@@ -22,6 +22,9 @@ class UndefinedData:
         # e.g. {"data1": "1", "data2": "2"}
         self.undefined_attributes: dict[str, str] = {}
 
+        # Undefined text.
+        self.undefined_text: str = None
+
         # Line numbers in XML.
         self.line_number = -1
 
@@ -30,4 +33,5 @@ class UndefinedData:
             self.path = element.path
             self.undefined_element = undefined_element
             self.undefined_attributes = element.undefined_attributes
+            self.undefined_text = element.undefined_text
             self.line_number = element.line_number
