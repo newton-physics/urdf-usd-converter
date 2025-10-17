@@ -48,8 +48,8 @@ class Converter:
         if not output_path.exists():
             output_path.mkdir(parents=True)
 
-        file_name = f"{input_file.stem}.usda"
-        asset_identifier = str(output_dir / file_name)
+        file_name = f"{input_path.stem}.usda"
+        asset_identifier = str(output_path / file_name)
         Tf.Status(f"Converting {input_path} into {output_path}")
         asset_stage = usdex.core.createStage(
             asset_identifier,
