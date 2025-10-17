@@ -1,0 +1,10 @@
+<robot name="missing_visual_geometry">
+  <link name="BaseLink">
+    <visual>
+      <!-- This is a deliberate mistake.  -->
+      <!-- The specified geometry does not exist. -->
+      <geometry>
+      </geometry>
+    </visual>
+  </link>
+</robot>

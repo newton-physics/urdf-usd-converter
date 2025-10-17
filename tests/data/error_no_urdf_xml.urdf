@@ -1,0 +1,6 @@
+<?xml verison="1.0"?>
+<test name="test">
+  <info name="item1">
+    <color rgb="0.0 1.0 0.0"/>
+  </info>
+</test>

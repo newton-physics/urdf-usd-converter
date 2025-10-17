@@ -1,0 +1,16 @@
+<robot name="invalid_material_name">
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
+
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+      <!-- This is a deliberate mistake.  -->
+      <!-- The specified material does not exist. -->
+      <material name="green"/>
+    </visual>
+  </link>
+</robot>

@@ -1,0 +1,26 @@
+<robot name="incorrect_joint_child_link_name">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="JointA" type="fixed">
+    <parent link="BaseLink"/>
+    <!-- This is a deliberate mistake.  -->
+    <!-- The specified link does not exist. -->
+    <child link="link_dummy" />
+  </joint>
+</robot>

@@ -1,0 +1,28 @@
+<robot name="no_joint_k_velocity">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="JointA" type="fixed">
+    <parent link="BaseLink"/>
+    <child link="link2" />
+
+    <!-- This is a deliberate mistake.  -->
+    <!-- If k_velocity is not specified. -->
+    <safety_controller k_position="3"/>
+  </joint>
+</robot>

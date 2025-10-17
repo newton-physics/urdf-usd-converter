@@ -1,0 +1,5 @@
+<robot name="xml_syntax_error">
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  <!-- </material> -->
+</robot>

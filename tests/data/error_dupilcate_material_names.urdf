@@ -1,0 +1,11 @@
+<robot name="duplicate_material_names">
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  </material>
+
+  <!-- This is a deliberate mistake.  -->
+  <!-- The material name is the same as the existing material name. -->
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  </material>
+</robot>

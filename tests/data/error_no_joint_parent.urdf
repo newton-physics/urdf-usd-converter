@@ -1,0 +1,25 @@
+<robot name="no_joint_parent">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+    </visual>
+  </link>
+`
+  <joint name="JointA" type="fixed">
+    <!-- This is a deliberate mistake.  -->
+    <!-- If parent is not specified. -->
+    <child link="link2" />
+  </joint>
+</robot>

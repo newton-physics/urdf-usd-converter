@@ -1,0 +1,12 @@
+<robot name="incorrect_vec3">
+  <link name="BaseLink">
+    <visual>
+      <!-- This is a deliberate mistake.  -->
+      <!-- The specified xyz value is incorrect. -->
+      <origin rpy="0 0 0" xyz="-2.2 0.0 0.5 1.0"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

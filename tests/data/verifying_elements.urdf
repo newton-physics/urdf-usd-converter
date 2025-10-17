@@ -1,0 +1,99 @@
+<?xml verison="1.0"?>
+<robot name="verifying_elements" version="1.0">
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1"/>
+  </material>
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1"/>
+  </material>
+  <material name="black">
+    <color />  <!-- To test the default value, no attribute is provided here. -->
+  </material>
+  <material name="texture">
+    <texture filename="assets/grid.png"/>
+  </material>
+
+  <link name="BaseLink">
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0.3" />
+      <mass value="1"/>
+      <inertia ixx="0.1" iyy="0.2" izz="0.3" ixy="0" ixz="0" iyz="0" />
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+
+      <!-- Custom elements -->
+      <custom>
+        <item1 name="data1" value="1"/>
+        <item2 name="data2" value="2"/>
+        <data attr="attr foo">custom text</data>
+      </custom>
+
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+  <link name="link2">
+    <visual data="custom_data">  <!-- With custom attribute -->
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.5 0.6 1"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <mesh filename="assets/box.stl" scale="0.5 0.6 1"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="link3">
+    <visual>
+      <origin xyz="2 0 0.5"/>  <!-- Omit rpy -->
+      <geometry>
+        <cylinder radius="0.5" length="1"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin xyz="2 0 0.5"/>  <!-- Omit rpy -->
+      <geometry>
+        <mesh filename="assets/box.stl" scale="0.5 0.6 1"/>
+      </geometry>
+      <verbose value="verbose_data"/>
+    </collision>
+  </link>
+
+  <joint name="JointA" type="fixed">
+    <parent link="BaseLink"/>
+    <child link="link2" />
+  </joint>
+  <joint name="JointB" type="fixed">
+    <origin rpy="0.02 0 0" xyz="0 0 0.01"/>
+    <parent link="link2"/>
+    <child link="link3" />
+    <axis xyz="0 1 0"/>
+    <calibration rising="0.3" falling="0.2" reference_position="0.1"/>
+    <dynamics damping="0.0" friction="0.0"/>
+    <limit effort="30" velocity="1.0" lower="-2.2" upper="0.7" />
+    <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.0" soft_upper_limit="0.5" />
+    <mimic joint="JointA" multiplier="2.0" offset="1.0"/>
+  </joint>
+
+  <transmission name="simple_trans">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="foo_joint">
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="foo_motor">
+      <mechanicalReduction>50</mechanicalReduction>
+      <hardwareInterface>EffortJointInterface</hardwareInterface>
+    </actuator>
+  </transmission>
+</robot>
