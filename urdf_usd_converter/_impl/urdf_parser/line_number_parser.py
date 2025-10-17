@@ -113,10 +113,6 @@ class LineNumberTrackingParser:
             # Match by tag name (considering order)
             sax_child_index = 0
             for et_child in et_children:
-                # Find corresponding SAX child element
-                while sax_child_index < len(sax_children) and sax_children[sax_child_index]["tag"] != et_child.tag:
-                    sax_child_index += 1
-
                 if sax_child_index < len(sax_children):
                     map_elements(sax_children[sax_child_index], et_child)
                     sax_child_index += 1

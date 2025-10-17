@@ -8,17 +8,14 @@ from .elements import (
     ElementAxis,
     ElementBase,
     ElementCalibration,
-    ElementCamera,
     ElementChild,
     ElementCollision,
     ElementColor,
     ElementDynamics,
     ElementGeometry,
-    ElementImage,
     ElementInertia,
     ElementInertial,
     ElementJoint,
-    ElementLaserRay,
     ElementLimit,
     ElementLink,
     ElementMass,
@@ -27,10 +24,8 @@ from .elements import (
     ElementMesh,
     ElementMimic,
     ElementParent,
-    ElementRay,
     ElementRobot,
     ElementSafetyController,
-    ElementSensor,
     ElementTexture,
     ElementTransmission,
     ElementTransmissionActuator,
@@ -49,21 +44,6 @@ from .undefined_data import UndefinedData
 __all__ = ["URDFParser"]
 
 
-def _convert_float3(value: str) -> tuple[float, float, float]:
-    values = value.split(" ")
-    if len(values) != 3:
-        raise ValueError(f"Invalid value: {value}")
-    return (float(values[0]), float(values[1]), float(values[2]))
-
-
-def _convert_float4(value: str) -> tuple[float, float, float, float]:
-    values = value.split(" ")
-    if len(values) != 4:
-        raise ValueError(f"Invalid value: {value}")
-    return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
-
-
-# -----------------------------------------------------------.
 class URDFParser:
     def __init__(self, input_file: Path):
         self.input_file: Path = input_file
@@ -153,6 +133,32 @@ class URDFParser:
 
         return undefined_elements
 
+    def _convert_attribute_float3(self, element: ElementBase, name: str) -> tuple[float, float, float]:
+        """
+        Convert a string to a tuple of three floats.
+        """
+        if name not in element.attrib:
+            return None
+
+        attr_value = element.attrib[name]
+        values = attr_value.split(" ")
+        if len(values) != 3:
+            raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
+        return (float(values[0]), float(values[1]), float(values[2]))
+
+    def _convert_attribute_float4(self, element: ElementBase, name: str) -> tuple[float, float, float, float]:
+        """
+        Convert a string to a tuple of four floats.
+        """
+        if name not in element.attrib:
+            return None
+
+        attr_value = element.attrib[name]
+        values = attr_value.split(" ")
+        if len(values) != 4:
+            raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
+        return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
+
     def _get_error_message(self, message: str, element: ElementBase | ET.Element) -> str:
         """
         Get an error message for an element.
@@ -178,6 +184,8 @@ class URDFParser:
         Returns:
             The parsed element.
         """
+        if not prev_element and node.tag != "robot":
+            raise ValueError(self._get_error_message("The root element must be 'robot'", node))
 
         prev_element_type = type(prev_element) if prev_element else None
         prev_element_tag = prev_element.tag if prev_element else None
@@ -219,7 +227,6 @@ class URDFParser:
                 | ElementMaterialGlobal
                 | ElementLink
                 | ElementJoint
-                | ElementSensor
                 | ElementTransmission
                 | ElementTransmissionActuator
                 | ElementTransmissionJoint,
@@ -235,31 +242,13 @@ class URDFParser:
                 raise ValueError(self._get_error_message("Type is required", node))
 
         # Get and store attributes.
-        if "size" in node.attrib:
-            try:
-                element.size = _convert_float3(node.attrib["size"])
-            except Exception as e:
-                raise ValueError(self._get_error_message(f"Invalid size: {e}", node))
-        if "xyz" in node.attrib:
-            try:
-                element.xyz = _convert_float3(node.attrib["xyz"])
-            except Exception as e:
-                raise ValueError(self._get_error_message(f"Invalid xyz: {e}", node))
-        if "rpy" in node.attrib:
-            try:
-                element.rpy = _convert_float3(node.attrib["rpy"])
-            except Exception as e:
-                raise ValueError(self._get_error_message(f"Invalid rpy: {e}", node))
+        element.size = self._convert_attribute_float3(node, "size")
+        element.xyz = self._convert_attribute_float3(node, "xyz")
+        element.rpy = self._convert_attribute_float3(node, "rpy")
         if "radius" in node.attrib:
-            try:
-                element.radius = float(node.attrib["radius"])
-            except Exception as e:
-                raise ValueError(self._get_error_message(f"Invalid radius: {e}", node))
+            element.radius = float(node.attrib["radius"])
         if "length" in node.attrib:
-            try:
-                element.length = float(node.attrib["length"])
-            except Exception as e:
-                raise ValueError(self._get_error_message(f"Invalid length: {e}", node))
+            element.length = float(node.attrib["length"])
 
         if "version" in node.attrib:
             element.version = node.attrib["version"]
@@ -270,26 +259,18 @@ class URDFParser:
             element.undefined_text = node.text
 
         elif isinstance(element, ElementColor):
-            if "rgba" in node.attrib:
-                try:
-                    element.rgba = _convert_float4(node.attrib["rgba"])
-                except Exception as e:
-                    raise ValueError(self._get_error_message(f"Invalid rgba: {e}", node))
+            element.rgba = self._convert_attribute_float4(node, "rgba")
 
         elif isinstance(element, ElementTexture):
             if "filename" in node.attrib:
                 element.filename = node.attrib["filename"]
 
         elif isinstance(element, ElementMass):
-            if "mass" in node.attrib:
-                element.mass = float(node.attrib["mass"])
+            if "value" in node.attrib:
+                element.value = float(node.attrib["value"])
 
         elif isinstance(element, ElementMesh):
-            if "scale" in node.attrib:
-                try:
-                    element.scale = _convert_float3(node.attrib["scale"])
-                except Exception as e:
-                    raise ValueError(self._get_error_message(f"Invalid scale: {e}", node))
+            element.scale = self._convert_attribute_float3(node, "scale")
             if "filename" in node.attrib:
                 element.filename = node.attrib["filename"]
             else:
@@ -362,11 +343,7 @@ class URDFParser:
                 raise ValueError(self._get_error_message("Link is required", node))
 
         elif isinstance(element, ElementAxis):
-            if "xyz" in node.attrib:
-                try:
-                    element.xyz = _convert_float3(node.attrib["xyz"])
-                except Exception as e:
-                    raise ValueError(self._get_error_message(f"Invalid xyz: {e}", node))
+            element.xyz = self._convert_attribute_float3(node, "xyz")
 
         elif isinstance(element, ElementVerbose):
             if "value" in node.attrib:
@@ -383,36 +360,6 @@ class URDFParser:
         elif isinstance(element, ElementTransmissionType):
             if node.text:
                 element.text = node.text
-
-        elif isinstance(element, ElementImage):
-            if "width" in node.attrib:
-                element.width = int(node.attrib["width"])
-            if "height" in node.attrib:
-                element.height = int(node.attrib["height"])
-            if "format" in node.attrib:
-                element.format = node.attrib["format"]
-            if "hfov" in node.attrib:
-                element.hfov = float(node.attrib["hfov"])
-            if "near" in node.attrib:
-                element.near = float(node.attrib["near"])
-            if "far" in node.attrib:
-                element.far = float(node.attrib["far"])
-
-        elif isinstance(element, ElementLaserRay):
-            if "samples" in node.attrib:
-                element.samples = int(node.attrib["samples"])
-            if "resolution" in node.attrib:
-                element.resolution = int(node.attrib["resolution"])
-            if "min_angle" in node.attrib:
-                element.min_angle = float(node.attrib["min_angle"])
-            if "max_angle" in node.attrib:
-                element.max_angle = float(node.attrib["max_angle"])
-
-        elif isinstance(element, ElementSensor):
-            if "update_rate" in node.attrib:
-                element.update_rate = float(node.attrib["update_rate"])
-            if "version" in node.attrib:
-                element.version = node.attrib["version"]
 
         # Parse child elements.
         for child in node:
@@ -507,27 +454,8 @@ class URDFParser:
             elif node.tag == "hardwareInterface":
                 prev_element.hardwareInterface = element
 
-        elif prev_element_type == ElementTransmissionJoint:
-            if node.tag == "hardwareInterface":
-                prev_element.hardwareInterface = element
-
-        elif prev_element_type == ElementCamera:
-            if node.tag == "image":
-                prev_element.image = element
-
-        elif prev_element_type == ElementRay:
-            if node.tag == "horizontal":
-                prev_element.horizontal = element
-            elif node.tag == "vertical":
-                prev_element.vertical = element
-
-        elif prev_element_type == ElementSensor:
-            if node.tag == "camera" or node.tag == "ray":
-                prev_element.camera_ray = element
-            elif node.tag == "origin":
-                prev_element.origin = element
-            elif node.tag == "parent":
-                prev_element.parent = element
+        elif prev_element_type == ElementTransmissionJoint and node.tag == "hardwareInterface":
+            prev_element.hardwareInterface = element
 
         # Stores undefined elements.
         if prev_element_type == ElementUndefined or isinstance(element, ElementUndefined):
@@ -556,9 +484,6 @@ class URDFParser:
         """
         Validate the parsed elements.
         """
-        if not self.root_element:
-            return
-
         # If there is a material name in the link, check if there is a material with that name in self.root_element.materials.
         for link in self.root_element.links:
             if link.visual and link.visual.material:
@@ -574,16 +499,16 @@ class URDFParser:
         for joint in self.root_element.joints:
             # Checks if parent and child links exist.
             if not joint.parent:
-                raise ValueError(self._get_error_message("joint: Parent link is required", joint))
+                raise ValueError(self._get_error_message("Parent is required", joint))
             if not joint.child:
-                raise ValueError(self._get_error_message("joint: Child link is required", joint))
+                raise ValueError(self._get_error_message("Child is required", joint))
 
         # If the link name does not exist, an error occurs.
         for joint in self.root_element.joints:
             if joint.parent and joint.parent.link not in [link.name for link in self.root_element.links]:
-                raise ValueError(self._get_error_message(f"joint: Parent link '{joint.parent.link}' not found", joint.parent))
+                raise ValueError(self._get_error_message(f"Parent link '{joint.parent.link}' not found", joint.parent))
             if joint.child and joint.child.link not in [link.name for link in self.root_element.links]:
-                raise ValueError(self._get_error_message(f"joint: Child link '{joint.child.link}' not found", joint.child))
+                raise ValueError(self._get_error_message(f"Child link '{joint.child.link}' not found", joint.child))
 
         # If no elements exist within the geometry tab of the link, an error occurs.
         for link in self.root_element.links:
@@ -653,13 +578,9 @@ class URDFParser:
         """
         # If there are any undefined elements, they are stored.
         for e in element.undefined_elements:
-            for undefined_data in undefined_elements:
-                if undefined_data.path == e.path and undefined_data.line_number == e.line_number:
-                    break
-            else:
-                undefined_data = UndefinedData(e, True)
-                undefined_elements.append(undefined_data)
-                self._get_undefined_elements_nested(e, undefined_elements)
+            undefined_data = UndefinedData(e, True)
+            undefined_elements.append(undefined_data)
+            self._get_undefined_elements_nested(e, undefined_elements)
 
         # If there are any undefined attributes, they are stored.
         if len(element.undefined_attributes) > 0:

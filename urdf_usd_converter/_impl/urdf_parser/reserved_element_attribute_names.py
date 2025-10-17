@@ -12,17 +12,14 @@ reserved_element_names = [
     "axis",
     "box",
     "calibration",
-    "camera",
     "child",
     "collision",
     "color",
     "cylinder",
     "dynamics",
-    "gazebo",
     "geometry",
     "hardwareInterface",
     "horizontal",
-    "image",
     "inertia",
     "inertial",
     "joint",
@@ -35,10 +32,8 @@ reserved_element_names = [
     "mimic",
     "origin",
     "parent",
-    "ray",
     "robot",
     "safety_controller",
-    "sensor",
     "sphere",
     "texture",
     "transmission",
@@ -146,15 +141,6 @@ reserved_element_attribute_names = [
         ],
     },
     {
-        "element": "LaserRay",
-        "attributes": [
-            "samples",
-            "resolution",
-            "min_angle",
-            "max_angle",
-        ],
-    },
-    {
         "element": "limit",
         "attributes": [
             "lower",
@@ -217,6 +203,7 @@ reserved_element_attribute_names = [
         "element": "robot",
         "attributes": [
             "name",
+            "version",
         ],
     },
     {
@@ -226,14 +213,6 @@ reserved_element_attribute_names = [
             "soft_upper_limit",
             "k_position",
             "k_velocity",
-        ],
-    },
-    {
-        "element": "sensor",
-        "attributes": [
-            "name",
-            "update_rate",
-            "version",
         ],
     },
     {

@@ -14,18 +14,15 @@ __all__ = [
     "ElementBase",
     "ElementBox",
     "ElementCalibration",
-    "ElementCamera",
     "ElementChild",
     "ElementCollision",
     "ElementColor",
     "ElementCylinder",
     "ElementDynamics",
     "ElementGeometry",
-    "ElementImage",
     "ElementInertia",
     "ElementInertial",
     "ElementJoint",
-    "ElementLaserRay",
     "ElementLimit",
     "ElementLink",
     "ElementMass",
@@ -35,10 +32,8 @@ __all__ = [
     "ElementMimic",
     "ElementParent",
     "ElementPose",
-    "ElementRay",
     "ElementRobot",
     "ElementSafetyController",
-    "ElementSensor",
     "ElementSphere",
     "ElementTexture",
     "ElementTransmission",
@@ -206,14 +201,14 @@ class ElementMass(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["mass"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "mass": 0.0,
+        "value": 0.0,
     }
 
     def __init__(self):
         super().__init__()
 
         # attributes.
-        self.mass: float | None = None
+        self.value: float | None = None
 
 
 class ElementInertia(ElementBase):
@@ -551,88 +546,6 @@ class ElementTransmission(ElementBase):
         # elements.
         self.actuator: ElementTransmissionActuator | None = None
         self.joint: ElementTransmissionJoint | None = None
-
-
-class ElementImage(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
-    available_tag_names: ClassVar[list[str]] = ["image"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.width: int = None
-        self.height: int = None
-        self.format: str = None
-        self.hfov: float = None
-        self.near: float = None
-        self.far: float = None
-
-
-class ElementCamera(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["sensor"]
-    available_tag_names: ClassVar[list[str]] = ["camera"]
-
-    def __init__(self):
-        super().__init__()
-
-        # elements.
-        self.image: ElementImage | None = None
-
-
-class ElementLaserRay(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["ray"]
-    available_tag_names: ClassVar[list[str]] = ["horizontal", "vertical"]
-
-    _defaults: ClassVar[dict[str, Any]] = {
-        "samples": 1,
-        "resolution": 1,
-        "min_angle": 0.0,
-        "max_angle": 0.0,
-    }
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.samples: int | None = None
-        self.resolution: int | None = None
-        self.min_angle: float | None = None
-        self.max_angle: float | None = None
-
-
-class ElementRay(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["sensor"]
-    available_tag_names: ClassVar[list[str]] = ["ray"]
-
-    def __init__(self):
-        super().__init__()
-
-        # elements.
-        self.horizontal: ElementLaserRay | None = None
-        self.vertical: ElementLaserRay | None = None
-
-
-class ElementSensor(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
-    available_tag_names: ClassVar[list[str]] = ["sensor"]
-
-    _defaults: ClassVar[dict[str, Any]] = {
-        "version": "1.0",
-    }
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.name: str = None
-        self.version: str | None = None
-        self.update_rate: float | None = None
-
-        # elements.
-        self.origin: ElementPose | None = None
-        self.parent: ElementParent = None
-        self.camera_ray: ElementCamera | ElementRay | None = None
 
 
 class ElementJoint(ElementBase):

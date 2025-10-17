@@ -24,155 +24,203 @@ class TestURDFParser(ConverterTestCase):
         # Load a non-existent URDF file.
         model_path = pathlib.Path("tests/data/non_existent.urdf")
         parser = URDFParser(model_path)
-        try:
+
+        with self.assertRaisesRegex(FileNotFoundError, ".*File not found:.*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, FileNotFoundError))
 
     def test_load_error_xml_syntax(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_xml_syntax.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, ".*5:2: mismatched tag.*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("5:2: mismatched tag" in e.args[0])
+
+    def test_load_error_no_urdf_xml(self):
+        # Loading non-URDF XML.
+        model_path = pathlib.Path("tests/data/error_no_urdf_xml.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*The root element must be 'robot' \(line: 2\).*"):
+            parser.parse()
+
+    def test_load_error_incorrect_vec3(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_incorrect_vec3.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*xyz: Invalid value: -2.2 0.0 0.5 1.0 \(line: 6\).*"):
+            parser.parse()
+
+    def test_load_error_incorrect_vec4(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_incorrect_vec4.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*rgba: Invalid value: 0.0 1.0 \(line: 5\).*"):
+            parser.parse()
+
+    def test_load_error_different_place(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_different_place.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(
+            RuntimeError, r".*geometry: Invalid element type. This uses a reserved tag, but in the wrong place \(line: 8\).*"
+        ):
+            parser.parse()
 
     def test_load_error_no_material_name(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_no_material_name.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*material: name is required \(line: 4\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("material: name is required (line: 4)" in e.args[0])
+
+    def test_load_error_no_mesh_filename(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_mesh_filename.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*mesh: Filename is required \(line: 8\).*"):
+            parser.parse()
 
     def test_load_error_duplicate_material_names(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_dupilcate_material_names.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*material: Material name 'green' already exists \(line: 8\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("material: Material name 'green' already exists (line: 8)" in e.args[0])
 
     def test_load_error_duplicate_link_names(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_duplicate_link_names.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*link: Link name 'link2' already exists \(line: 22\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("link: Link name 'link2' already exists (line: 22)" in e.args[0])
 
     def test_load_error_duplicate_joint_names(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_duplicate_joint_names.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*joint: Joint name 'JointA' already exists \(line: 36\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("joint: Joint name 'JointA' already exists (line: 36)" in e.args[0])
 
     def test_load_error_invalid_material_name(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_invalid_material_name.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*Material name 'green' not found \(line: 13\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("Material name 'green' not found (line: 13)" in e.args[0])
 
     def test_load_error_missing_visual_geometry(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_missing_visual_geometry.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*Geometry must have one of the following: box, sphere, cylinder, or mesh \(line: 6\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("Geometry must have one of the following: box, sphere, cylinder, or mesh (line: 6)" in e.args[0])
 
     def test_load_error_incorrect_visual_geometry_name(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_incorrect_visual_geometry_name.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*foo: Invalid geometry type \(line: 7\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("foo: Invalid geometry type (line: 7)" in e.args[0])
 
     def test_load_error_missing_collision_geometry(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_missing_collision_geometry.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*Geometry must have one of the following: box, sphere, cylinder, or mesh \(line: 11\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("Geometry must have one of the following: box, sphere, cylinder, or mesh (line: 11)" in e.args[0])
 
     def test_load_error_incorrect_joint_child_link_name(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_incorrect_joint_child_link_name.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*Child link 'link_dummy' not found \(line: 24\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("joint: Child link 'link_dummy' not found (line: 24)" in e.args[0])
 
     def test_load_error_incorrect_joint_parent_link_name(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_incorrect_joint_parent_link_name.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*Parent link 'BaseLink_dummy' not found \(line: 23\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("joint: Parent link 'BaseLink_dummy' not found (line: 23)" in e.args[0])
+
+    def test_load_error_no_joint_type(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_joint_type.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*joint: Type is required \(line: 22\).*"):
+            parser.parse()
+
+    def test_load_error_no_joint_k_velocity(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_joint_k_velocity.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*safety_controller: k_velocity is required \(line: 26\).*"):
+            parser.parse()
+
+    def test_load_error_no_joint_mimic_joint(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_joint_mimic_joint.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*mimic: Joint is required \(line: 26\).*"):
+            parser.parse()
 
     def test_load_error_invalid_joint_type(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_incorrect_joint_type.urdf")
         parser = URDFParser(model_path)
 
-        try:
+        with self.assertRaisesRegex(RuntimeError, r".*joint: Invalid joint type: incorrect_type \(line: 22\).*"):
             parser.parse()
-            self.fail("No exception occurred while loading the error XML.")
-        except Exception as e:
-            self.assertTrue(isinstance(e, RuntimeError))
-            self.assertTrue("joint: Invalid joint type: incorrect_type (line: 22)" in e.args[0])
+
+    def test_load_error_no_joint_parent(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_joint_parent.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*Parent is required \(line: 20\).*"):
+            parser.parse()
+
+    def test_load_error_no_joint_child(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_joint_child.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*Child is required \(line: 20\).*"):
+            parser.parse()
+
+    def test_load_error_no_joint_parent_link(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_no_joint_parent_link.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*parent: Link is required \(line: 23\).*"):
+            parser.parse()
+
+    def test_load_error_duplicate_transmission_names(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_duplicate_transmission_names.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*transmission: Transmission name 'transmission_1' already exists \(line: 8\).*"):
+            parser.parse()
 
     def test_get_basic_information(self):
         # Get basic information about a URDF.
@@ -187,41 +235,48 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(root_element.tag, "robot")
         self.assertEqual(root_element.name, "verifying_elements")
         self.assertEqual(root_robot_name, "verifying_elements")
+        self.assertEqual(root_element.get_with_default("version"), "1.0")
 
     def test_get_materials(self):
         # Get the root element.
         root_element = self.parser.get_root_element()
 
-        self.assertEqual(len(root_element.materials), 4)
+        self.assertEqual(len(root_element.materials), 5)
 
         # Get the name from the materials list.
         materials = root_element.materials
         self.assertEqual(materials[0].name, "red")
         self.assertEqual(materials[1].name, "green")
         self.assertEqual(materials[2].name, "blue")
-        self.assertEqual(materials[3].name, "texture")
+        self.assertEqual(materials[3].name, "black")
+        self.assertEqual(materials[4].name, "texture")
 
         # Find materials by name.
         red_material = self.parser.find_material_by_name("red")
         self.assertTrue(red_material)
         self.assertEqual(red_material.name, "red")
-        self.assertEqual(red_material.color.rgba, (1.0, 0.0, 0.0, 1.0))
+        self.assertEqual(red_material.color.get_with_default("rgba"), (1.0, 0.0, 0.0, 1.0))
 
         blue_material = self.parser.find_material_by_name("blue")
         self.assertTrue(blue_material)
         self.assertEqual(blue_material.name, "blue")
-        self.assertEqual(blue_material.color.rgba, (0.0, 0.0, 1.0, 1.0))
+        self.assertEqual(blue_material.color.get_with_default("rgba"), (0.0, 0.0, 1.0, 1.0))
 
         green_material = self.parser.find_material_by_name("green")
         self.assertTrue(green_material)
         self.assertEqual(green_material.name, "green")
-        self.assertEqual(green_material.color.rgba, (0.0, 1.0, 0.0, 1.0))
+        self.assertEqual(green_material.color.get_with_default("rgba"), (0.0, 1.0, 0.0, 1.0))
 
         texture_material = self.parser.find_material_by_name("texture")
         self.assertTrue(texture_material)
         self.assertEqual(texture_material.name, "texture")
         self.assertIsNone(texture_material.color)
-        self.assertEqual(texture_material.texture.filename, "assets/grid.png")
+        self.assertEqual(texture_material.texture.get_with_default("filename"), "assets/grid.png")
+
+        black_material = self.parser.find_material_by_name("black")
+        self.assertTrue(black_material)
+        self.assertEqual(black_material.name, "black")
+        self.assertEqual(black_material.color.get_with_default("rgba"), (0.0, 0.0, 0.0, 0.0))
 
         # Get non-existent material.
         non_existent_material = self.parser.find_material_by_name("non_existent_material")
@@ -252,6 +307,21 @@ class TestURDFParser(ConverterTestCase):
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "red")
 
+        inertial = link.inertial
+        self.assertTrue(inertial)
+        self.assertTrue(inertial.origin)
+        self.assertEqual(inertial.origin.get_with_default("xyz"), (0.0, 0.0, 0.3))
+        self.assertEqual(inertial.origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
+        self.assertTrue(inertial.mass)
+        self.assertEqual(inertial.mass.get_with_default("value"), 1.0)
+        self.assertTrue(inertial.inertia)
+        self.assertEqual(inertial.inertia.get_with_default("ixx"), 0.1)
+        self.assertEqual(inertial.inertia.get_with_default("iyy"), 0.2)
+        self.assertEqual(inertial.inertia.get_with_default("izz"), 0.3)
+        self.assertEqual(inertial.inertia.get_with_default("ixy"), 0.0)
+        self.assertEqual(inertial.inertia.get_with_default("ixz"), 0.0)
+        self.assertEqual(inertial.inertia.get_with_default("iyz"), 0.0)
+
         # links[1]
         link = root_element.links[1]
         self.assertEqual(link.get_with_default("name"), "link2")
@@ -265,11 +335,26 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.rpy, (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "sphere")
-        self.assertEqual(geometry.geometry.get_with_default("radius"), 0.5)
+        self.assertEqual(geometry.geometry.tag, "mesh")
+        mesh = geometry.geometry
+        self.assertEqual(mesh.get_with_default("filename"), "assets/box.obj")
+        self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
         material = visual.material
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "green")
+
+        collision = link.collision
+        self.assertTrue(collision)
+        origin = collision.origin
+        self.assertTrue(origin)
+        self.assertEqual(origin.get_with_default("xyz"), (0.0, 0.0, 0.5))
+        self.assertEqual(origin.rpy, (0.0, 0.0, 0.0))
+        geometry = collision.geometry
+        self.assertTrue(geometry)
+        self.assertEqual(geometry.geometry.tag, "mesh")
+        mesh = geometry.geometry
+        self.assertEqual(mesh.get_with_default("filename"), "assets/box.stl")
+        self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
 
         # links[2]
         link = root_element.links[2]
@@ -298,9 +383,10 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = collision.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "cylinder")
-        self.assertEqual(geometry.geometry.get_with_default("radius"), 0.5)
-        self.assertEqual(geometry.geometry.get_with_default("length"), 1.0)
+        self.assertEqual(geometry.geometry.tag, "mesh")
+        mesh = geometry.geometry
+        self.assertEqual(mesh.get_with_default("filename"), "assets/box.stl")
+        self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
         verbose = collision.verbose
         self.assertTrue(verbose)
         self.assertEqual(verbose.get_with_default("value"), "verbose_data")
@@ -328,6 +414,44 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(joint.parent.link, "link2")
         self.assertTrue(joint.child)
         self.assertEqual(joint.child.link, "link3")
+        self.assertTrue(joint.origin)
+        self.assertEqual(joint.origin.get_with_default("rpy"), (0.02, 0.0, 0.0))
+        self.assertEqual(joint.origin.get_with_default("xyz"), (0.0, 0.0, 0.01))
+        self.assertTrue(joint.axis)
+        self.assertEqual(joint.axis.get_with_default("xyz"), (0.0, 1.0, 0.0))
+        self.assertTrue(joint.calibration)
+        self.assertEqual(joint.calibration.get_with_default("rising"), 0.3)
+        self.assertEqual(joint.calibration.get_with_default("falling"), 0.2)
+        self.assertEqual(joint.calibration.get_with_default("reference_position"), 0.1)
+        self.assertTrue(joint.dynamics)
+        self.assertEqual(joint.dynamics.get_with_default("damping"), 0.0)
+        self.assertEqual(joint.dynamics.get_with_default("friction"), 0.0)
+        self.assertTrue(joint.limit)
+        self.assertEqual(joint.limit.get_with_default("effort"), 30.0)
+        self.assertEqual(joint.limit.get_with_default("velocity"), 1.0)
+        self.assertEqual(joint.limit.get_with_default("lower"), -2.2)
+        self.assertEqual(joint.limit.get_with_default("upper"), 0.7)
+        self.assertTrue(joint.safety_controller)
+        self.assertEqual(joint.safety_controller.get_with_default("k_velocity"), 10.0)
+        self.assertEqual(joint.safety_controller.get_with_default("k_position"), 15.0)
+        self.assertEqual(joint.safety_controller.get_with_default("soft_lower_limit"), -2.0)
+        self.assertEqual(joint.safety_controller.get_with_default("soft_upper_limit"), 0.5)
+        self.assertTrue(joint.mimic)
+        self.assertEqual(joint.mimic.get_with_default("joint"), "JointA")
+        self.assertEqual(joint.mimic.get_with_default("multiplier"), 2.0)
+        self.assertEqual(joint.mimic.get_with_default("offset"), 1.0)
+
+    def test_get_meshes(self):
+        meshes = self.parser.get_meshes()
+        self.assertEqual(len(meshes), 2)
+
+        mesh = meshes[0]
+        self.assertEqual(mesh[0], "assets/box.obj")
+        self.assertEqual(mesh[1], (0.5, 0.6, 1.0))
+
+        mesh = meshes[1]
+        self.assertEqual(mesh[0], "assets/box.stl")
+        self.assertEqual(mesh[1], (0.5, 0.6, 1.0))
 
     def test_get_transmissions(self):
         # Get the root element.
@@ -361,21 +485,21 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(element.path, "/robot/link/visual/custom")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {})
-        self.assertEqual(element.line_number, 21)
+        self.assertEqual(element.line_number, 29)
 
         element = undefined_elements[1]
         self.assertEqual(element.tag, "item1")
         self.assertEqual(element.path, "/robot/link/visual/custom/item1")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"name": "data1", "value": "1"})
-        self.assertEqual(element.line_number, 22)
+        self.assertEqual(element.line_number, 30)
 
         element = undefined_elements[2]
         self.assertEqual(element.tag, "item2")
         self.assertEqual(element.path, "/robot/link/visual/custom/item2")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"name": "data2", "value": "2"})
-        self.assertEqual(element.line_number, 23)
+        self.assertEqual(element.line_number, 31)
 
         element = undefined_elements[3]
         self.assertEqual(element.tag, "data")
@@ -383,7 +507,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"attr": "attr foo"})
         self.assertEqual(element.undefined_text, "custom text")
-        self.assertEqual(element.line_number, 24)
+        self.assertEqual(element.line_number, 32)
 
         # When adding custom attributes to an existing element.
         # In this case, element.undefined_element will be False.
@@ -392,4 +516,4 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(element.path, "/robot/link/visual")
         self.assertEqual(element.undefined_element, False)
         self.assertEqual(element.undefined_attributes, {"data": "custom_data"})
-        self.assertEqual(element.line_number, 34)
+        self.assertEqual(element.line_number, 42)

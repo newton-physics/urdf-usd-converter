@@ -1,0 +1,7 @@
+<robot name="incorrect_vec4">
+  <material name="green">
+    <!-- This is a deliberate mistake.  -->
+    <!-- The specified rgba value is incorrect. -->
+    <color rgba="0.0 1.0"/>
+  </material>
+</robot>

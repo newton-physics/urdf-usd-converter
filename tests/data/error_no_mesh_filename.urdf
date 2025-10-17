@@ -1,0 +1,12 @@
+<robot name="no_mesh_filename">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <!-- This is a deliberate mistake.  -->
+        <!-- The mesh filename is not specified. -->
+        <mesh scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

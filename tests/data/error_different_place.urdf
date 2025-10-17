@@ -1,0 +1,12 @@
+<robot name="different_places">
+  <link name="BaseLink">
+    <visual>
+      <material name="green" />
+    </visual>
+    <!-- This is a deliberate mistake.  -->
+    <!-- The geometry is not a child of the visual. -->
+    <geometry>
+      <box size="1 1 1"/>
+    </geometry>
+  </link>
+</robot>

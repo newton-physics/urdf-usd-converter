@@ -1,0 +1,11 @@
+<robot name="duplicate_transmission_names">
+  <transmission name="transmission_1">
+    <type>transmission_interface/SimpleTransmission</type>
+  </transmission>
+
+  <!-- This is a deliberate mistake.  -->
+  <!-- The transmission name is the same as the existing transmission name. -->
+  <transmission name="transmission_1">
+    <type>transmission_interface/SimpleTransmission</type>
+  </transmission>
+</robot>
