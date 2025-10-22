@@ -222,6 +222,14 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*transmission: Transmission name 'transmission_1' already exists \(line: 8\).*"):
             parser.parse()
 
+    def test_has_no_material(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/simple_box_no_material.urdf")
+        parser = URDFParser(model_path)
+
+        materials = parser.get_materials()
+        self.assertEqual(len(materials), 0)
+
     def test_get_basic_information(self):
         # Get basic information about a URDF.
 
@@ -237,7 +245,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(root_robot_name, "verifying_elements")
         self.assertEqual(root_element.get_with_default("version"), "1.0")
 
-    def test_get_materials(self):
+    def test_find_materials(self):
         # Get the root element.
         root_element = self.parser.get_root_element()
 
@@ -373,7 +381,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(geometry.geometry.get_with_default("length"), 1.0)
         material = visual.material
         self.assertTrue(material)
-        self.assertEqual(material.get_with_default("name"), "blue")
+        self.assertEqual(material.get_with_default("name"), "yellow")
 
         collision = link.collision
         self.assertTrue(collision)
@@ -452,6 +460,41 @@ class TestURDFParser(ConverterTestCase):
         mesh = meshes[1]
         self.assertEqual(mesh[0], "assets/box.stl")
         self.assertEqual(mesh[1], (0.5, 0.6, 1.0))
+
+    def test_get_materials(self):
+        materials = self.parser.get_materials()
+
+        self.assertEqual(len(materials), 6)
+
+        material = materials[0]
+        self.assertEqual(material[0], "red")
+        self.assertEqual(material[1], (1.0, 0.0, 0.0, 1.0))
+        self.assertEqual(material[2], None)
+
+        material = materials[1]
+        self.assertEqual(material[0], "green")
+        self.assertEqual(material[1], (0.0, 1.0, 0.0, 1.0))
+        self.assertEqual(material[2], None)
+
+        material = materials[2]
+        self.assertEqual(material[0], "blue")
+        self.assertEqual(material[1], (0.0, 0.0, 1.0, 1.0))
+        self.assertEqual(material[2], None)
+
+        material = materials[3]
+        self.assertEqual(material[0], "black")
+        self.assertEqual(material[1], (0.0, 0.0, 0.0, 0.0))
+        self.assertEqual(material[2], None)
+
+        material = materials[4]
+        self.assertEqual(material[0], "texture")
+        self.assertEqual(material[1], (0.0, 0.0, 0.0, 0.0))
+        self.assertEqual(material[2], "assets/grid.png")
+
+        material = materials[5]
+        self.assertEqual(material[0], "yellow")
+        self.assertEqual(material[1], (1.0, 1.0, 0.0, 1.0))
+        self.assertEqual(material[2], None)
 
     def test_get_transmissions(self):
         # Get the root element.

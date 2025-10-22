@@ -1,11 +1,19 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
+import tempfile
 from dataclasses import dataclass
 
 import usdex.core
-from pxr import Sdf, Tf, UsdGeom
+from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
+from ._flatten import export_flattened
+from .data import ConversionData, Tokens
+from .link import convert_links
+from .material import convert_materials
+from .mesh import convert_meshes
+from .scene import convert_scene
+from .urdf_parser.parser import URDFParser
 from .utils import get_authoring_metadata
 
 __all__ = ["Converter"]
@@ -45,19 +53,79 @@ class Converter:
         if output_path.exists() and not output_path.is_dir():
             raise ValueError(f"Output directory {output_dir} is not a directory")
 
-        if not output_path.exists():
-            output_path.mkdir(parents=True)
-
-        file_name = f"{input_path.stem}.usda"
-        asset_identifier = str(output_path / file_name)
         Tf.Status(f"Converting {input_path} into {output_path}")
+
+        # Parsing XML.
+        parser = URDFParser(input_path)
+        parser.parse()
+
+        # Create the conversion data object
+        data = ConversionData(
+            urdf_parser=parser,
+            content={},
+            libraries={},
+            references={},
+            name_cache=usdex.core.NameCache(),
+            scene=self.params.scene,
+            comment=self.params.comment,
+        )
+
+        # setup the main output layer (which will become an asset interface later)
+        robot_name = parser.get_robot_name()
+
+        if not self.params.layer_structure:
+            asset_dir = tempfile.mkdtemp()
+            asset_format = "usdc"
+        else:
+            asset_dir = output_path.absolute().as_posix()
+            asset_format = "usda"
+        asset_stem = f"{robot_name}"
+        asset_identifier = str(pathlib.Path(asset_dir) / f"{asset_stem}.{asset_format}")
+        asset_name = usdex.core.getValidPrimName(robot_name)
         asset_stage = usdex.core.createStage(
             asset_identifier,
-            defaultPrimName="Robot",  # TODO: use parsed name
+            defaultPrimName=asset_name,
             upAxis=UsdGeom.Tokens.z,
             linearUnits=UsdGeom.LinearUnits.meters,
             authoringMetadata=get_authoring_metadata(),
         )
-        # TODO: implement core logic
-        usdex.core.saveStage(asset_stage, comment=self.params.comment)
+
+        data.content[Tokens.Asset] = asset_stage
+        data.content[Tokens.Asset].SetMetadata(UsdPhysics.Tokens.kilogramsPerUnit, 1)
+        root: Usd.Prim = usdex.core.defineXform(asset_stage, asset_stage.GetDefaultPrim().GetPath()).GetPrim()
+        if asset_name != robot_name:
+            usdex.core.setDisplayName(root, robot_name)
+
+        # setup the root layer of the payload
+        data.content[Tokens.Contents] = usdex.core.createAssetPayload(asset_stage)
+
+        # author the mesh library
+        convert_meshes(data)
+        # setup a content layer for referenced meshes
+        data.content[Tokens.Geometry] = usdex.core.addAssetContent(data.content[Tokens.Contents], Tokens.Geometry, format="usda")
+
+        # author the material library and setup the content layer for materials only if there are materials
+        convert_materials(data)
+
+        # setup a content layer for physics
+        data.content[Tokens.Physics] = usdex.core.addAssetContent(data.content[Tokens.Contents], Tokens.Physics, format="usda")
+        data.content[Tokens.Physics].SetMetadata(UsdPhysics.Tokens.kilogramsPerUnit, 1)
+        data.references[Tokens.Physics] = {}
+
+        # author the physics scene
+        if self.params.scene:
+            convert_scene(data)
+
+        # Joints and links are converted into a hierarchical structure
+        convert_links(data)
+
+        # create the asset interface
+        usdex.core.addAssetInterface(asset_stage, source=data.content[Tokens.Contents])
+
+        # optionally flatten the asset
+        if not self.params.layer_structure:
+            export_flattened(asset_stage, output_dir, asset_dir, asset_stem, asset_format, self.params.comment)
+        else:
+            usdex.core.saveStage(asset_stage, comment=self.params.comment)
+
         return Sdf.AssetPath(asset_identifier)

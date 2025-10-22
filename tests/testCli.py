@@ -5,7 +5,7 @@ import shutil
 from unittest.mock import patch
 
 import usdex.test
-from pxr import Tf
+from pxr import Sdf, Tf, Usd
 
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.cli import run
@@ -17,10 +17,39 @@ class TestCli(ConverterTestCase):
         for robot in pathlib.Path("tests/data").glob("*.urdf"):
             robot_name = robot.stem
             with patch("sys.argv", ["urdf_usd_converter", str(robot), self.tmpDir()]):
-                self.assertEqual(run(), 0, f"Failed to convert {robot}")
-            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+                # If the filename is "error_" an error should be returned.
+                if robot_name.startswith("error_"):
+                    self.assertEqual(run(), 1, f"Expected non-zero exit code for error {robot}")
+                else:
+                    self.assertEqual(run(), 0, f"Failed to convert {robot}")
+                    self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
 
-    # TODO: test_no_layer_structure, test_no_physics_scene, test_comment
+    def test_no_layer_structure(self):
+        model = "tests/data/simple_box.urdf"
+        robot_name = pathlib.Path(model).stem
+        with patch("sys.argv", ["urdf_usd_converter", model, self.tmpDir(), "--no-layer-structure"]):
+            self.assertEqual(run(), 0, f"Failed to convert {model}")
+            self.assertFalse((pathlib.Path(self.tmpDir()) / "Payload").exists())
+            self.assertFalse((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usdc").exists())
+
+    def test_no_physics_scene(self):
+        model = "tests/data/simple_box.urdf"
+        robot_name = pathlib.Path(model).stem
+        with patch("sys.argv", ["urdf_usd_converter", model, self.tmpDir(), "--no-physics-scene"]):
+            self.assertEqual(run(), 0, f"Failed to convert {model}")
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+            stage = Usd.Stage.Open((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").as_posix())
+            self.assertFalse(stage.GetPrimAtPath("/PhysicsScene").IsValid())
+
+    def test_comment(self):
+        model = "tests/data/simple_box.urdf"
+        robot_name = pathlib.Path(model).stem
+        with patch("sys.argv", ["urdf_usd_converter", model, self.tmpDir(), "--comment", "from the unittests"]):
+            self.assertEqual(run(), 0, f"Failed to convert {model}")
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+            layer = Sdf.Layer.FindOrOpen((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").as_posix())
+            self.assertEqual(layer.comment, "from the unittests")
 
     def test_invalid_input(self):
         with (
