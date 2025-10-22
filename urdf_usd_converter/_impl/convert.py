@@ -8,8 +8,8 @@ import usdex.core
 from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from ._flatten import export_flattened
-from .body import convert_bodies
 from .data import ConversionData, Tokens
+from .link import convert_links
 from .material import convert_materials
 from .mesh import convert_meshes
 from .scene import convert_scene
@@ -116,8 +116,8 @@ class Converter:
         if self.params.scene:
             convert_scene(data)
 
-        # author the kinematic tree
-        convert_bodies(data)
+        # Joints and links are converted into a hierarchical structure
+        convert_links(data)
 
         # create the asset interface
         usdex.core.addAssetInterface(asset_stage, source=data.content[Tokens.Contents])
