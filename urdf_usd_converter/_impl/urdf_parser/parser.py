@@ -54,6 +54,10 @@ class URDFParser:
         # A list of mesh file paths and scales.
         self.meshes: list[tuple[str, tuple[float, float, float]]] = []
 
+        # A list of material colors and file paths.
+        # However, this does not include materials used in mesh(dae, obj).
+        self.materials: list[tuple[str, tuple[float, float, float, float], str]] = []
+
         self.texture_paths: list[str] = []
 
     def parse(self):
@@ -74,6 +78,9 @@ class URDFParser:
 
             # Store the meshes data.
             self._store_meshes()
+
+            # Store the materials data.
+            self._store_materials()
 
         except Exception as e:
             raise RuntimeError(f"Error parsing XML: {e}")
@@ -119,6 +126,15 @@ class URDFParser:
             A list of tuples containing the mesh filename and scale.
         """
         return self.meshes
+
+    def get_materials(self) -> list[tuple[str, tuple[float, float, float, float], str]]:
+        """
+        Get the materials.
+
+        Returns:
+            A list of tuples containing the material name, color, and file path.
+        """
+        return self.materials
 
     def get_undefined_elements(self) -> list[UndefinedData]:
         """
@@ -225,6 +241,7 @@ class URDFParser:
                 element,
                 ElementRobot
                 | ElementMaterialGlobal
+                | ElementMaterial
                 | ElementLink
                 | ElementJoint
                 | ElementTransmission
@@ -567,6 +584,29 @@ class URDFParser:
                     break
             else:
                 self.meshes.append((geometry.filename, scale))
+
+    def _store_materials(self):
+        """
+        Store the materials.
+        A material has a name, color, and file path.
+        """
+        # Global material names are unique, so they are stored as is.
+        for material in self.root_element.materials:
+            color = material.color.get_with_default("rgba") if material.color else (0.0, 0.0, 0.0, 0.0)
+            texture = material.texture.get_with_default("filename") if material.texture else None
+            self.materials.append((material.name, color, texture))
+
+        for link in self.root_element.links:
+            if link.visual and link.visual.material:
+                visual_material = link.visual.material
+
+                # If the material name is already stored, skip it.
+                if visual_material.name in [material[0] for material in self.materials]:
+                    continue
+
+                color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
+                texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
+                self.materials.append((visual_material.name, color, texture))
 
     def _get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         """

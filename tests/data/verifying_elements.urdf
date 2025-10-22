@@ -59,7 +59,9 @@
       <geometry>
         <cylinder radius="0.5" length="1"/>
       </geometry>
-      <material name="blue"/>
+      <material name="yellow"> <!-- New materials that do not exist in the global materials -->
+        <color rgba="1.0 1.0 0.0 1"/>
+      </material>
     </visual>
     <collision>
       <origin xyz="2 0 0.5"/>  <!-- Omit rpy -->
