@@ -8,6 +8,11 @@ __all__ = ["convert_materials"]
 
 
 def convert_materials(data: ConversionData):
-    # TODO: Implement
+    materials = data.urdf_parser.get_materials()
+    if not len(materials):
+        return
+
     data.libraries[Tokens.Materials] = usdex.core.addAssetLibrary(data.content[Tokens.Contents], Tokens.Materials, format="usdc")
     data.references[Tokens.Materials] = {}
+
+    # TODO: Implement

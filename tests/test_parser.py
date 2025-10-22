@@ -222,6 +222,14 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*transmission: Transmission name 'transmission_1' already exists \(line: 8\).*"):
             parser.parse()
 
+    def test_has_no_material(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/simple_box_no_material.urdf")
+        parser = URDFParser(model_path)
+
+        materials = parser.get_materials()
+        self.assertEqual(len(materials), 0)
+
     def test_get_basic_information(self):
         # Get basic information about a URDF.
 
