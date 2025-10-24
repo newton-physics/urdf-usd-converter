@@ -39,7 +39,7 @@ class TestJoints(ConverterTestCase):
 
         physics_fixed_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/joint_root")
         self.assertIsNotNone(physics_fixed_joint_prim)
-        self.assertEqual(physics_fixed_joint_prim.GetTypeName(), "PhysicsFixedJoint")
+        self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
         fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
         self.assertEqual(fixed_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink"])
         self.assertEqual(fixed_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink/tn__Arm1_j8"])
@@ -50,7 +50,7 @@ class TestJoints(ConverterTestCase):
 
         physics_revolute_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/tn__joint_arm1_wJ")
         self.assertIsNotNone(physics_revolute_joint_prim)
-        self.assertEqual(physics_revolute_joint_prim.GetTypeName(), "PhysicsRevoluteJoint")
+        self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
         revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
         self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink/tn__Arm1_j8"])
         self.assertEqual(revolute_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
@@ -86,7 +86,7 @@ class TestJoints(ConverterTestCase):
 
         physics_fixed_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/joint_root")
         self.assertIsNotNone(physics_fixed_joint_prim)
-        self.assertEqual(physics_fixed_joint_prim.GetTypeName(), "PhysicsFixedJoint")
+        self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
         fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
         self.assertEqual(fixed_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_continuous_joints/Geometry/BaseLink"])
         self.assertEqual(fixed_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_continuous_joints/Geometry/BaseLink/tn__Arm1_j8"])
@@ -97,7 +97,7 @@ class TestJoints(ConverterTestCase):
 
         physics_revolute_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/tn__joint_arm1_wJ")
         self.assertIsNotNone(physics_revolute_joint_prim)
-        self.assertEqual(physics_revolute_joint_prim.GetTypeName(), "PhysicsRevoluteJoint")
+        self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
         revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
         self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_continuous_joints/Geometry/BaseLink/tn__Arm1_j8"])
         self.assertEqual(revolute_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_continuous_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
@@ -133,7 +133,7 @@ class TestJoints(ConverterTestCase):
 
         physics_fixed_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/joint_root")
         self.assertIsNotNone(physics_fixed_joint_prim)
-        self.assertEqual(physics_fixed_joint_prim.GetTypeName(), "PhysicsFixedJoint")
+        self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
         fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
         self.assertEqual(fixed_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink"])
         self.assertEqual(fixed_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8"])
@@ -144,7 +144,7 @@ class TestJoints(ConverterTestCase):
 
         physics_prismatic_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/tn__joint_arm1_wJ")
         self.assertIsNotNone(physics_prismatic_joint_prim)
-        self.assertEqual(physics_prismatic_joint_prim.GetTypeName(), "PhysicsPrismaticJoint")
+        self.assertTrue(physics_prismatic_joint_prim.IsA(UsdPhysics.PrismaticJoint))
         prismatic_joint = UsdPhysics.PrismaticJoint(physics_prismatic_joint_prim)
         self.assertEqual(prismatic_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8"])
         self.assertEqual(prismatic_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
