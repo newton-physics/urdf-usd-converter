@@ -1,4 +1,4 @@
-<?xml verison="1.0"?>
+<?xml version="1.0"?>
 <robot name="simple_box">
   <material name="blue">
     <color rgba="0.0 0.0 1.0 1.0"/>

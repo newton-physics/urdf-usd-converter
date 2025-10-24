@@ -34,3 +34,14 @@ class TestConverter(ConverterTestCase):
         asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+    def test_joint_loop_structure(self):
+        # Joint loop structure error check.
+
+        # If the output directory does not exist.
+        input_path = "tests/data/error_convert_loop_joint_structure.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "error_convert_loop_joint_structure")
+
+        converter = Converter()
+        with self.assertRaisesRegex(ValueError, r".*No root link found. The joint structure is a loop.*"):
+            converter.convert(input_path, output_dir)

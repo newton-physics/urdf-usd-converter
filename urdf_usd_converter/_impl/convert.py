@@ -8,6 +8,7 @@ import usdex.core
 from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from ._flatten import export_flattened
+from .conversion_mesh_data import ConversionMeshData
 from .data import ConversionData, Tokens
 from .link import convert_links
 from .material import convert_materials
@@ -69,6 +70,7 @@ class Converter:
             name_cache=usdex.core.NameCache(),
             scene=self.params.scene,
             comment=self.params.comment,
+            mesh_data=ConversionMeshData(),
         )
 
         # setup the main output layer (which will become an asset interface later)
