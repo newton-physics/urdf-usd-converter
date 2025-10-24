@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<robot name="error_convert_loop_joint_structure">
+  <link name="link1">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link2">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link3">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_1" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="link1"/>
+    <child link="link2"/>
+  </joint>
+  <joint name="joint_2" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="link2"/>
+    <child link="link3"/>
+  </joint>
+
+  <!-- This is a loop joint structure. -->
+  <!-- In this case, an error will occur when converting from URDF to USD. -->
+  <joint name="joint_3" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="link3"/>
+    <child link="link1"/>
+  </joint>
+</robot>

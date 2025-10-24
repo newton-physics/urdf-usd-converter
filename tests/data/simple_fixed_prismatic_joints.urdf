@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<robot name="simple_fixed_prismatic_joints">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0 0"/>
+      <geometry>
+        <box size="0.2 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm:1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm:2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_root" type="fixed">
+    <origin rpy="0 0 0" xyz="0.15 0 0.0"/>
+    <parent link="BaseLink"/>
+    <child link="Arm:1"/>
+  </joint>
+  <joint name="joint_arm:1" type="prismatic">
+    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <parent link="Arm:1"/>
+    <child link="Arm:2"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0.5" effort="0" velocity="0.01"/>
+  </joint>
+</robot>
