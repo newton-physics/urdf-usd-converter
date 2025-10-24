@@ -3,15 +3,13 @@
 import pathlib
 from unittest.mock import patch
 
+from pxr import Usd, UsdGeom
+
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.convert import Converter
 
 
 class TestMeshes(ConverterTestCase):
-    def setUp(self):
-        super().setUp()
-        self.tolerance = 1e-6
-
     @patch("urdf_usd_converter._impl.mesh.Tf.Warn")
     def test_mesh_conversion(self, mock_warn):
         input_path = "tests/data/simple_meshes.urdf"
@@ -26,13 +24,10 @@ class TestMeshes(ConverterTestCase):
         mock_warn.assert_called()
 
         # Check if any call contains the mesh format warning
-        warning_stl_found = False
         warning_obj_found = False
         warning_dae_found = False
         warning_dxf_found = False
         for call in mock_warn.call_args_list:
-            if "The stl format is not yet supported: .stl" in str(call):
-                warning_stl_found = True
             if "The obj format is not yet supported: .obj" in str(call):
                 warning_obj_found = True
             if "The dae format is not yet supported: .dae" in str(call):
@@ -40,7 +35,26 @@ class TestMeshes(ConverterTestCase):
             if "Unsupported mesh format: .dxf" in str(call):
                 warning_dxf_found = True
 
-        self.assertTrue(warning_stl_found, "Expected warning about stl format not found.")
         self.assertTrue(warning_obj_found, "Expected warning about obj format not found.")
         self.assertTrue(warning_dae_found, "Expected warning about dae format not found.")
         self.assertTrue(warning_dxf_found, "Expected warning about dxf format not found.")
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        # Test STL mesh conversion
+        stl_mesh_prim = stage.GetPrimAtPath("/simple_meshes/Geometry/link_mesh_stl/box")
+        self.assertIsNotNone(stl_mesh_prim)
+        self.assertTrue(stl_mesh_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(stl_mesh_prim.GetReferences())
+
+        usd_mesh_stl = UsdGeom.Mesh(stl_mesh_prim)
+        self.assertTrue(usd_mesh_stl.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_stl.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_stl.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        # The sample box.stl has normals and they are authored as a primvar
+        self.assertFalse(usd_mesh_stl.GetNormalsAttr().HasAuthoredValue())
+        normals_primvar: UsdGeom.Primvar = UsdGeom.PrimvarsAPI(usd_mesh_stl).GetPrimvar("normals")
+        self.assertTrue(normals_primvar.IsDefined())
+        self.assertTrue(normals_primvar.HasAuthoredValue())
+        self.assertTrue(normals_primvar.GetIndicesAttr().HasAuthoredValue())
