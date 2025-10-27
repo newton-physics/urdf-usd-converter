@@ -134,12 +134,10 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
 
     # Create visual or collision geometry.
     geometry_basses = []
-    has_collision = False
     if link.visual and link.visual.geometry:
         geometry_basses.append(link.visual)
     if link.collision and link.collision.geometry:
         geometry_basses.append(link.collision)
-        has_collision = True
 
     for geometry_base in geometry_basses:
         name = geometry_base.name if geometry_base.name else link.name
@@ -154,8 +152,11 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
                 geom_prim.GetPurposeAttr().Set(UsdGeom.Tokens.guide)
 
             # Set the physics rigidbody and collision for the geometry.
-            if not is_collision:
-                apply_physics_collision(geom_prim.GetPrim(), has_collision, data)
+            if is_collision:
+                # Apply CollisionAPI to collision geometry
+                apply_physics_collision_mesh(geom_prim.GetPrim(), data)
+            else:
+                # Apply inertial to visual geometry
                 apply_inertial(geom_prim.GetPrim(), link, data)
 
     children = link_hierarchy.get_link_children(link.name)
@@ -177,14 +178,22 @@ def apply_physics_rigidbody(prim: Usd.Prim, data: ConversionData):
     UsdPhysics.RigidBodyAPI.Apply(prim_over)
 
 
-def apply_physics_collision(geom_prim: Usd.Prim, has_collision: bool, data: ConversionData):
+def apply_physics_collision_mesh(geom_prim: Usd.Prim, data: ConversionData):
     """
-    Apply the physics collision to a geometry.
+    Apply the physics collision to a collision mesh geometry.
+    This applies CollisionAPI and MeshCollisionAPI (for mesh types).
     """
     geom_over = data.content[Tokens.Physics].OverridePrim(geom_prim.GetPath())
+
+    # Apply CollisionAPI
     collider: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI.Apply(geom_over)
-    if not has_collision:
-        collider.CreateCollisionEnabledAttr().Set(False)
+    collider.CreateCollisionEnabledAttr().Set(True)
+
+    # If it's a mesh, apply MeshCollisionAPI with appropriate approximation
+    if geom_prim.IsA(UsdGeom.Mesh):
+        mesh_collider: UsdPhysics.MeshCollisionAPI = UsdPhysics.MeshCollisionAPI.Apply(geom_over)
+        # Use 'none' to use the mesh as-is
+        mesh_collider.CreateApproximationAttr().Set(UsdPhysics.Tokens.none)
 
 
 def apply_inertial(geom_prim: Usd.Prim, link: ElementLink, data: ConversionData):
