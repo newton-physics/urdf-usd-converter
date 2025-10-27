@@ -8,10 +8,6 @@ from urdf_usd_converter._impl.convert import Converter
 
 
 class TestMeshes(ConverterTestCase):
-    def setUp(self):
-        super().setUp()
-        self.tolerance = 1e-6
-
     @patch("urdf_usd_converter._impl.mesh.Tf.Warn")
     def test_mesh_conversion(self, mock_warn):
         input_path = "tests/data/simple_meshes.urdf"
