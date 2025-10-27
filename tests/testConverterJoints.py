@@ -10,7 +10,7 @@ from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.convert import Converter
 
 
-class TestJoints(ConverterTestCase):
+class TestConverterJoints(ConverterTestCase):
     def setUp(self):
         super().setUp()
         self.tolerance = 1e-6
@@ -34,10 +34,10 @@ class TestJoints(ConverterTestCase):
         self.assertIsNotNone(default_prim)
         default_prim_path = default_prim.GetPath()
 
-        physics_scope_prim = stage.GetPrimAtPath(f"{default_prim_path}/Physics")
+        physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertIsNotNone(physics_scope_prim)
 
-        physics_fixed_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/joint_root")
+        physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertIsNotNone(physics_fixed_joint_prim)
         self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
         fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
@@ -48,7 +48,7 @@ class TestJoints(ConverterTestCase):
         self.assertEqual(fixed_joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, Gf.Vec3f(0, 0, 0)))
         self.assertEqual(fixed_joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, Gf.Vec3f(0, 0, 0)))
 
-        physics_revolute_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/tn__joint_arm1_wJ")
+        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("tn__joint_arm1_wJ"))
         self.assertIsNotNone(physics_revolute_joint_prim)
         self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
         revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
@@ -81,10 +81,10 @@ class TestJoints(ConverterTestCase):
         self.assertIsNotNone(default_prim)
         default_prim_path = default_prim.GetPath()
 
-        physics_scope_prim = stage.GetPrimAtPath(f"{default_prim_path}/Physics")
+        physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertIsNotNone(physics_scope_prim)
 
-        physics_fixed_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/joint_root")
+        physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertIsNotNone(physics_fixed_joint_prim)
         self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
         fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
@@ -95,7 +95,7 @@ class TestJoints(ConverterTestCase):
         self.assertEqual(fixed_joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, Gf.Vec3f(0, 0, 0)))
         self.assertEqual(fixed_joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, Gf.Vec3f(0, 0, 0)))
 
-        physics_revolute_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/tn__joint_arm1_wJ")
+        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("tn__joint_arm1_wJ"))
         self.assertIsNotNone(physics_revolute_joint_prim)
         self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
         revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
@@ -128,10 +128,10 @@ class TestJoints(ConverterTestCase):
         self.assertIsNotNone(default_prim)
         default_prim_path = default_prim.GetPath()
 
-        physics_scope_prim = stage.GetPrimAtPath(f"{default_prim_path}/Physics")
+        physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertIsNotNone(physics_scope_prim)
 
-        physics_fixed_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/joint_root")
+        physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertIsNotNone(physics_fixed_joint_prim)
         self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
         fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
@@ -142,7 +142,7 @@ class TestJoints(ConverterTestCase):
         self.assertEqual(fixed_joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, Gf.Vec3f(0, 0, 0)))
         self.assertEqual(fixed_joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, Gf.Vec3f(0, 0, 0)))
 
-        physics_prismatic_joint_prim = stage.GetPrimAtPath(f"{physics_scope_prim.GetPath()}/tn__joint_arm1_wJ")
+        physics_prismatic_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("tn__joint_arm1_wJ"))
         self.assertIsNotNone(physics_prismatic_joint_prim)
         self.assertTrue(physics_prismatic_joint_prim.IsA(UsdPhysics.PrismaticJoint))
         prismatic_joint = UsdPhysics.PrismaticJoint(physics_prismatic_joint_prim)
