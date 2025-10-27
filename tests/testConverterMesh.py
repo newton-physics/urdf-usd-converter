@@ -7,7 +7,7 @@ from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.convert import Converter
 
 
-class TestMeshes(ConverterTestCase):
+class TestConverterMeshes(ConverterTestCase):
     @patch("urdf_usd_converter._impl.mesh.Tf.Warn")
     def test_mesh_conversion(self, mock_warn):
         input_path = "tests/data/simple_meshes.urdf"
