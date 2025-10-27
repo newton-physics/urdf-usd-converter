@@ -156,6 +156,30 @@ class TestConverterJoints(ConverterTestCase):
         self.assertTrue(Gf.IsClose(prismatic_joint.GetLowerLimitAttr().Get(), 0, self.tolerance))
         self.assertTrue(Gf.IsClose(prismatic_joint.GetUpperLimitAttr().Get(), 0.5, self.tolerance))
 
+    def test_fixed_planar_joints(self):
+        input_path = "tests/data/simple_fixed_planar_joints.urdf"
+        output_dir = self.tmpDir()
+
+        converter = Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        physics_scene_prim = stage.GetPrimAtPath("/PhysicsScene")
+        self.assertIsNotNone(physics_scene_prim)
+
+        default_prim = stage.GetDefaultPrim()
+        self.assertIsNotNone(default_prim)
+        default_prim_path = default_prim.GetPath()
+
+        physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
+        self.assertIsNotNone(physics_scope_prim)
+
+        # TODO: Implement test for fixed planar joints.
+
     @patch("urdf_usd_converter._impl.link.Tf.Warn")
     def test_fixed_floating_joints(self, mock_warn):
         input_path = "tests/data/simple_fixed_floating_joints.urdf"
@@ -177,25 +201,3 @@ class TestConverterJoints(ConverterTestCase):
                 break
 
         self.assertTrue(warning_found, "Expected warning about floating joints not found.")
-
-    @patch("urdf_usd_converter._impl.link.Tf.Warn")
-    def test_fixed_planar_joints(self, mock_warn):
-        input_path = "tests/data/simple_fixed_planar_joints.urdf"
-        output_dir = self.tmpDir()
-
-        converter = Converter()
-        asset_path = converter.convert(input_path, output_dir)
-        self.assertIsNotNone(asset_path)
-        self.assertTrue(pathlib.Path(asset_path.path).exists())
-
-        # Verify that Tf.Warn was called with the expected message
-        mock_warn.assert_called()
-
-        # Check if any call contains the floating joints warning
-        warning_found = False
-        for call in mock_warn.call_args_list:
-            if "Planar joints are not yet implemented" in str(call):
-                warning_found = True
-                break
-
-        self.assertTrue(warning_found, "Expected warning about planar joints not found.")
