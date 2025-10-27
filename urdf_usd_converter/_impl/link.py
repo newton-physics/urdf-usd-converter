@@ -8,6 +8,7 @@ from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
+from .planar_joint import define_physics_planar_joint
 from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
@@ -284,8 +285,7 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         elif joint.type == "floating":
             Tf.Warn("Floating joints are not supported.")
         elif joint.type == "planar":
-            # TODO: Implement planar joints.
-            Tf.Warn("Planar joints are not yet implemented.")
+            physics_joint = define_physics_planar_joint(parent, joint_safe_name, body0, body1, joint_frame, axis)
 
         if physics_joint:
             if joint.name != joint_safe_name:
