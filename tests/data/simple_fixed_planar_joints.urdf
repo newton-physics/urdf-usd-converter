@@ -8,7 +8,7 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:1">
+  <link name="link1">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0.15"/>
       <geometry>
@@ -16,11 +16,67 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:2">
+  <link name="planar_negative_z">
     <visual>
-      <origin rpy="0 0 0" xyz="0 0 0.1"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <box size="1.5 1.5 0.1"/>
+        <box size="1.0 1.0 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_z">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="1.0 1.0 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_negative_y">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="1.0 0.1 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_y">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="1.0 0.1 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_negative_x">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.1 1.0 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_x">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.1 1.0 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_tilt">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.5 0.5 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="planar_tilt_axis_len_0">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.5 0.5 0.1"/>
       </geometry>
     </visual>
   </link>
@@ -28,12 +84,56 @@
   <joint name="joint_root" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.15"/>
     <parent link="BaseLink"/>
-    <child link="Arm:1"/>
+    <child link="link1"/>
   </joint>
-  <joint name="joint_arm:1" type="planar">
+  <joint name="joint_planar_axis_z" type="planar">
     <origin rpy="0 0 0" xyz="0 0 0.35"/>
-    <parent link="Arm:1"/>
-    <child link="Arm:2"/>
+    <parent link="link1"/>
+    <child link="planar_z"/>
     <axis xyz="0 0 1"/>
   </joint>
+  <joint name="joint_planar_axis_negative_z" type="planar">
+    <origin rpy="0 0 0" xyz="0 0 0.7"/>
+    <parent link="link1"/>
+    <child link="planar_negative_z"/>
+    <axis xyz="0 0 -1"/>
+  </joint>
+  <joint name="joint_planar_axis_y" type="planar">
+    <origin rpy="0 0 0" xyz="0 1 0"/>
+    <parent link="link1"/>
+    <child link="planar_y"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="joint_planar_axis_negative_y" type="planar">
+    <origin rpy="0 0 0" xyz="0 2 0"/>
+    <parent link="link1"/>
+    <child link="planar_negative_y"/>
+    <axis xyz="0 -1 0"/>
+  </joint>
+  <joint name="joint_planar_axis_x" type="planar">
+    <origin rpy="0 0 0" xyz="-1 0 0"/>
+    <parent link="link1"/>
+    <child link="planar_x"/>
+    <axis xyz="1 0 0"/>
+  </joint>
+  <joint name="joint_planar_axis_negaive_x" type="planar">
+    <origin rpy="0 0 0" xyz="-2 0 0"/>
+    <parent link="link1"/>
+    <child link="planar_negative_x"/>
+    <axis xyz="-1 0 0"/>
+  </joint>
+
+  <joint name="joint_planar_axis_tilt" type="planar">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link1"/>
+    <child link="planar_tilt"/>
+    <axis xyz="0.2 0.3 1"/>
+  </joint>
+  <joint name="joint_planar_axis_tilt_axis_len_0" type="planar">
+    <origin rpy="0 0 0" xyz="1 0 0.5"/>
+    <parent link="link1"/>
+    <child link="planar_tilt_axis_len_0"/>
+    <axis xyz="0 0 0"/>
+  </joint>
+
 </robot>
