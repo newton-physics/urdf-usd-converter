@@ -20,7 +20,7 @@ def define_physics_planar_joint(
 
     joint = UsdPhysics.Joint.Define(stage, path)
     if not joint:
-        Tf.Error(f'Unable to define UsdPhysics.Joint at "{path.GetAsString()}"')
+        Tf.Error(f'Unable to define UsdPhysics.Joint at "{path}"')
         return None
 
     prim = joint.GetPrim()
@@ -28,11 +28,11 @@ def define_physics_planar_joint(
     prim.SetTypeName(prim.GetTypeName())
 
     if body0 and not joint.GetBody0Rel().SetTargets([body0.GetPath()]):
-        Tf.Error(f'Unable to set body0( "{body0.GetPath().GetAsString()}" ) for PhysicsPlanarJoint at "{path.GetAsString()}"')
+        Tf.Error(f'Unable to set body0( "{body0.GetPath()}" ) for PhysicsPlanarJoint at "{path}"')
         return None
 
     if body1 and not joint.GetBody1Rel().SetTargets([body1.GetPath()]):
-        Tf.Error(f'Unable to set body1( "{body1.GetPath().GetAsString()}" ) for PhysicsPlanarJoint at "{path.GetAsString()}"')
+        Tf.Error(f'Unable to set body1( "{body1.GetPath()}" ) for PhysicsPlanarJoint at "{path}"')
         return None
 
     _orientation = joint_frame.orientation
@@ -112,16 +112,6 @@ def _align_vector_to_x_axis(axis: Gf.Vec3f) -> Gf.Quatd:
 
     if axis.GetLength() < epsilon:
         return Gf.Quatd.GetIdentity()
-
-    # If the vector is already aligned with the X-axis or directly opposite
-    # Handle these edge cases to prevent division by zero or incorrect axis.
-    if abs(axis[0] - 1.0) < epsilon:
-        # When axis is (1, 0, 0).
-        return Gf.Quatd.GetIdentity()
-    elif abs(axis[0] + 1.0) < epsilon:
-        # When axis is (-1, 0, 0).
-        # If aligned with negative X-axis, rotate 180 degrees around Y-axis (or Z-axis)
-        return Gf.Quatd(0.0, 0.0, 1.0, 0.0)  # Quaternion for 180 deg around Y-axis (w=0, x=0, y=sin(90), z=0)
 
     # Calculate the rotation axis (cross product of XAxis and axis)
     rotation_axis = Gf.Cross(Gf.Vec3f(1.0, 0.0, 0.0), axis)

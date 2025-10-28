@@ -267,7 +267,7 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         body1 = data.references[Tokens.Physics][body1_link_name]
 
         # Specifies that the origin position of Body1 (the "child" of the joint in the URDF) is the center.
-        joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatf.GetIdentity())
+        joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
 
         axis = Gf.Vec3f(float3_to_vec3d(joint.axis.get_with_default("xyz"))) if joint.axis else Gf.Vec3f(1, 0, 0)
         limit_lower = joint.limit.get_with_default("lower") if joint.limit and joint.type != "continuous" else None
