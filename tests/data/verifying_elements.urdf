@@ -98,4 +98,8 @@
       <hardwareInterface>EffortJointInterface</hardwareInterface>
     </actuator>
   </transmission>
+
+  <gazebo>
+    <static>true</static>
+  </gazebo>
 </robot>
