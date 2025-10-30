@@ -110,9 +110,6 @@ def _align_vector_to_x_axis(axis: Gf.Vec3f) -> Gf.Quatd:
     """
     epsilon = np.finfo(np.float32).eps
 
-    if axis.GetLength() < epsilon:
-        return Gf.Quatd.GetIdentity()
-
     # Calculate the rotation axis (cross product of XAxis and axis)
     rotation_axis = Gf.Cross(Gf.Vec3f(1.0, 0.0, 0.0), axis)
     rotation_axis_norm = rotation_axis.GetNormalized()

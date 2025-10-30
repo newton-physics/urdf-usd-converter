@@ -116,7 +116,7 @@
     <child link="planar_x"/>
     <axis xyz="1 0 0"/>
   </joint>
-  <joint name="joint_planar_axis_negaive_x" type="planar">
+  <joint name="joint_planar_axis_negative_x" type="planar">
     <origin rpy="0 0 0" xyz="-2 0 0"/>
     <parent link="link1"/>
     <child link="planar_negative_x"/>
@@ -135,5 +135,4 @@
     <child link="planar_tilt_axis_len_0"/>
     <axis xyz="0 0 0"/>
   </joint>
-
 </robot>
