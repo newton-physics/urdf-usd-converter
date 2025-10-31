@@ -47,7 +47,12 @@ def run() -> int:
     Tf.Status(f"USDEX Version: {usdex.core.version()}")
 
     try:
-        converter = Converter(layer_structure=not args.no_layer_structure, scene=not args.no_physics_scene, comment=args.comment)
+        converter = Converter(
+            layer_structure=not args.no_layer_structure,
+            scene=not args.no_physics_scene,
+            comment=args.comment,
+            ros_packages=args.package,
+        )
         if result := converter.convert(args.input_file, args.output_dir):
             Tf.Status(f"Created USD Asset: {result.path}")
             return 0
@@ -60,6 +65,26 @@ def run() -> int:
         else:
             Tf.Warn(f"Conversion failed: {e}")
             return 1
+
+
+def __parse_package(value: str) -> dict[str, str]:
+    """
+    Parse the package argument.
+    For package options, specify '<name>=<path>', such as '--package my_robot=/home/foo/my_robot'.
+    This method converts them into a dictionary and returns it.
+
+    Args:
+        value: The package argument to parse.
+
+    Returns:
+        A dictionary with the package name and path.
+    """
+    if "=" not in value:
+        raise RuntimeError(f"Invalid format: {value}. Expected format: <name>=<path>")
+    name, path = value.partition("=")[::2]
+    if not name or not path:
+        raise RuntimeError(f"Invalid format: {value}. Expected format: <name>=<path>")
+    return {"name": name, "path": path}
 
 
 def __create_parser() -> argparse.ArgumentParser:
@@ -110,6 +135,14 @@ def __create_parser() -> argparse.ArgumentParser:
         "-c",
         default="",
         help="Comment to add to the USD file",
+    )
+    parser.add_argument(
+        "--package",
+        "-p",
+        type=__parse_package,
+        action="append",
+        default=[],
+        help="ROS package name and local file path (e.g. --package my_robot=/home/foo/my_robot)",
     )
 
     return parser

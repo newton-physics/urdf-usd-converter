@@ -148,3 +148,50 @@ class TestCli(ConverterTestCase):
             usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning),
         ):
             run()
+
+    def test_conversion_exception_ros_package_name_format(self):
+        robot = "tests/data/ros_packages.urdf"
+        output_dir = self.tmpDir()
+
+        # Run the converter with the specified ROS package names.
+        # Here, we will specify an incorrect CLI argument.
+        package_1 = "test_package"  # Error: If no path is specified
+        with (
+            self.assertRaisesRegex(RuntimeError, r"Invalid format: .*. Expected format: <name>=<path>"),
+            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir), "--package", package_1]),
+        ):
+            self.assertEqual(run(), 1, "Expected non-zero exit code for invalid input")
+
+    def test_conversion_exception_multiple_ros_packages_name_format(self):
+        robot = "tests/data/ros_packages.urdf"
+        output_dir = self.tmpDir()
+
+        # Run the converter with the specified ROS package names.
+        # Here, we will specify an incorrect CLI argument.
+        package_1 = "test_package=/home/foo"  # Correct specification
+        package_2 = "test_texture_package="  # Error: If no path is specified
+        with (
+            self.assertRaisesRegex(RuntimeError, r"Invalid format: .*. Expected format: <name>=<path>"),
+            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir), "--package", package_1, "--package", package_2]),
+        ):
+            self.assertEqual(run(), 1, "Expected non-zero exit code for invalid input")
+
+    def test_conversion_warning_multiple_ros_packages_invalid(self):
+        robot = "tests/data/ros_packages.urdf"
+        robot_name = pathlib.Path(robot).stem
+        output_dir = self.tmpDir()
+
+        # Run the converter with the specified ROS package names.
+        # Here, we will specify an incorrect CLI argument.
+        package_1 = "test_package=package://foo=bar"  # Error: Invalid path
+
+        with (
+            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir), "--package", package_1]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Failed to convert mesh:.*")],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
+            self.assertEqual(run(), 0, "Expected non-zero exit code for invalid input")
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
