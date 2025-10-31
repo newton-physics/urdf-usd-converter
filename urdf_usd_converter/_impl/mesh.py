@@ -10,6 +10,7 @@ from pxr import Gf, Tf, Usd, UsdGeom, Vt
 
 from .data import ConversionData, Tokens
 from .numpy import convert_vec3f_array
+from .ros_package import resolve_ros_package_paths
 
 __all__ = ["convert_meshes"]
 
@@ -37,7 +38,12 @@ def convert_meshes(data: ConversionData):
     for filename in mesh_names:
         safe_name = mesh_names[filename]["safe_name"]
 
-        filename = pathlib.Path(filename) if pathlib.Path(filename).is_absolute() else urdf_dir / pathlib.Path(filename)
+        # Resolve the ROS package paths.
+        resolved_path = resolve_ros_package_paths(filename, data) if filename.startswith("package://") else filename
+        if resolved_path != filename:
+            Tf.Status(f"Resolved ROS package path: {filename} -> {resolved_path}")
+
+        filename = pathlib.Path(resolved_path) if pathlib.Path(resolved_path).is_absolute() else urdf_dir / pathlib.Path(resolved_path)
         mesh_prim: Usd.Prim = usdex.core.defineXform(geo_scope, safe_name).GetPrim()
 
         # If there are multiple mesh names (using file names), the meshes may have the same name but different scale values.
