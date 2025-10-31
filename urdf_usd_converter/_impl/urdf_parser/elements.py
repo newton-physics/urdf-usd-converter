@@ -367,6 +367,9 @@ class ElementVisual(ElementBase):
     def __init__(self):
         super().__init__()
 
+        # attributes.
+        self.name: str | None = None
+
         # elements.
         self.origin: ElementPose | None = None
         self.geometry: ElementGeometry = None
