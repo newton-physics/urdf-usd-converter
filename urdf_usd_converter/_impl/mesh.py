@@ -29,7 +29,7 @@ def convert_meshes(data: ConversionData):
     urdf_dir = data.urdf_parser.input_file.parent
 
     for mesh, mesh_name, safe_name in zip(meshes, data.mesh_data.mesh_names, data.mesh_data.safe_names):
-        filename = urdf_dir / pathlib.Path(mesh[0])
+        filename = pathlib.Path(mesh[0]) if pathlib.Path(mesh[0]).is_absolute() else urdf_dir / pathlib.Path(mesh[0])
         scale = float3_to_vec3d(mesh[1])
 
         mesh_prim: Usd.Prim = usdex.core.defineXform(geo_scope, safe_name).GetPrim()
@@ -49,15 +49,15 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, scale: Gf.Vec3d):
     mesh_prim = None
     if input_path.suffix.lower() == ".stl":
         # TODO: Implement STL conversion.
-        Tf.Warn(f"The stl format is not yet supported: {input_path.suffix}")
+        Tf.Warn(f"The stl format is not yet supported: {input_path}")
     elif input_path.suffix.lower() == ".obj":
         # TODO: Implement OBJ conversion.
-        Tf.Warn(f"The obj format is not yet supported: {input_path.suffix}")
+        Tf.Warn(f"The obj format is not yet supported: {input_path}")
     elif input_path.suffix.lower() == ".dae":
         # TODO: Implement DAE conversion.
-        Tf.Warn(f"The dae format is not yet supported: {input_path.suffix}")
+        Tf.Warn(f"The dae format is not yet supported: {input_path}")
     else:
-        Tf.Warn(f"Unsupported mesh format: {input_path.suffix}")
+        Tf.Warn(f"Unsupported mesh format: {input_path}")
 
     if mesh_prim and scale != Gf.Vec3d(1):
         usdex.core.setLocalTransform(mesh_prim.GetPrim(), Gf.Vec3d(0), Gf.Quatf.GetIdentity(), Gf.Vec3f(scale))
