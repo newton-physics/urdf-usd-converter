@@ -521,30 +521,43 @@ class TestURDFParser(ConverterTestCase):
 
         # Get undefined elements.
         undefined_elements = self.parser.get_undefined_elements()
-        self.assertEqual(len(undefined_elements), 5)
+        self.assertEqual(len(undefined_elements), 7)
 
         element = undefined_elements[0]
+        self.assertEqual(element.tag, "gazebo")
+        self.assertEqual(element.path, "/robot/gazebo")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.line_number, 102)
+
+        element = undefined_elements[1]
+        self.assertEqual(element.tag, "static")
+        self.assertEqual(element.path, "/robot/gazebo/static")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_text, "true")
+        self.assertEqual(element.line_number, 103)
+
+        element = undefined_elements[2]
         self.assertEqual(element.tag, "custom")
         self.assertEqual(element.path, "/robot/link/visual/custom")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {})
         self.assertEqual(element.line_number, 29)
 
-        element = undefined_elements[1]
+        element = undefined_elements[3]
         self.assertEqual(element.tag, "item1")
         self.assertEqual(element.path, "/robot/link/visual/custom/item1")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"name": "data1", "value": "1"})
         self.assertEqual(element.line_number, 30)
 
-        element = undefined_elements[2]
+        element = undefined_elements[4]
         self.assertEqual(element.tag, "item2")
         self.assertEqual(element.path, "/robot/link/visual/custom/item2")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"name": "data2", "value": "2"})
         self.assertEqual(element.line_number, 31)
 
-        element = undefined_elements[3]
+        element = undefined_elements[5]
         self.assertEqual(element.tag, "data")
         self.assertEqual(element.path, "/robot/link/visual/custom/data")
         self.assertEqual(element.undefined_element, True)
@@ -554,7 +567,7 @@ class TestURDFParser(ConverterTestCase):
 
         # When adding custom attributes to an existing element.
         # In this case, element.undefined_element will be False.
-        element = undefined_elements[4]
+        element = undefined_elements[6]
         self.assertEqual(element.tag, "visual")
         self.assertEqual(element.path, "/robot/link/visual")
         self.assertEqual(element.undefined_element, False)
