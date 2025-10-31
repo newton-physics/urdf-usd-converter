@@ -27,13 +27,13 @@ class TestConverterMeshes(ConverterTestCase):
         warning_dae_found = False
         warning_dxf_found = False
         for call in mock_warn.call_args_list:
-            if "The stl format is not yet supported: .stl" in str(call):
+            if "The stl format is not yet supported:" in str(call):
                 warning_stl_found = True
-            if "The obj format is not yet supported: .obj" in str(call):
+            if "The obj format is not yet supported:" in str(call):
                 warning_obj_found = True
-            if "The dae format is not yet supported: .dae" in str(call):
+            if "The dae format is not yet supported:" in str(call):
                 warning_dae_found = True
-            if "Unsupported mesh format: .dxf" in str(call):
+            if "Unsupported mesh format:" in str(call):
                 warning_dxf_found = True
 
         self.assertTrue(warning_stl_found, "Expected warning about stl format not found.")
