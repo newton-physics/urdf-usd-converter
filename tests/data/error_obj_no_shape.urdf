@@ -1,0 +1,11 @@
+<robot name="obj_no_shape">
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <!-- This is a deliberate mistake.  -->
+        <!-- There is no shape. -->
+        <mesh filename="assets/no_shape.obj"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>
