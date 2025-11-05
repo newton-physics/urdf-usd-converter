@@ -50,7 +50,6 @@ def convert_cylinder(parent: Usd.Prim, name: str, cylinder: ElementCylinder, dat
 def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: ConversionData) -> UsdGeom.Gprim:
     filename = mesh.get_with_default("filename")
     scale = mesh.get_with_default("scale")
-    mesh_name = data.mesh_data.get_name(filename, scale)
     mesh_safe_name = data.mesh_data.get_safe_name(filename, scale)
 
     ref_mesh: Usd.Prim = data.references[Tokens.Geometry].get(mesh_safe_name)
@@ -58,7 +57,7 @@ def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: Conversio
         # The process never gets here.
         Tf.RaiseRuntimeError(f"Mesh '{mesh_safe_name}' not found in Geometry Library {data.libraries[Tokens.Geometry].GetRootLayer().identifier}")
 
-    prim = usdex.core.defineReference(parent, ref_mesh, mesh_name)
+    prim = usdex.core.defineReference(parent, ref_mesh, name)
     # the reference mesh may have an invalid source name, and thus a display name
     # however, the prim name may already be valid and override this, in which case
     # we need to block the referenced display name
