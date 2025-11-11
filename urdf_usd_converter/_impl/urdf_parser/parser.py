@@ -409,9 +409,9 @@ class URDFParser:
 
         elif prev_element_type == ElementLink:
             if node.tag == "visual":
-                prev_element.visual = element
+                prev_element.visuals.append(element)
             elif node.tag == "collision":
-                prev_element.collision = element
+                prev_element.collisions.append(element)
             elif node.tag == "inertial":
                 prev_element.inertial = element
 
@@ -503,15 +503,16 @@ class URDFParser:
         """
         # If there is a material name in the link, check if there is a material with that name in self.root_element.materials.
         for link in self.root_element.links:
-            if link.visual and link.visual.material:
-                material = link.visual.material
-                if (
-                    material.name
-                    and not material.color
-                    and not material.texture
-                    and material.name not in [material.name for material in self.root_element.materials]
-                ):
-                    raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
+            for visual in link.visuals:
+                if visual.material:
+                    material = visual.material
+                    if (
+                        material.name
+                        and not material.color
+                        and not material.texture
+                        and material.name not in [material.name for material in self.root_element.materials]
+                    ):
+                        raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
 
         for joint in self.root_element.joints:
             # Checks if parent and child links exist.
@@ -529,18 +530,20 @@ class URDFParser:
 
         # If no elements exist within the geometry tab of the link, an error occurs.
         for link in self.root_element.links:
-            if link.visual and link.visual.geometry:
-                geometry = link.visual.geometry.geometry
-                if not geometry:
-                    raise ValueError(
-                        self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.visual.geometry)
-                    )
-            if link.collision and link.collision.geometry:
-                geometry = link.collision.geometry.geometry
-                if not geometry:
-                    raise ValueError(
-                        self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.collision.geometry)
-                    )
+            for visual in link.visuals:
+                if visual and visual.geometry:
+                    geometry = visual.geometry.geometry
+                    if not geometry:
+                        raise ValueError(
+                            self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", visual.geometry)
+                        )
+            for collision in link.collisions:
+                if collision.geometry:
+                    geometry = collision.geometry.geometry
+                    if not geometry:
+                        raise ValueError(
+                            self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", collision.geometry)
+                        )
 
     def _get_element_class(self, tag_name: str, prev_element_tag: str) -> type[ElementBase]:
         """
@@ -568,14 +571,16 @@ class URDFParser:
         """
         geometry_list = []
         for link in self.root_element.links:
-            if link.visual and link.visual.geometry:
-                geometry = link.visual.geometry.geometry
-                if geometry and isinstance(geometry, ElementMesh):
-                    geometry_list.append(geometry)
-            if link.collision and link.collision.geometry:
-                geometry = link.collision.geometry.geometry
-                if geometry and isinstance(geometry, ElementMesh):
-                    geometry_list.append(geometry)
+            for visual in link.visuals:
+                if visual.geometry:
+                    geometry = visual.geometry.geometry
+                    if geometry and isinstance(geometry, ElementMesh):
+                        geometry_list.append(geometry)
+            for collision in link.collisions:
+                if collision.geometry:
+                    geometry = collision.geometry.geometry
+                    if geometry and isinstance(geometry, ElementMesh):
+                        geometry_list.append(geometry)
 
         for geometry in geometry_list:
             scale = geometry.get_with_default("scale")
@@ -597,16 +602,17 @@ class URDFParser:
             self.materials.append((material.name, color, texture))
 
         for link in self.root_element.links:
-            if link.visual and link.visual.material:
-                visual_material = link.visual.material
+            for visual in link.visuals:
+                if visual.material:
+                    visual_material = visual.material
 
-                # If the material name is already stored, skip it.
-                if visual_material.name in [material[0] for material in self.materials]:
-                    continue
+                    # If the material name is already stored, skip it.
+                    if visual_material.name in [material[0] for material in self.materials]:
+                        continue
 
-                color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
-                texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
-                self.materials.append((visual_material.name, color, texture))
+                    color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
+                    texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
+                    self.materials.append((visual_material.name, color, texture))
 
     def _get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         """
@@ -639,6 +645,11 @@ class URDFParser:
             for e in element.joints:
                 self._get_undefined_elements_nested(e, undefined_elements)
             for e in element.transmissions:
+                self._get_undefined_elements_nested(e, undefined_elements)
+        elif isinstance(element, ElementLink):
+            for e in element.visuals:
+                self._get_undefined_elements_nested(e, undefined_elements)
+            for e in element.collisions:
                 self._get_undefined_elements_nested(e, undefined_elements)
         else:
             for e in element.__dict__:

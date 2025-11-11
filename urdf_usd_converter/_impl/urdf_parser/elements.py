@@ -405,8 +405,8 @@ class ElementLink(ElementBase):
 
         # elements.
         self.inertial: ElementInertial | None = None
-        self.visual: ElementVisual | None = None
-        self.collision: ElementCollision | None = None
+        self.visuals: list[ElementVisual] = []
+        self.collisions: list[ElementCollision] = []
 
 
 class ElementParent(ElementBase):

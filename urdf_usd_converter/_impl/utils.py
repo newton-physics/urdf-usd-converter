@@ -1,12 +1,18 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 import math
+import pathlib
 from typing import Any
 
 import usdex.core
 from pxr import Gf, Sdf, Usd, UsdGeom
 
-from urdf_usd_converter._impl.urdf_parser.elements import ElementJoint, ElementLink
+from urdf_usd_converter._impl.urdf_parser.elements import (
+    ElementCollision,
+    ElementJoint,
+    ElementMesh,
+    ElementVisual,
+)
 
 from .._version import __version__
 
@@ -14,6 +20,7 @@ __all__ = [
     "float3_to_quatf",
     "float3_to_vec3d",
     "get_authoring_metadata",
+    "get_geometry_name",
     "radians_to_degrees",
     "set_custom_attribute",
     "set_transform",
@@ -44,7 +51,25 @@ def float3_to_quatf(rpy: tuple[float, float, float]) -> Gf.Quatf:
     return Gf.Quatf(rotation.GetQuat())
 
 
-def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementLink, collision: bool = False) -> None:
+def get_geometry_name(element: ElementVisual | ElementCollision) -> str:
+    """
+    Get the name of the geometry.
+    If element.name exists, it is the element name.
+    For meshes, the name is taken from the file name.
+    For other geometries, the name is taken from the element type.
+    """
+    if element.name:
+        return element.name
+
+    if element.geometry:
+        geometry = element.geometry.geometry
+        if geometry and isinstance(geometry, ElementMesh):
+            return pathlib.Path(geometry.filename).stem
+
+    return element.geometry.geometry.tag
+
+
+def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementVisual | ElementCollision) -> None:
     # get the current transform (including any inherited via references)
     pos, pivot, orient, scale = usdex.core.getLocalTransformComponentsQuat(prim)
     current_transform = Gf.Transform(translation=pos, rotation=Gf.Rotation(orient), scale=Gf.Vec3d(scale), pivotPosition=pivot)
@@ -52,14 +77,7 @@ def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementLink, 
     position = Gf.Vec3d(0, 0, 0)
     orientation = Gf.Quatf.GetIdentity()
 
-    if isinstance(element, ElementLink):
-        visual_collision = element.visual if not collision else element.collision
-        if visual_collision and visual_collision.geometry:
-            geometry = visual_collision.geometry.geometry
-            if geometry and visual_collision.origin:
-                position = float3_to_vec3d(visual_collision.origin.get_with_default("xyz"))
-                orientation = float3_to_quatf(visual_collision.origin.get_with_default("rpy"))
-    elif isinstance(element, ElementJoint) and element.origin:
+    if element.origin:
         position = float3_to_vec3d(element.origin.get_with_default("xyz"))
         orientation = float3_to_quatf(element.origin.get_with_default("rpy"))
 

@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<robot name="multiple_visuals_collisions_in_link">
+  <!-- Root links without specifying a visual -->
+  <link name="RootLink" />
+
+  <!-- Link with multiple visuals and collisions -->
+  <link name="link">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0.45"/>
+      <geometry>
+        <sphere radius="0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.45"/>
+      <geometry>
+        <sphere radius="0.2"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint" type="fixed">
+    <origin xyz="0 0 0.25"/>
+    <parent link="RootLink"/>
+    <child link="link"/>
+  </joint>
+</robot>

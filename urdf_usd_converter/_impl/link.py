@@ -15,10 +15,12 @@ from .urdf_parser.elements import (
     ElementJoint,
     ElementLink,
     ElementRobot,
+    ElementVisual,
 )
 from .utils import (
     float3_to_quatf,
     float3_to_vec3d,
+    get_geometry_name,
     radians_to_degrees,
     set_custom_attribute,
     set_transform,
@@ -134,21 +136,19 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
     apply_physics_rigidbody(link_prim, data)
 
     # Create visual or collision geometry.
-    geometry_basses = []
-    if link.visual and link.visual.geometry:
-        geometry_basses.append(link.visual)
-    if link.collision and link.collision.geometry:
-        geometry_basses.append(link.collision)
+    geometry_basses: list[ElementVisual | ElementCollision] = []
+    geometry_basses.extend(link.visuals)
+    geometry_basses.extend(link.collisions)
 
     for geometry_base in geometry_basses:
-        name = geometry_base.name if geometry_base.name else link.name
+        name = get_geometry_name(geometry_base)
         geom_safe_name = data.name_cache.getPrimName(link_prim, name)
         geom_prim = convert_geometry(link_prim, geom_safe_name, geometry_base.geometry, data)
         if geom_prim:
             is_collision = isinstance(geometry_base, ElementCollision)
-            if link.name != geom_safe_name:
-                usdex.core.setDisplayName(geom_prim.GetPrim(), link.name)
-            set_transform(geom_prim, link, is_collision)
+            if name != geom_safe_name:
+                usdex.core.setDisplayName(geom_prim.GetPrim(), name)
+            set_transform(geom_prim, geometry_base)
             if is_collision:
                 geom_prim.GetPurposeAttr().Set(UsdGeom.Tokens.guide)
 

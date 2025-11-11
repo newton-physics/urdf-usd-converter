@@ -38,7 +38,7 @@ class TestConverterPhysics(ConverterTestCase):
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # Mass.
-        visual_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("link_box"))
+        visual_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box"))
         self.assertTrue(visual_link_box_prim.HasAPI(UsdPhysics.MassAPI))
         mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(visual_link_box_prim)
         self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
@@ -47,7 +47,7 @@ class TestConverterPhysics(ConverterTestCase):
         self.assertEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0, Gf.Vec3f(0, 0, 0)))
 
         # Collision.
-        collision_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("link_box_1"))
+        collision_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_1"))
         self.assertTrue(collision_link_box_prim.HasAPI(UsdPhysics.CollisionAPI))
         collision_api: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI(collision_link_box_prim)
         self.assertTrue(collision_api.GetCollisionEnabledAttr().Get())
@@ -69,7 +69,7 @@ class TestConverterPhysics(ConverterTestCase):
         self.assertTrue(link_cylinder_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # Collision.
-        collision_cylinder_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("link_cylinder_1"))
+        collision_cylinder_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_1"))
         self.assertTrue(collision_cylinder_prim.HasAPI(UsdPhysics.CollisionAPI))
         collision_api: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI(collision_cylinder_prim)
         self.assertTrue(collision_api.GetCollisionEnabledAttr().Get())
@@ -96,5 +96,5 @@ class TestConverterPhysics(ConverterTestCase):
         # It has no collision prim.
         child_prims = link_sphere_prim.GetChildren()
         self.assertEqual(len(child_prims), 1)
-        self.assertEqual(child_prims[0].GetName(), "tn__linksphere_rJ")
+        self.assertEqual(child_prims[0].GetName(), "sphere")
         self.assertFalse(child_prims[0].HasAPI(UsdPhysics.CollisionAPI))

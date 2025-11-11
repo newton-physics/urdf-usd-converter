@@ -301,7 +301,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(link.get_with_default("name"), "BaseLink")
         self.assertIsNone(link.type)
 
-        visual = link.visual
+        self.assertEqual(len(link.visuals), 1)
+        visual = link.visuals[0]
         self.assertTrue(visual)
         origin = visual.origin
         self.assertTrue(origin)
@@ -335,7 +336,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(link.get_with_default("name"), "link2")
         self.assertIsNone(link.type)
 
-        visual = link.visual
+        self.assertEqual(len(link.visuals), 1)
+        visual = link.visuals[0]
         self.assertTrue(visual)
         origin = visual.origin
         self.assertTrue(origin)
@@ -351,7 +353,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "green")
 
-        collision = link.collision
+        self.assertEqual(len(link.collisions), 1)
+        collision = link.collisions[0]
         self.assertTrue(collision)
         origin = collision.origin
         self.assertTrue(origin)
@@ -368,7 +371,8 @@ class TestURDFParser(ConverterTestCase):
         link = root_element.links[2]
         self.assertEqual(link.get_with_default("name"), "link3")
         self.assertIsNone(link.type)
-        visual = link.visual
+        self.assertEqual(len(link.visuals), 1)
+        visual = link.visuals[0]
         self.assertTrue(visual)
         origin = visual.origin
         self.assertTrue(origin)
@@ -383,7 +387,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "yellow")
 
-        collision = link.collision
+        self.assertEqual(len(link.collisions), 1)
+        collision = link.collisions[0]
         self.assertTrue(collision)
         origin = collision.origin
         self.assertTrue(origin)
