@@ -136,9 +136,9 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
     apply_physics_rigidbody(link_prim, data)
 
     # Create visual or collision geometry.
-    geometry_basses: list[ElementVisual | ElementCollision] = []
-    geometry_basses.extend(link.visuals)
-    geometry_basses.extend(link.collisions)
+    geometry_basses: list[ElementVisual | ElementCollision] = [visual for visual in link.visuals if visual.geometry and visual.geometry.geometry] + [
+        collision for collision in link.collisions if collision.geometry and collision.geometry.geometry
+    ]
 
     for geometry_base in geometry_basses:
         name = get_geometry_name(geometry_base)

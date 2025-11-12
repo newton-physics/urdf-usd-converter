@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
-
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -156,8 +156,9 @@ class URDFParser:
         if name not in element.attrib:
             return None
 
-        attr_value = element.attrib[name]
-        values = attr_value.split(" ")
+        attr_value = element.attrib[name].strip()
+        # Separated by one or more spaces or tabs.
+        values = re.split(r"\s+", attr_value)
         if len(values) != 3:
             raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
         return (float(values[0]), float(values[1]), float(values[2]))
@@ -169,8 +170,9 @@ class URDFParser:
         if name not in element.attrib:
             return None
 
-        attr_value = element.attrib[name]
-        values = attr_value.split(" ")
+        attr_value = element.attrib[name].strip()
+        # Separated by one or more spaces or tabs.
+        values = re.split(r"\s+", attr_value)
         if len(values) != 4:
             raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
         return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
@@ -497,21 +499,41 @@ class URDFParser:
         """
         return self.line_info.get(element, -1)
 
+    def _get_defined_material_names(self) -> list[str]:
+        """
+        Get the defined material names.
+
+        Returns:
+            A list of defined material names.
+        """
+        # Create a list of defined material names.
+        # This includes both global materials and materials specified within the visual.
+        defined_material_names = [material.name for material in self.root_element.materials]
+        for link in self.root_element.links:
+            for visual in link.visuals:
+                material = visual.material
+                if (
+                    material
+                    and material.name is not None
+                    and (material.color is not None or material.texture is not None)
+                    and material.name not in defined_material_names
+                ):
+                    defined_material_names.append(material.name)
+
+        return defined_material_names
+
     def _validate(self):
         """
         Validate the parsed elements.
         """
+        defined_material_names = self._get_defined_material_names()
+
         # If there is a material name in the link, check if there is a material with that name in self.root_element.materials.
         for link in self.root_element.links:
             for visual in link.visuals:
                 if visual.material:
                     material = visual.material
-                    if (
-                        material.name
-                        and not material.color
-                        and not material.texture
-                        and material.name not in [material.name for material in self.root_element.materials]
-                    ):
+                    if material.name and not material.color and not material.texture and material.name not in defined_material_names:
                         raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
 
         for joint in self.root_element.joints:
@@ -603,16 +625,17 @@ class URDFParser:
 
         for link in self.root_element.links:
             for visual in link.visuals:
-                if visual.material:
-                    visual_material = visual.material
+                visual_material = visual.material
+                if visual_material:
+                    material_name = visual_material.name if visual_material.name is not None else ""
 
                     # If the material name is already stored, skip it.
-                    if visual_material.name in [material[0] for material in self.materials]:
+                    if material_name in [material[0] for material in self.materials]:
                         continue
 
                     color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
                     texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
-                    self.materials.append((visual_material.name, color, texture))
+                    self.materials.append((material_name, color, texture))
 
     def _get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         """
