@@ -45,7 +45,11 @@ def convert_meshes(data: ConversionData):
 
         if name != safe_name:
             usdex.core.setDisplayName(mesh_prim, name)
-        convert_mesh(mesh_prim, filename, data)
+
+        try:
+            convert_mesh(mesh_prim, filename, data)
+        except Exception as e:
+            Tf.Warn(f"Failed to convert mesh: {filename}: {e}")
 
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 

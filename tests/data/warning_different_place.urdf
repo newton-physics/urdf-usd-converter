@@ -1,7 +1,9 @@
-<robot name="different_places">
+<robot name="warning_different_place">
   <link name="BaseLink">
     <visual>
-      <material name="green" />
+      <material name="green">
+        <color rgba="0.0 1.0 0.0 1"/>
+      </material>
     </visual>
     <!-- This is a deliberate mistake.  -->
     <!-- The geometry is not a child of the visual. -->

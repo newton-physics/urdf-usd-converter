@@ -4,6 +4,8 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from pxr import Tf
+
 from .elements import (
     ElementAxis,
     ElementBase,
@@ -223,7 +225,8 @@ class URDFParser:
 
         # Error if using reserved tags but structure is different.
         if not element:
-            raise ValueError(self._get_error_message("Invalid element type. This uses a reserved tag, but in the wrong place", node))
+            Tf.Warn(self._get_error_message("Invalid element type. This uses a reserved tag, but in the wrong place", node))
+            element = ElementUndefined()
 
         element.tag = node.tag
         element.path = current_path
@@ -458,13 +461,13 @@ class URDFParser:
     def _get_defined_material_names(self) -> list[str]:
         """
         Get the defined material names.
-
         Returns:
             A list of defined material names.
         """
         # Create a list of defined material names.
         # This includes both global materials and materials specified within the visual.
         defined_material_names = [material.name for material in self.root_element.materials]
+
         for link in self.root_element.links:
             for visual in link.visuals:
                 material = visual.material
