@@ -1,4 +1,4 @@
-<robot name="incorrect_visual_geometry_name">
+<robot name="warning_incorrect_visual_geometry_name">
   <link name="BaseLink">
     <visual>
       <!-- This is a deliberate mistake.  -->

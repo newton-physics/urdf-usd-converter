@@ -29,7 +29,7 @@ class MeshCache:
 
         # Store the name and safe name using the mesh path as the key.
         for mesh in meshes:
-            if mesh[0] not in self.mesh_names:
+            if mesh[0] and mesh[0] not in self.mesh_names:
                 name = pathlib.Path(mesh[0]).stem
                 safe_name = name_cache.getPrimName(geo_scope, name)
                 self.mesh_names[mesh[0]] = {"name": name, "safe_name": safe_name}

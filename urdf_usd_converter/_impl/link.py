@@ -14,6 +14,7 @@ from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
     ElementLink,
+    ElementMesh,
     ElementVisual,
 )
 from .utils import (
@@ -58,8 +59,16 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
     apply_inertial(link_prim, link, data)
 
     # Create visual or collision geometry.
-    geometries: list[ElementVisual | ElementCollision] = [visual for visual in link.visuals if visual.geometry and visual.geometry.shape] + [
-        collision for collision in link.collisions if collision.geometry and collision.geometry.shape
+    geometries: list[ElementVisual | ElementCollision] = [
+        visual
+        for visual in link.visuals
+        if visual.geometry and visual.geometry.shape and (not isinstance(visual.geometry.shape, ElementMesh) or visual.has_mesh_filename())
+    ] + [
+        collision
+        for collision in link.collisions
+        if collision.geometry
+        and collision.geometry.shape
+        and (not isinstance(collision.geometry.shape, ElementMesh) or collision.has_mesh_filename())
     ]
 
     names = [get_geometry_name(geometry_base) for geometry_base in geometries]

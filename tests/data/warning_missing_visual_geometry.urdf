@@ -1,15 +1,10 @@
-<robot name="missing_collision_geometry">
+<robot name="warning_missing_visual_geometry">
   <link name="BaseLink">
     <visual>
-      <geometry>
-        <box size="1 1 1"/>
-      </geometry>
-    </visual>
-    <collision>
       <!-- This is a deliberate mistake.  -->
       <!-- The specified geometry does not exist. -->
       <geometry>
       </geometry>
-    </collision>
+    </visual>
   </link>
 </robot>

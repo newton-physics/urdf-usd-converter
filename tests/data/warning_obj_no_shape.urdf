@@ -1,4 +1,4 @@
-<robot name="obj_no_shape">
+<robot name="warning_obj_no_shape">
   <link name="BaseLink">
     <visual>
       <geometry>

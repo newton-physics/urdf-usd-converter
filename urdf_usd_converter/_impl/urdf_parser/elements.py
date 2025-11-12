@@ -307,6 +307,15 @@ class ElementVisual(ElementBase):
         self.geometry: ElementGeometry = None
         self.material: ElementMaterial | None = None
 
+    def has_mesh_filename(self) -> bool:
+        return (
+            self.geometry
+            and self.geometry.shape
+            and isinstance(self.geometry.shape, ElementMesh)
+            and hasattr(self.geometry.shape, "filename")
+            and self.geometry.shape.filename
+        )
+
 
 class ElementCollision(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["link"]
@@ -322,6 +331,15 @@ class ElementCollision(ElementBase):
         self.origin: ElementPose | None = None
         self.geometry: ElementGeometry = None
         self.verbose: ElementVerbose | None = None
+
+    def has_mesh_filename(self) -> bool:
+        return (
+            self.geometry
+            and self.geometry.shape
+            and isinstance(self.geometry.shape, ElementMesh)
+            and hasattr(self.geometry.shape, "filename")
+            and self.geometry.shape.filename
+        )
 
 
 class ElementLink(ElementBase):

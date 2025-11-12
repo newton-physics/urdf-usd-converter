@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
+import usdex.core
+from pxr import Tf
+
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.urdf_parser.parser import URDFParser
 
@@ -60,16 +63,6 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*rgba: Invalid value: 0.0 1.0 \(line: 5\).*"):
             parser.parse()
 
-    def test_load_error_different_place(self):
-        # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_different_place.urdf")
-        parser = URDFParser(model_path)
-
-        with self.assertRaisesRegex(
-            RuntimeError, r".*geometry: Invalid element type. This uses a reserved tag, but in the wrong place \(line: 8\).*"
-        ):
-            parser.parse()
-
     def test_load_error_no_material_name(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_no_material_name.urdf")
@@ -78,12 +71,18 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*material: name is required \(line: 4\).*"):
             parser.parse()
 
-    def test_load_error_no_mesh_filename(self):
+    def test_load_warning_no_mesh_filename(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_no_mesh_filename.urdf")
+        model_path = pathlib.Path("tests/data/warning_no_mesh_filename.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*mesh: Filename is required \(line: 8\).*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*mesh: Filename is required.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
     def test_load_error_duplicate_material_names(self):
@@ -110,36 +109,62 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*joint: Joint name 'JointA' already exists \(line: 36\).*"):
             parser.parse()
 
-    def test_load_error_invalid_material_name(self):
+    def test_load_warning_invalid_material_name(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_invalid_material_name.urdf")
+        model_path = pathlib.Path("tests/data/warning_invalid_material_name.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*Material name 'green' not found \(line: 13\).*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Material name 'green' not found.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
-    def test_load_error_missing_visual_geometry(self):
+    def test_load_warning_missing_visual_geometry(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_missing_visual_geometry.urdf")
+        model_path = pathlib.Path("tests/data/warning_missing_visual_geometry.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*Geometry must have one of the following: box, sphere, cylinder, or mesh \(line: 6\).*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, or mesh.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
-    def test_load_error_incorrect_visual_geometry_name(self):
+    def test_load_warning_incorrect_visual_geometry_name(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_incorrect_visual_geometry_name.urdf")
+        model_path = pathlib.Path("tests/data/warning_incorrect_visual_geometry_name.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*foo: Invalid geometry type \(line: 7\).*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*foo: Invalid geometry type.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*material: link: Material name 'green' not found.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, or mesh.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
-    def test_load_error_missing_collision_geometry(self):
+    def test_load_warning_missing_collision_geometry(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_missing_collision_geometry.urdf")
+        model_path = pathlib.Path("tests/data/warning_missing_collision_geometry.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*Geometry must have one of the following: box, sphere, cylinder, or mesh \(line: 11\).*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, or mesh.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
     def test_load_error_incorrect_joint_child_link_name(self):
@@ -166,12 +191,18 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*joint: Type is required \(line: 22\).*"):
             parser.parse()
 
-    def test_load_error_no_joint_k_velocity(self):
+    def test_load_warning_no_joint_k_velocity(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_no_joint_k_velocity.urdf")
+        model_path = pathlib.Path("tests/data/warning_no_joint_k_velocity.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*safety_controller: k_velocity is required \(line: 26\).*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*safety_controller: k_velocity is required.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
     def test_load_error_no_joint_mimic_joint(self):
@@ -220,6 +251,18 @@ class TestURDFParser(ConverterTestCase):
         parser = URDFParser(model_path)
 
         with self.assertRaisesRegex(RuntimeError, r".*axis: Axis xyz cannot be \(0, 0, 0\) \(line: 25\).*"):
+            parser.parse()
+
+    def test_load_warning_different_place(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/warning_different_place.urdf")
+        parser = URDFParser(model_path)
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*geometry: Invalid element type. This uses a reserved tag, but in the wrong place.*")],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
     def test_has_no_material(self):

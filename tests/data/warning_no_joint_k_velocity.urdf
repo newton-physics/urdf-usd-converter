@@ -1,4 +1,4 @@
-<robot name="no_joint_k_velocity">
+<robot name="warning_no_joint_k_velocity">
   <link name="BaseLink">
     <visual>
       <origin rpy="0 0 0" xyz="-2 0 0.5"/>
