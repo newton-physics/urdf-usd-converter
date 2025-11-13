@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 import usdex.core
-from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
@@ -22,7 +22,6 @@ from .utils import (
     float3_to_vec3d,
     get_geometry_name,
     radians_to_degrees,
-    set_custom_attribute,
     set_transform,
 )
 
@@ -55,7 +54,7 @@ class LinkHierarchy:
         self.root_element = root_element
 
         # A dictionary of link names and their child link names.
-        self.link_tree: dict[str, [ElementJoint], dict[str, Any]] = {}
+        self.link_tree: dict[str, dict[str, Any]] = {}
 
     def create_link_hierarchy(self):
         """
@@ -287,21 +286,8 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         elif joint.type == "planar":
             physics_joint = define_physics_planar_joint(parent, joint_safe_name, body0, body1, joint_frame, axis)
 
-        if physics_joint:
-            if joint.name != joint_safe_name:
-                usdex.core.setDisplayName(physics_joint.GetPrim(), joint.name)
-            site_over: Usd.Prim = data.content[Tokens.Physics].OverridePrim(physics_joint.GetPath())
+        if physics_joint and joint.name != joint_safe_name:
+            usdex.core.setDisplayName(physics_joint.GetPrim(), joint.name)
 
-            # TODO: Custom attributes.
-            # This requires creating and storing a schema such as URDFPhysicsJointAPI.
-            calibration_rising = joint.calibration.get_with_default("rising") if joint.calibration else None
-            calibration_falling = joint.calibration.get_with_default("falling") if joint.calibration else None
-            calibration_reference_position = joint.calibration.get_with_default("reference_position") if joint.calibration else None
-            dynamics_damping = joint.dynamics.get_with_default("damping") if joint.dynamics else None
-            dynamics_friction = joint.dynamics.get_with_default("friction") if joint.dynamics else None
-
-            set_custom_attribute(site_over, "urdf:calibration:rising", Sdf.ValueTypeNames.Float, calibration_rising)
-            set_custom_attribute(site_over, "urdf:calibration:falling", Sdf.ValueTypeNames.Float, calibration_falling)
-            set_custom_attribute(site_over, "urdf:calibration:reference_position", Sdf.ValueTypeNames.Float, calibration_reference_position)
-            set_custom_attribute(site_over, "urdf:dynamics:damping", Sdf.ValueTypeNames.Float, dynamics_damping)
-            set_custom_attribute(site_over, "urdf:dynamics:friction", Sdf.ValueTypeNames.Float, dynamics_friction)
+        # TODO: Custom attributes.
+        # This requires creating and storing a schema such as URDFPhysicsJointAPI.

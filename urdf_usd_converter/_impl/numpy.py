@@ -24,5 +24,6 @@ def convert_vec3f_array(source: np.ndarray) -> Vt.Vec3fArray:
     assert element_size % 3 == 0
     result = []
     for i in range(num_elements):
-        result.extend([Gf.Vec3f(float(source[i][j]), float(source[i][j + 1]), float(source[i][j + 2])) for j in range(0, element_size, 3)])
+        for j in range(0, element_size, 3):
+            result.extend([Gf.Vec3f(float(source[i][j]), float(source[i][j + 1]), float(source[i][j + 2]))])
     return Vt.Vec3fArray(result)
