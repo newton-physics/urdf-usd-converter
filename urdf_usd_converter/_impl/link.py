@@ -269,15 +269,17 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
 
         axis = Gf.Vec3f(float3_to_vec3d(joint.axis.get_with_default("xyz"))) if joint.axis else Gf.Vec3f(1, 0, 0)
-        limit_lower = joint.limit.get_with_default("lower") if joint.limit and joint.type != "continuous" else None
-        limit_upper = joint.limit.get_with_default("upper") if joint.limit and joint.type != "continuous" else None
+
+        # If limit is omitted, set to 0.0
+        limit_lower = joint.limit.get_with_default("lower") if joint.limit is not None else 0.0
+        limit_upper = joint.limit.get_with_default("upper") if joint.limit is not None else 0.0
 
         physics_joint = None
         if joint.type == "fixed":
             physics_joint = usdex.core.definePhysicsFixedJoint(parent, joint_safe_name, body0, body1, joint_frame)
         elif joint.type == "revolute" or joint.type == "continuous":
-            limit_lower = radians_to_degrees(limit_lower) if limit_lower else None
-            limit_upper = radians_to_degrees(limit_upper) if limit_upper else None
+            limit_lower = None if joint.type == "continuous" else radians_to_degrees(limit_lower)
+            limit_upper = None if joint.type == "continuous" else radians_to_degrees(limit_upper)
             physics_joint = usdex.core.definePhysicsRevoluteJoint(parent, joint_safe_name, body0, body1, joint_frame, axis, limit_lower, limit_upper)
         elif joint.type == "prismatic":
             physics_joint = usdex.core.definePhysicsPrismaticJoint(parent, joint_safe_name, body0, body1, joint_frame, axis, limit_lower, limit_upper)

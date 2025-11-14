@@ -15,8 +15,8 @@ class TestConverterJoints(ConverterTestCase):
         super().setUp()
         self.tolerance = 1e-6
 
-    def test_fixed_revolute_joints(self):
-        input_path = "tests/data/simple_fixed_revolute_joints.urdf"
+    def test_revolute_joints(self):
+        input_path = "tests/data/simple_revolute_joints.urdf"
         output_dir = self.tmpDir()
 
         converter = Converter()
@@ -37,30 +37,60 @@ class TestConverterJoints(ConverterTestCase):
         physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertIsNotNone(physics_scope_prim)
 
-        physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
-        self.assertIsNotNone(physics_fixed_joint_prim)
-        self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
-        fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
-        self.assertEqual(fixed_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink"])
-        self.assertEqual(fixed_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink/tn__Arm1_j8"])
-        self.assertTrue(Gf.IsClose(fixed_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0.15, 0, 0), self.tolerance))
-        self.assertTrue(Gf.IsClose(fixed_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
-        self.assert_rotation_almost_equal(Gf.Rotation(fixed_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
-        self.assert_rotation_almost_equal(Gf.Rotation(fixed_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
-
-        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("tn__joint_arm1_wJ"))
+        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertIsNotNone(physics_revolute_joint_prim)
         self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
         revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
-        self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink/tn__Arm1_j8"])
-        self.assertEqual(revolute_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
+        self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink"])
+        self.assertEqual(revolute_joint.GetBody1Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8"])
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0.15, 0, 0), self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+
+        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_arm_1"))
+        self.assertIsNotNone(physics_revolute_joint_prim)
+        self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
+        revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
+        self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8"])
+        self.assertEqual(revolute_joint.GetBody1Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
         self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(1.1, 0, 0), self.tolerance))
         self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
         self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
         self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
         self.assertEqual(revolute_joint.GetAxisAttr().Get(), UsdPhysics.Tokens.y)
-        self.assertTrue(Gf.IsClose(revolute_joint.GetLowerLimitAttr().Get(), -30.00007, self.tolerance))
-        self.assertTrue(Gf.IsClose(revolute_joint.GetUpperLimitAttr().Get(), 30.00007, self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLowerLimitAttr().Get(), 0, self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetUpperLimitAttr().Get(), 17.188734, self.tolerance))
+
+        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_arm_2"))
+        self.assertIsNotNone(physics_revolute_joint_prim)
+        self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
+        revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
+        self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
+        self.assertEqual(revolute_joint.GetBody1Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8/tn__Arm3_j8"])
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(1.1, 0, 0), self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assertEqual(revolute_joint.GetAxisAttr().Get(), UsdPhysics.Tokens.y)
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLowerLimitAttr().Get(), -17.188734, self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetUpperLimitAttr().Get(), 0, self.tolerance))
+
+        physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_arm_3"))
+        self.assertIsNotNone(physics_revolute_joint_prim)
+        self.assertTrue(physics_revolute_joint_prim.IsA(UsdPhysics.RevoluteJoint))
+        revolute_joint = UsdPhysics.RevoluteJoint(physics_revolute_joint_prim)
+        self.assertEqual(revolute_joint.GetBody0Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8/tn__Arm3_j8"])
+        self.assertEqual(
+            revolute_joint.GetBody1Rel().GetTargets(), ["/simple_revolute_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8/tn__Arm3_j8/tn__Arm4_j8"]
+        )
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(1.1, 0, 0), self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assert_rotation_almost_equal(Gf.Rotation(revolute_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assertEqual(revolute_joint.GetAxisAttr().Get(), UsdPhysics.Tokens.y)
+        self.assertTrue(Gf.IsClose(revolute_joint.GetLowerLimitAttr().Get(), -17.188734, self.tolerance))
+        self.assertTrue(Gf.IsClose(revolute_joint.GetUpperLimitAttr().Get(), 28.64789, self.tolerance))
 
     def test_fixed_continuous_joints(self):
         input_path = "tests/data/simple_fixed_continuous_joints.urdf"
@@ -110,7 +140,7 @@ class TestConverterJoints(ConverterTestCase):
         self.assertEqual(revolute_joint.GetUpperLimitAttr().Get(), math.inf)
 
     def test_fixed_prismatic_joints(self):
-        input_path = "tests/data/simple_fixed_prismatic_joints.urdf"
+        input_path = "tests/data/simple_prismatic_joints.urdf"
         output_dir = self.tmpDir()
 
         converter = Converter()
@@ -131,23 +161,60 @@ class TestConverterJoints(ConverterTestCase):
         physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertIsNotNone(physics_scope_prim)
 
-        physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
-        self.assertIsNotNone(physics_fixed_joint_prim)
-        self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
-        fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
-        self.assertEqual(fixed_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink"])
-        self.assertEqual(fixed_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8"])
-        self.assertTrue(Gf.IsClose(fixed_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0.15, 0, 0), self.tolerance))
-        self.assertTrue(Gf.IsClose(fixed_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
-        self.assert_rotation_almost_equal(Gf.Rotation(fixed_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
-        self.assert_rotation_almost_equal(Gf.Rotation(fixed_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
-
-        physics_prismatic_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("tn__joint_arm1_wJ"))
+        physics_prismatic_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertIsNotNone(physics_prismatic_joint_prim)
         self.assertTrue(physics_prismatic_joint_prim.IsA(UsdPhysics.PrismaticJoint))
         prismatic_joint = UsdPhysics.PrismaticJoint(physics_prismatic_joint_prim)
-        self.assertEqual(prismatic_joint.GetBody0Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8"])
-        self.assertEqual(prismatic_joint.GetBody1Rel().GetTargets(), ["/simple_fixed_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
+        self.assertEqual(prismatic_joint.GetBody0Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink"])
+        self.assertEqual(prismatic_joint.GetBody1Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8"])
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0.15, 0, 0), self.tolerance))
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assertEqual(prismatic_joint.GetAxisAttr().Get(), UsdPhysics.Tokens.x)
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLowerLimitAttr().Get(), 0, self.tolerance))
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetUpperLimitAttr().Get(), 0, self.tolerance))
+
+        physics_prismatic_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_arm_1"))
+        self.assertIsNotNone(physics_prismatic_joint_prim)
+        self.assertTrue(physics_prismatic_joint_prim.IsA(UsdPhysics.PrismaticJoint))
+        prismatic_joint = UsdPhysics.PrismaticJoint(physics_prismatic_joint_prim)
+        self.assertEqual(prismatic_joint.GetBody0Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8"])
+        self.assertEqual(prismatic_joint.GetBody1Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(1.1, 0, 0), self.tolerance))
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assertEqual(prismatic_joint.GetAxisAttr().Get(), UsdPhysics.Tokens.x)
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLowerLimitAttr().Get(), 0, self.tolerance))
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetUpperLimitAttr().Get(), 0.5, self.tolerance))
+
+        physics_prismatic_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_arm_2"))
+        self.assertIsNotNone(physics_prismatic_joint_prim)
+        self.assertTrue(physics_prismatic_joint_prim.IsA(UsdPhysics.PrismaticJoint))
+        prismatic_joint = UsdPhysics.PrismaticJoint(physics_prismatic_joint_prim)
+        self.assertEqual(prismatic_joint.GetBody0Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8"])
+        self.assertEqual(
+            prismatic_joint.GetBody1Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8/tn__Arm3_j8"]
+        )
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(1.1, 0, 0), self.tolerance))
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
+        self.assertEqual(prismatic_joint.GetAxisAttr().Get(), UsdPhysics.Tokens.x)
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetLowerLimitAttr().Get(), -0.2, self.tolerance))
+        self.assertTrue(Gf.IsClose(prismatic_joint.GetUpperLimitAttr().Get(), 0, self.tolerance))
+
+        physics_prismatic_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_arm_3"))
+        self.assertIsNotNone(physics_prismatic_joint_prim)
+        self.assertTrue(physics_prismatic_joint_prim.IsA(UsdPhysics.PrismaticJoint))
+        prismatic_joint = UsdPhysics.PrismaticJoint(physics_prismatic_joint_prim)
+        self.assertEqual(
+            prismatic_joint.GetBody0Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8/tn__Arm3_j8"]
+        )
+        self.assertEqual(
+            prismatic_joint.GetBody1Rel().GetTargets(), ["/simple_prismatic_joints/Geometry/BaseLink/tn__Arm1_j8/tn__Arm2_j8/tn__Arm3_j8/tn__Arm4_j8"]
+        )
         self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(1.1, 0, 0), self.tolerance))
         self.assertTrue(Gf.IsClose(prismatic_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
         self.assert_rotation_almost_equal(Gf.Rotation(prismatic_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, Gf.Vec3f(0, 0, 0))), 1e-4)
