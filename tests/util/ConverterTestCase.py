@@ -22,8 +22,16 @@ class ConverterTestCase(usdex.test.TestCase):
     ]
 
     def assert_rotation_almost_equal(self, rot1: Gf.Rotation, rot2: Gf.Rotation, tolerance: float = 1e-6):
-        self.assertTrue(Gf.IsClose(rot1.GetAxis(), rot2.GetAxis(), tolerance), f"Axis mismatch: {rot1.GetAxis()} != {rot2.GetAxis()}")
-        self.assertTrue(Gf.IsClose(rot1.GetAngle(), rot2.GetAngle(), tolerance), f"Angle mismatch: {rot1.GetAngle()} != {rot2.GetAngle()}")
+        """Assert that two rotations are approximately equal.
+
+        Two quaternions q and -q represent the same rotation, so we check both possibilities.
+        """
+        q1 = rot1.GetQuat()
+        q2 = rot2.GetQuat()
+
+        # Dot product of quaternions: if |dot| ~= 1, they represent the same rotation
+        dot = abs(q1.GetReal() * q2.GetReal() + Gf.Dot(q1.GetImaginary(), q2.GetImaginary()))
+        self.assertTrue(Gf.IsClose(dot, 1.0, tolerance), f"Rotation mismatch: dot={dot}, q1={q1}, q2={q2}")
 
     def setUp(self):
         super().setUp()
