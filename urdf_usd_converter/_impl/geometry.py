@@ -17,14 +17,14 @@ __all__ = ["convert_geometry"]
 
 
 def convert_geometry(parent: Usd.Prim, name: str, geometry: ElementGeometry, data: ConversionData) -> UsdGeom.Gprim:
-    if isinstance(geometry.geometry, ElementBox):
-        return convert_box(parent, name, geometry.geometry, data)
-    elif isinstance(geometry.geometry, ElementSphere):
-        return convert_sphere(parent, name, geometry.geometry, data)
-    elif isinstance(geometry.geometry, ElementCylinder):
-        return convert_cylinder(parent, name, geometry.geometry, data)
-    elif isinstance(geometry.geometry, ElementMesh):
-        return convert_mesh(parent, name, geometry.geometry, data)
+    if isinstance(geometry.shape, ElementBox):
+        return convert_box(parent, name, geometry.shape, data)
+    elif isinstance(geometry.shape, ElementSphere):
+        return convert_sphere(parent, name, geometry.shape, data)
+    elif isinstance(geometry.shape, ElementCylinder):
+        return convert_cylinder(parent, name, geometry.shape, data)
+    elif isinstance(geometry.shape, ElementMesh):
+        return convert_mesh(parent, name, geometry.shape, data)
 
 
 def convert_box(parent: Usd.Prim, name: str, box: ElementBox, data: ConversionData) -> UsdGeom.Gprim:

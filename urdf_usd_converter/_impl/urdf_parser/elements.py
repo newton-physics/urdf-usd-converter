@@ -316,7 +316,7 @@ class ElementGeometry(ElementBase):
         super().__init__()
 
         # elements.
-        self.geometry: ElementBox | ElementSphere | ElementCylinder | ElementMesh = None
+        self.shape: ElementBox | ElementSphere | ElementCylinder | ElementMesh = None
 
 
 class ElementTexture(ElementBase):

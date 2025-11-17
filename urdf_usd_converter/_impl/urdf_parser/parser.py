@@ -429,7 +429,7 @@ class URDFParser:
 
         elif prev_element_type == ElementGeometry:
             if node.tag == "box" or node.tag == "sphere" or node.tag == "cylinder" or node.tag == "mesh":
-                prev_element.geometry = element
+                prev_element.shape = element
 
         elif prev_element_type == ElementInertial:
             if node.tag == "origin":
@@ -554,14 +554,14 @@ class URDFParser:
         for link in self.root_element.links:
             for visual in link.visuals:
                 if visual and visual.geometry:
-                    geometry = visual.geometry.geometry
+                    geometry = visual.geometry.shape
                     if not geometry:
                         raise ValueError(
                             self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", visual.geometry)
                         )
             for collision in link.collisions:
                 if collision.geometry:
-                    geometry = collision.geometry.geometry
+                    geometry = collision.geometry.shape
                     if not geometry:
                         raise ValueError(
                             self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", collision.geometry)
@@ -595,12 +595,12 @@ class URDFParser:
         for link in self.root_element.links:
             for visual in link.visuals:
                 if visual.geometry:
-                    geometry = visual.geometry.geometry
+                    geometry = visual.geometry.shape
                     if geometry and isinstance(geometry, ElementMesh):
                         geometry_list.append(geometry)
             for collision in link.collisions:
                 if collision.geometry:
-                    geometry = collision.geometry.geometry
+                    geometry = collision.geometry.shape
                     if geometry and isinstance(geometry, ElementMesh):
                         geometry_list.append(geometry)
 

@@ -310,8 +310,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "box")
-        self.assertEqual(geometry.geometry.get_with_default("size"), (1.0, 1.0, 1.0))
+        self.assertEqual(geometry.shape.tag, "box")
+        self.assertEqual(geometry.shape.get_with_default("size"), (1.0, 1.0, 1.0))
         material = visual.material
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "red")
@@ -345,8 +345,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.rpy, (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "mesh")
-        mesh = geometry.geometry
+        self.assertEqual(geometry.shape.tag, "mesh")
+        mesh = geometry.shape
         self.assertEqual(mesh.get_with_default("filename"), "assets/box.obj")
         self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
         material = visual.material
@@ -362,8 +362,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.rpy, (0.0, 0.0, 0.0))
         geometry = collision.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "mesh")
-        mesh = geometry.geometry
+        self.assertEqual(geometry.shape.tag, "mesh")
+        mesh = geometry.shape
         self.assertEqual(mesh.get_with_default("filename"), "assets/box.stl")
         self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
 
@@ -380,9 +380,9 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "cylinder")
-        self.assertEqual(geometry.geometry.get_with_default("radius"), 0.5)
-        self.assertEqual(geometry.geometry.get_with_default("length"), 1.0)
+        self.assertEqual(geometry.shape.tag, "cylinder")
+        self.assertEqual(geometry.shape.get_with_default("radius"), 0.5)
+        self.assertEqual(geometry.shape.get_with_default("length"), 1.0)
         material = visual.material
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "yellow")
@@ -396,8 +396,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = collision.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "mesh")
-        mesh = geometry.geometry
+        self.assertEqual(geometry.shape.tag, "mesh")
+        mesh = geometry.shape
         self.assertEqual(mesh.get_with_default("filename"), "assets/box.stl")
         self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
         verbose = collision.verbose
