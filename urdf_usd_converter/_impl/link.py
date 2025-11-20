@@ -134,6 +134,9 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
 
     apply_physics_rigidbody(link_prim, data)
 
+    # Assigning MassAPI to a Rigid Body.
+    apply_inertial(link_prim, link, data)
+
     # Create visual or collision geometry.
     geometry_basses: list[ElementVisual | ElementCollision] = [visual for visual in link.visuals if visual.geometry and visual.geometry.shape] + [
         collision for collision in link.collisions if collision.geometry and collision.geometry.shape
@@ -155,9 +158,6 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
             if is_collision:
                 # Apply CollisionAPI to collision geometry
                 apply_physics_collision_mesh(geom_prim.GetPrim(), data)
-            else:
-                # Apply inertial to visual geometry
-                apply_inertial(geom_prim.GetPrim(), link, data)
 
     children = link_hierarchy.get_link_children(link.name)
     joints = link_hierarchy.get_link_joints(link.name)

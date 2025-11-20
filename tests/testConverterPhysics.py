@@ -38,10 +38,9 @@ class TestConverterPhysics(ConverterTestCase):
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # Mass.
-        visual_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box"))
-        self.assertTrue(visual_link_box_prim.HasAPI(UsdPhysics.MassAPI))
-        mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(visual_link_box_prim)
-        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.MassAPI))
+        mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(link_box_prim)
+        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), self.tolerance))
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
         self.assertTrue(Gf.IsClose(mass_api.GetMassAttr().Get(), 0.8, self.tolerance))
         self.assertEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0, Gf.Vec3f(0, 0, 0)))
