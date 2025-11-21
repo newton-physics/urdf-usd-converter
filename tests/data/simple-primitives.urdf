@@ -44,7 +44,7 @@
       </geometry>
     </collision>
   </link>
-  <link name="link:sphere"> <!-- ':' is not allowed in USD prim names -->
+  <link name="link_sphere">
     <visual>
       <geometry>
         <sphere radius="0.5"/>
@@ -59,7 +59,7 @@
   <joint name="joint_cylinder_sphere" type="fixed">
     <origin rpy="0 0 0" xyz="1.5 0 0.5"/>
     <parent link="link_cylinder"/>
-    <child link="link:sphere"/>
+    <child link="link_sphere"/>
     <calibration rising="0.0"/>
     <dynamics damping="0.01" friction="0.02"/>    
   </joint>

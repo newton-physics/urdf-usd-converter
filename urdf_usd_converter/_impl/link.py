@@ -98,7 +98,7 @@ class LinkHierarchy:
                 return link
 
         # If it is a looping joint structure, the process reaches this point.
-        raise ValueError("No root link found. The joint structure is a loop.")
+        raise ValueError("Closed loop articulations are not supported.")
 
     def get_link_joints(self, link_name: str) -> list[ElementJoint]:
         """
@@ -187,13 +187,13 @@ def apply_physics_collision_mesh(geom_prim: Usd.Prim, data: ConversionData):
 
     # Apply CollisionAPI
     collider: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI.Apply(geom_over)
-    collider.CreateCollisionEnabledAttr().Set(True)
+    collider.GetCollisionEnabledAttr().Set(True)
 
     # If it's a mesh, apply MeshCollisionAPI with appropriate approximation
     if geom_prim.IsA(UsdGeom.Mesh):
         mesh_collider: UsdPhysics.MeshCollisionAPI = UsdPhysics.MeshCollisionAPI.Apply(geom_over)
         # Use 'none' to use the mesh as-is
-        mesh_collider.CreateApproximationAttr().Set(UsdPhysics.Tokens.none)
+        mesh_collider.GetApproximationAttr().Set(UsdPhysics.Tokens.none)
 
 
 def apply_inertial(geom_prim: Usd.Prim, link: ElementLink, data: ConversionData):
@@ -208,19 +208,19 @@ def apply_inertial(geom_prim: Usd.Prim, link: ElementLink, data: ConversionData)
 
     if link.inertial and link.inertial.inertia:
         orientation, diag_inertia = extract_inertia(link.inertial.inertia)
-        mass_api.CreatePrincipalAxesAttr().Set(orientation)
-        mass_api.CreateDiagonalInertiaAttr().Set(diag_inertia)
+        mass_api.GetPrincipalAxesAttr().Set(orientation)
+        mass_api.GetDiagonalInertiaAttr().Set(diag_inertia)
 
     if link.inertial.origin:
         position = float3_to_vec3d(link.inertial.origin.get_with_default("xyz"))
         orientation = float3_to_quatf(link.inertial.origin.get_with_default("rpy"))
-        mass_api.CreateCenterOfMassAttr().Set(Gf.Vec3f(position))
+        mass_api.GetCenterOfMassAttr().Set(Gf.Vec3f(position))
         axes = mass_api.GetPrincipalAxesAttr().Get()
-        mass_api.CreatePrincipalAxesAttr().Set(orientation * axes)
+        mass_api.GetPrincipalAxesAttr().Set(orientation * axes)
 
     if link.inertial.mass:
         mass = link.inertial.mass.get_with_default("value")
-        mass_api.CreateMassAttr().Set(mass)
+        mass_api.GetMassAttr().Set(mass)
 
 
 def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
@@ -292,4 +292,3 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
             usdex.core.setDisplayName(physics_joint.GetPrim(), joint.name)
 
         # TODO: Custom attributes.
-        # This requires creating and storing a schema such as URDFPhysicsJointAPI.

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="simple_prismatic_joints">
+<robot name="revolute_joints">
   <link name="BaseLink">
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0 0"/>
@@ -8,7 +8,7 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:1">
+  <link name="Arm_1">
     <visual>
       <origin rpy="0 0 0" xyz="0.55 0 0"/>
       <geometry>
@@ -16,7 +16,7 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:2">
+  <link name="Arm_2">
     <visual>
       <origin rpy="0 0 0" xyz="0.55 0 0"/>
       <geometry>
@@ -24,7 +24,7 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:3">
+  <link name="Arm_3">
     <visual>
       <origin rpy="0 0 0" xyz="0.55 0 0"/>
       <geometry>
@@ -32,15 +32,7 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:4">
-    <visual>
-      <origin rpy="0 0 0" xyz="0.55 0 0"/>
-      <geometry>
-        <box size="1.0 0.2 0.2"/>
-      </geometry>
-    </visual>
-  </link>
-  <link name="Arm:5">
+  <link name="Arm_4">
     <visual>
       <origin rpy="0 0 0" xyz="0.55 0 0"/>
       <geometry>
@@ -49,35 +41,35 @@
     </visual>
   </link>
 
-  <joint name="joint_root" type="prismatic">
+  <joint name="joint_root" type="revolute">
     <origin rpy="0 0 0" xyz="0.15 0 0.0"/>
     <parent link="BaseLink"/>
-    <child link="Arm:1"/>
-    <axis xyz="1 0 0"/>
+    <child link="Arm_1"/>
+    <axis xyz="0 1 0"/>
     <!-- If limit is omitted -->
   </joint>
-  <joint name="joint_arm_1" type="prismatic">
+  <joint name="joint_arm_1" type="revolute">
     <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
-    <parent link="Arm:1"/>
-    <child link="Arm:2"/>
-    <axis xyz="1 0 0"/>
+    <parent link="Arm_1"/>
+    <child link="Arm_2"/>
+    <axis xyz="0 1 0"/>
     <!-- If lower is omitted -->
-    <limit upper="0.5" effort="0" velocity="0.01"/>
+    <limit upper="0.3"/>
   </joint>
-  <joint name="joint_arm_2" type="prismatic">
+  <joint name="joint_arm_2" type="revolute">
     <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
-    <parent link="Arm:2"/>
-    <child link="Arm:3"/>
-    <axis xyz="1 0 0"/>
+    <parent link="Arm_2"/>
+    <child link="Arm_3"/>
+    <axis xyz="0 1 0"/>
     <!-- If upper is omitted -->
-    <limit lower="-0.2" effort="0" velocity="0.01"/>
+    <limit lower="-0.3"/>
   </joint>
-  <joint name="joint_arm_3" type="prismatic">
+  <joint name="joint_arm_3" type="revolute">
     <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
-    <parent link="Arm:3"/>
-    <child link="Arm:4"/>
-    <axis xyz="1 0 0"/>
-    <limit lower="0" upper="0.5" effort="0" velocity="0.01"/>
+    <parent link="Arm_3"/>
+    <child link="Arm_4"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.3" upper="0.5"/>
   </joint>
 
 </robot>

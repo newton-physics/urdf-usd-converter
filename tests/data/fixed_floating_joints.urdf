@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="simple_fixed_continuous_joints">
+<robot name="fixed_floating_joints">
   <link name="BaseLink">
     <visual>
       <origin rpy="0 0 0" xyz="0.0 0 0"/>
@@ -8,7 +8,7 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:1">
+  <link name="Arm_1">
     <visual>
       <origin rpy="0 0 0" xyz="0.55 0 0"/>
       <geometry>
@@ -16,9 +16,9 @@
       </geometry>
     </visual>
   </link>
-  <link name="Arm:2">
+  <link name="Arm_2">
     <visual>
-      <origin rpy="0 1.570 0" xyz="0.15 0 0"/>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
       <geometry>
         <box size="1.0 0.2 0.2"/>
       </geometry>
@@ -28,12 +28,11 @@
   <joint name="joint_root" type="fixed">
     <origin rpy="0 0 0" xyz="0.15 0 0.0"/>
     <parent link="BaseLink"/>
-    <child link="Arm:1"/>
+    <child link="Arm_1"/>
   </joint>
-  <joint name="joint_arm:1" type="continuous">
+  <joint name="joint_arm_1" type="floating">
     <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
-    <parent link="Arm:1"/>
-    <child link="Arm:2"/>
-    <axis xyz="1 0 0"/>
+    <parent link="Arm_1"/>
+    <child link="Arm_2"/>
   </joint>
 </robot>

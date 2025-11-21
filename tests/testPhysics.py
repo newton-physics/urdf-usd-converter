@@ -4,19 +4,18 @@ import pathlib
 
 from pxr import Gf, Usd, UsdPhysics
 
+import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
-from urdf_usd_converter._impl.convert import Converter
 
 
-class TestConverterPhysics(ConverterTestCase):
+class TestPhysics(ConverterTestCase):
     def setUp(self):
         super().setUp()
-        self.tolerance = 1e-6
 
         input_path = "tests/data/simple-primitives.urdf"
         output_dir = self.tmpDir()
 
-        converter = Converter()
+        converter = urdf_usd_converter.Converter()
         asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
@@ -24,26 +23,29 @@ class TestConverterPhysics(ConverterTestCase):
         self.stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
         self.assertIsValidUsd(self.stage)
 
+        physics_scene_prim = self.stage.GetPrimAtPath("/PhysicsScene")
+        self.assertTrue(physics_scene_prim.IsValid())
+
     def test_physics_link_box(self):
         default_prim = self.stage.GetDefaultPrim()
-        self.assertIsNotNone(default_prim)
+        self.assertTrue(default_prim.IsValid())
         default_prim_path = default_prim.GetPath()
 
         geometry_scope_prim = self.stage.GetPrimAtPath(default_prim_path.AppendChild("Geometry"))
-        self.assertIsNotNone(geometry_scope_prim)
+        self.assertTrue(geometry_scope_prim.IsValid())
 
         # Rigid body.
         link_box_prim = self.stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link_box"))
-        self.assertIsNotNone(link_box_prim)
+        self.assertTrue(link_box_prim.IsValid())
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # Mass.
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.MassAPI))
         mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(link_box_prim)
-        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), self.tolerance))
-        self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0, 0, 0), self.tolerance))
-        self.assertTrue(Gf.IsClose(mass_api.GetMassAttr().Get(), 0.8, self.tolerance))
-        self.assertEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0, Gf.Vec3f(0, 0, 0)))
+        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
+        self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
+        self.assert_rotation_almost_equal(Gf.Rotation(mass_api.GetPrincipalAxesAttr().Get()), Gf.Rotation(Gf.Quatf(0, Gf.Vec3f(0, 0, 0))), 1e-6)
 
         # Collision.
         collision_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_1"))
@@ -57,18 +59,19 @@ class TestConverterPhysics(ConverterTestCase):
         default_prim_path = default_prim.GetPath()
 
         geometry_scope_prim = self.stage.GetPrimAtPath(default_prim_path.AppendChild("Geometry"))
-        self.assertIsNotNone(geometry_scope_prim)
+        self.assertTrue(geometry_scope_prim.IsValid())
 
         link_box_prim = self.stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link_box"))
-        self.assertIsNotNone(link_box_prim)
+        self.assertTrue(link_box_prim.IsValid())
 
         # Rigid body.
         link_cylinder_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("link_cylinder"))
-        self.assertIsNotNone(link_cylinder_prim)
+        self.assertTrue(link_cylinder_prim.IsValid())
         self.assertTrue(link_cylinder_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # Collision.
         collision_cylinder_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_1"))
+        self.assertTrue(collision_cylinder_prim.IsValid())
         self.assertTrue(collision_cylinder_prim.HasAPI(UsdPhysics.CollisionAPI))
         collision_api: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI(collision_cylinder_prim)
         self.assertTrue(collision_api.GetCollisionEnabledAttr().Get())
@@ -79,17 +82,17 @@ class TestConverterPhysics(ConverterTestCase):
         default_prim_path = default_prim.GetPath()
 
         geometry_scope_prim = self.stage.GetPrimAtPath(default_prim_path.AppendChild("Geometry"))
-        self.assertIsNotNone(geometry_scope_prim)
+        self.assertTrue(geometry_scope_prim.IsValid())
 
         link_box_prim = self.stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link_box"))
-        self.assertIsNotNone(link_box_prim)
+        self.assertTrue(link_box_prim.IsValid())
 
         link_cylinder_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("link_cylinder"))
-        self.assertIsNotNone(link_cylinder_prim)
+        self.assertTrue(link_cylinder_prim.IsValid())
 
         # Rigid body.
-        link_sphere_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("tn__linksphere_rJ"))
-        self.assertIsNotNone(link_sphere_prim)
+        link_sphere_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("link_sphere"))
+        self.assertTrue(link_sphere_prim.IsValid())
         self.assertTrue(link_sphere_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # It has no collision prim.

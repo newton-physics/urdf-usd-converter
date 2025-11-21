@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="simple_meshes">
+<robot name="meshes">
   <link name="link_mesh_stl">
     <visual>
       <geometry>
@@ -29,6 +29,11 @@
     </visual>
   </link>
 
+  <joint name="joint_stl_obj" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_mesh_stl"/>
+    <child link="link_mesh_obj"/>
+  </joint>
   <joint name="joint_obj_dae" type="fixed">
     <origin rpy="0 0 0" xyz="1 0 0"/>
     <parent link="link_mesh_obj"/>
@@ -39,12 +44,4 @@
     <parent link="link_mesh_dae"/>
     <child link="link_mesh_dxf"/>
   </joint>
-
-  <!-- Change the joint order to verify root joint detection. -->
-  <joint name="joint_stl_obj" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-    <parent link="link_mesh_stl"/>
-    <child link="link_mesh_obj"/>
-  </joint>
-
 </robot>
