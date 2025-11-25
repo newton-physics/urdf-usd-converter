@@ -222,6 +222,14 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*transmission: Transmission name 'transmission_1' already exists \(line: 8\).*"):
             parser.parse()
 
+    def test_load_error_joint_axis_0(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_joint_axis_0.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*axis: Axis xyz cannot be \(0, 0, 0\) \(line: 25\).*"):
+            parser.parse()
+
     def test_has_no_material(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/simple_box_no_material.urdf")

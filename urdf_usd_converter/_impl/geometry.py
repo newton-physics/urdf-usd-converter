@@ -11,7 +11,6 @@ from .urdf_parser.elements import (
     ElementMesh,
     ElementSphere,
 )
-from .utils import float3_to_vec3d
 
 __all__ = ["convert_geometry"]
 
@@ -28,9 +27,11 @@ def convert_geometry(parent: Usd.Prim, name: str, geometry: ElementGeometry, dat
 
 
 def convert_box(parent: Usd.Prim, name: str, box: ElementBox, data: ConversionData) -> UsdGeom.Gprim:
-    cube_prim = usdex.core.defineCube(parent, name, 1.0)
-    size = float3_to_vec3d(box.get_with_default("size"))
-    usdex.core.setLocalTransform(cube_prim.GetPrim(), Gf.Vec3d(0), Gf.Quatf.GetIdentity(), Gf.Vec3f(size))
+    # Define a cube with a size of 1.0 meter.
+    cube_prim = usdex.core.defineCube(parent, name, size=1.0)
+    size = Gf.Vec3f(box.get_with_default("size"))
+    scale_op = cube_prim.AddScaleOp()
+    scale_op.Set(size)
     return cube_prim
 
 
@@ -64,7 +65,6 @@ def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: Conversio
     if prim.GetPrim().GetName() != ref_mesh.GetPrim().GetName():
         usdex.core.blockDisplayName(prim.GetPrim())
 
-    scale_vec3d = float3_to_vec3d(scale)
-    usdex.core.setLocalTransform(prim.GetPrim(), Gf.Vec3d(0), Gf.Quatf.GetIdentity(), Gf.Vec3f(scale_vec3d))
+    usdex.core.setLocalTransform(prim.GetPrim(), Gf.Vec3d(0), Gf.Quatf.GetIdentity(), Gf.Vec3f(scale))
 
     return UsdGeom.Mesh(prim)

@@ -1,5 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
+import math
+
 import numpy as np
 import usdex.core
 from pxr import Gf, Sdf, Tf, Usd, UsdPhysics
@@ -33,42 +35,42 @@ def define_physics_planar_joint(
     if axis_token == UsdPhysics.Tokens.x:
         # Constrain in the X-axis direction.
         limit_api_x = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.transX)
-        limit_api_x.GetLowAttr().Set(0.0)
-        limit_api_x.GetHighAttr().Set(0.0)
+        limit_api_x.GetLowAttr().Set(math.inf)
+        limit_api_x.GetHighAttr().Set(-math.inf)
 
         # Rotation is only permitted around the X axis (Constrain rotation on the Y and Z axes).
         limit_api_rotation_y = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.rotY)
-        limit_api_rotation_y.GetLowAttr().Set(0.0)
-        limit_api_rotation_y.GetHighAttr().Set(0.0)
+        limit_api_rotation_y.GetLowAttr().Set(math.inf)
+        limit_api_rotation_y.GetHighAttr().Set(-math.inf)
         limit_api_rotation_z = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.rotZ)
-        limit_api_rotation_z.GetLowAttr().Set(0.0)
-        limit_api_rotation_z.GetHighAttr().Set(0.0)
+        limit_api_rotation_z.GetLowAttr().Set(math.inf)
+        limit_api_rotation_z.GetHighAttr().Set(-math.inf)
     elif axis_token == UsdPhysics.Tokens.y:
         # Constrain in the Y-axis direction.
         limit_api_y = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.transY)
-        limit_api_y.GetLowAttr().Set(0.0)
-        limit_api_y.GetHighAttr().Set(0.0)
+        limit_api_y.GetLowAttr().Set(math.inf)
+        limit_api_y.GetHighAttr().Set(-math.inf)
 
         # Rotation is only permitted around the Y axis (Constrain rotation on the X and Z axes).
         limit_api_rotation_x = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.rotX)
-        limit_api_rotation_x.GetLowAttr().Set(0.0)
-        limit_api_rotation_x.GetHighAttr().Set(0.0)
+        limit_api_rotation_x.GetLowAttr().Set(math.inf)
+        limit_api_rotation_x.GetHighAttr().Set(-math.inf)
         limit_api_rotation_z = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.rotZ)
-        limit_api_rotation_z.GetLowAttr().Set(0.0)
-        limit_api_rotation_z.GetHighAttr().Set(0.0)
+        limit_api_rotation_z.GetLowAttr().Set(math.inf)
+        limit_api_rotation_z.GetHighAttr().Set(-math.inf)
     elif axis_token == UsdPhysics.Tokens.z:
         # Constrain in the Z-axis direction.
         limit_api_z = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.transZ)
-        limit_api_z.GetLowAttr().Set(0.0)
-        limit_api_z.GetHighAttr().Set(0.0)
+        limit_api_z.GetLowAttr().Set(math.inf)
+        limit_api_z.GetHighAttr().Set(-math.inf)
 
         # Rotation is only permitted around the Z axis (Constrain rotation on the X and Y axes).
         limit_api_rotation_x = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.rotX)
-        limit_api_rotation_x.GetLowAttr().Set(0.0)
-        limit_api_rotation_x.GetHighAttr().Set(0.0)
+        limit_api_rotation_x.GetLowAttr().Set(math.inf)
+        limit_api_rotation_x.GetHighAttr().Set(-math.inf)
         limit_api_rotation_y = UsdPhysics.LimitAPI.Apply(joint.GetPrim(), UsdPhysics.Tokens.rotY)
-        limit_api_rotation_y.GetLowAttr().Set(0.0)
-        limit_api_rotation_y.GetHighAttr().Set(0.0)
+        limit_api_rotation_y.GetLowAttr().Set(math.inf)
+        limit_api_rotation_y.GetHighAttr().Set(-math.inf)
 
     return joint
 

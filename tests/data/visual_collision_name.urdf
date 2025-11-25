@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot name="visual_collision_name">
+  <link name="RootLink">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="link">
+    <!-- Specify a name in visual -->
+    <visual name="box_name_visual">
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+    <!-- Specify a name in collision -->
+    <collision name="box_name_collision">
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint" type="fixed">
+    <origin xyz="0 0 0.6"/>
+    <parent link="RootLink"/>
+    <child link="link"/>
+  </joint>
+</robot>

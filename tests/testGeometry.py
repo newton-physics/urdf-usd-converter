@@ -40,7 +40,7 @@ class TestGeometry(ConverterTestCase):
         self.assertEqual(cube.GetSizeAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        collision_box_prim = stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_1"))
+        collision_box_prim = stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_collision"))
         self.assertTrue(collision_box_prim.IsValid())
         self.assertTrue(collision_box_prim.IsA(UsdGeom.Cube))
         collision_box = UsdGeom.Cube(collision_box_prim)
@@ -70,7 +70,7 @@ class TestGeometry(ConverterTestCase):
         self.assertEqual(cylinder.GetHeightAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(cylinder_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        collision_cylinder_prim = stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_1"))
+        collision_cylinder_prim = stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_collision"))
         self.assertTrue(collision_cylinder_prim.IsValid())
         self.assertTrue(collision_cylinder_prim.IsA(UsdGeom.Cylinder))
         collision_cylinder = UsdGeom.Cylinder(collision_cylinder_prim)
@@ -148,7 +148,7 @@ class TestGeometry(ConverterTestCase):
         self.assertEqual(sphere.GetRadiusAttr().Get(), 0.2)
         self.assertEqual(UsdGeom.Imageable(sphere_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        collision_box_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("box_1"))
+        collision_box_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("box_collision"))
         self.assertTrue(collision_box_prim.IsValid())
         self.assertTrue(collision_box_prim.IsA(UsdGeom.Cube))
         collision_box = UsdGeom.Cube(collision_box_prim)
@@ -160,7 +160,7 @@ class TestGeometry(ConverterTestCase):
         self.assertEqual(collision_box.GetSizeAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(collision_box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
 
-        collision_sphere_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("sphere_1"))
+        collision_sphere_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("sphere_collision"))
         self.assertTrue(collision_sphere_prim.IsValid())
         self.assertTrue(collision_sphere_prim.IsA(UsdGeom.Sphere))
         collision_sphere = UsdGeom.Sphere(collision_sphere_prim)
@@ -171,3 +171,43 @@ class TestGeometry(ConverterTestCase):
         )
         self.assertEqual(collision_sphere.GetRadiusAttr().Get(), 0.2)
         self.assertEqual(UsdGeom.Imageable(collision_sphere_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
+
+    def test_visual_collision_name(self):
+        input_path = "tests/data/visual_collision_name.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope_prim = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        root_link_prim = stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("RootLink"))
+        self.assertTrue(root_link_prim.IsValid())
+        self.assertTrue(root_link_prim.IsA(UsdGeom.Xform))
+
+        box_prim = stage.GetPrimAtPath(root_link_prim.GetPath().AppendChild("box"))
+        self.assertTrue(box_prim.IsValid())
+        self.assertTrue(box_prim.IsA(UsdGeom.Cube))
+
+        collision_box_prim = stage.GetPrimAtPath(root_link_prim.GetPath().AppendChild("box_collision"))
+        self.assertTrue(collision_box_prim.IsValid())
+        self.assertTrue(collision_box_prim.IsA(UsdGeom.Cube))
+
+        link_prim = stage.GetPrimAtPath(root_link_prim.GetPath().AppendChild("link"))
+        self.assertTrue(root_link_prim.IsValid())
+        self.assertTrue(root_link_prim.IsA(UsdGeom.Xform))
+
+        box_name_visual_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("box_name_visual"))
+        self.assertTrue(box_name_visual_prim.IsValid())
+        self.assertTrue(box_name_visual_prim.IsA(UsdGeom.Cube))
+
+        box_name_collision_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("box_name_collision"))
+        self.assertTrue(box_name_collision_prim.IsValid())
+        self.assertTrue(box_name_collision_prim.IsA(UsdGeom.Cube))

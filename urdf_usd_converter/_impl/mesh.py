@@ -6,7 +6,6 @@ import usdex.core
 from pxr import Gf, Tf, Usd
 
 from .data import ConversionData, Tokens
-from .utils import float3_to_vec3d
 
 __all__ = ["convert_meshes"]
 
@@ -30,7 +29,7 @@ def convert_meshes(data: ConversionData):
 
     for mesh, mesh_name, safe_name in zip(meshes, data.mesh_data.mesh_names, data.mesh_data.safe_names):
         filename = pathlib.Path(mesh[0]) if pathlib.Path(mesh[0]).is_absolute() else urdf_dir / pathlib.Path(mesh[0])
-        scale = float3_to_vec3d(mesh[1])
+        scale = Gf.Vec3d(mesh[1])
 
         mesh_prim: Usd.Prim = usdex.core.defineXform(geo_scope, safe_name).GetPrim()
 

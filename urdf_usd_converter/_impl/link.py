@@ -19,7 +19,6 @@ from .urdf_parser.elements import (
 )
 from .utils import (
     float3_to_quatf,
-    float3_to_vec3d,
     get_geometry_name,
     radians_to_degrees,
     set_transform,
@@ -142,13 +141,14 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
         collision for collision in link.collisions if collision.geometry and collision.geometry.shape
     ]
 
-    for geometry_base in geometry_basses:
-        name = get_geometry_name(geometry_base)
-        geom_safe_name = data.name_cache.getPrimName(link_prim, name)
-        geom_prim = convert_geometry(link_prim, geom_safe_name, geometry_base.geometry, data)
+    names = [get_geometry_name(geometry_base) for geometry_base in geometry_basses]
+    safe_names = data.name_cache.getPrimNames(link_prim, names)
+
+    for geometry_base, name, safe_name in zip(geometry_basses, names, safe_names):
+        geom_prim = convert_geometry(link_prim, safe_name, geometry_base.geometry, data)
         if geom_prim:
             is_collision = isinstance(geometry_base, ElementCollision)
-            if name != geom_safe_name:
+            if name != safe_name:
                 usdex.core.setDisplayName(geom_prim.GetPrim(), name)
             set_transform(geom_prim, geometry_base)
             if is_collision:
@@ -212,9 +212,9 @@ def apply_inertial(geom_prim: Usd.Prim, link: ElementLink, data: ConversionData)
         mass_api.GetDiagonalInertiaAttr().Set(diag_inertia)
 
     if link.inertial.origin:
-        position = float3_to_vec3d(link.inertial.origin.get_with_default("xyz"))
+        position = Gf.Vec3f(link.inertial.origin.get_with_default("xyz"))
         orientation = float3_to_quatf(link.inertial.origin.get_with_default("rpy"))
-        mass_api.GetCenterOfMassAttr().Set(Gf.Vec3f(position))
+        mass_api.GetCenterOfMassAttr().Set(position)
         axes = mass_api.GetPrincipalAxesAttr().Get()
         mass_api.GetPrincipalAxesAttr().Set(orientation * axes)
 
@@ -293,7 +293,7 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         # Specifies that the origin position of Body1 (the "child" of the joint in the URDF) is the center.
         joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
 
-        axis = Gf.Vec3f(float3_to_vec3d(joint.axis.get_with_default("xyz"))) if joint.axis else Gf.Vec3f(1, 0, 0)
+        axis = Gf.Vec3f(joint.axis.get_with_default("xyz")) if joint.axis else Gf.Vec3f(1, 0, 0)
 
         # If limit is omitted, set to 0.0
         limit_lower = joint.limit.get_with_default("lower") if joint.limit is not None else 0.0

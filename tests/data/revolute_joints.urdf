@@ -49,7 +49,7 @@
     <!-- If limit is omitted -->
   </joint>
   <joint name="joint_arm_1" type="revolute">
-    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <origin rpy="0 0 0.3" xyz="1.1 0 0.0"/>
     <parent link="Arm_1"/>
     <child link="Arm_2"/>
     <axis xyz="0 1 0"/>
@@ -57,7 +57,7 @@
     <limit upper="0.3"/>
   </joint>
   <joint name="joint_arm_2" type="revolute">
-    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <origin rpy="0 -0.3 -0.15" xyz="1.1 0 0.1"/>
     <parent link="Arm_2"/>
     <child link="Arm_3"/>
     <axis xyz="0 1 0"/>
@@ -65,7 +65,7 @@
     <limit lower="-0.3"/>
   </joint>
   <joint name="joint_arm_3" type="revolute">
-    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <origin rpy="-0.15 0 0" xyz="1.1 0.1 0.0"/>
     <parent link="Arm_3"/>
     <child link="Arm_4"/>
     <axis xyz="0 1 0"/>

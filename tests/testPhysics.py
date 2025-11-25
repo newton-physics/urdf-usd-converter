@@ -45,10 +45,10 @@ class TestPhysics(ConverterTestCase):
         self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(100, 100, 100), 1e-6))
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
-        self.assert_rotation_almost_equal(Gf.Rotation(mass_api.GetPrincipalAxesAttr().Get()), Gf.Rotation(Gf.Quatd(1, 0, 0, 0)), 1e-6)
+        self.assert_rotation_almost_equal(Gf.Rotation(mass_api.GetPrincipalAxesAttr().Get()), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
 
         # Collision.
-        collision_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_1"))
+        collision_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_collision"))
         self.assertTrue(collision_link_box_prim.HasAPI(UsdPhysics.CollisionAPI))
         collision_api: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI(collision_link_box_prim)
         self.assertTrue(collision_api.GetCollisionEnabledAttr().Get())
@@ -70,7 +70,7 @@ class TestPhysics(ConverterTestCase):
         self.assertTrue(link_cylinder_prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
         # Collision.
-        collision_cylinder_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_1"))
+        collision_cylinder_prim = self.stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_collision"))
         self.assertTrue(collision_cylinder_prim.IsValid())
         self.assertTrue(collision_cylinder_prim.HasAPI(UsdPhysics.CollisionAPI))
         collision_api: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI(collision_cylinder_prim)

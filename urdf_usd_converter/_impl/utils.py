@@ -18,7 +18,6 @@ from .._version import __version__
 
 __all__ = [
     "float3_to_quatf",
-    "float3_to_vec3d",
     "get_authoring_metadata",
     "get_geometry_name",
     "radians_to_degrees",
@@ -33,10 +32,6 @@ def get_authoring_metadata() -> str:
 
 def radians_to_degrees(radians: float) -> float:
     return radians * 180.0 / math.pi
-
-
-def float3_to_vec3d(xyz: tuple[float, float, float]) -> Gf.Vec3d:
-    return Gf.Vec3d(xyz[0], xyz[1], xyz[2])
 
 
 def float3_to_quatf(rpy: tuple[float, float, float]) -> Gf.Quatf:
@@ -66,7 +61,7 @@ def get_geometry_name(element: ElementVisual | ElementCollision) -> str:
         if geometry and isinstance(geometry, ElementMesh):
             return pathlib.Path(geometry.filename).stem
 
-    return element.geometry.shape.tag
+    return element.geometry.shape.tag if isinstance(element, ElementVisual) else element.geometry.shape.tag + "_collision"
 
 
 def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementVisual | ElementCollision) -> None:
@@ -78,7 +73,7 @@ def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementVisual
     orientation = Gf.Quatf.GetIdentity()
 
     if element.origin:
-        position = float3_to_vec3d(element.origin.get_with_default("xyz"))
+        position = Gf.Vec3d(element.origin.get_with_default("xyz"))
         orientation = float3_to_quatf(element.origin.get_with_default("rpy"))
 
     local_transform: Gf.Transform = Gf.Transform(translation=position, rotation=Gf.Rotation(orientation))

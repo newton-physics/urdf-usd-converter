@@ -363,6 +363,8 @@ class URDFParser:
 
         elif isinstance(element, ElementAxis):
             element.xyz = self._convert_attribute_float3(node, "xyz")
+            if element.xyz == (0, 0, 0):
+                raise ValueError(self._get_error_message("Axis xyz cannot be (0, 0, 0)", node))
 
         elif isinstance(element, ElementVerbose):
             if "value" in node.attrib:

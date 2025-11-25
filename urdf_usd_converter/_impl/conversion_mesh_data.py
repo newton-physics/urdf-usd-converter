@@ -39,22 +39,6 @@ class ConversionMeshData:
         # Get the mesh safe names.
         self.safe_names = name_cache.getPrimNames(geo_scope, self.mesh_names)
 
-    def get_name(self, filename: str, scale: tuple[float, float, float]) -> str:
-        """
-        Get the name using the filename and scale obtained from the URDF.
-
-        Args:
-            filename: The filename of the mesh.
-            scale: The scale of the mesh.
-
-        Returns:
-            The name if found, otherwise None.
-        """
-        for mesh, name in zip(self.meshes, self.mesh_names):
-            if mesh[0] == filename and mesh[1] == scale:
-                return name
-        return None  # pragma: no cover
-
     def get_safe_name(self, filename: str, scale: tuple[float, float, float]) -> str:
         """
         Get the safe_name using the filename and scale obtained from the URDF.

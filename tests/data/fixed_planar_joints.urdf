@@ -129,10 +129,4 @@
     <child link="planar_tilt"/>
     <axis xyz="0.2 0.3 1"/>
   </joint>
-  <joint name="joint_planar_axis_tilt_axis_len_0" type="planar">
-    <origin rpy="0 0 0" xyz="1 0 0.5"/>
-    <parent link="link1"/>
-    <child link="planar_tilt_axis_len_0"/>
-    <axis xyz="0 0 0"/>
-  </joint>
 </robot>
