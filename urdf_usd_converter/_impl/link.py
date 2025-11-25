@@ -224,6 +224,16 @@ def apply_inertial(geom_prim: Usd.Prim, link: ElementLink, data: ConversionData)
 
 
 def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
+    """
+    Extract the principal moments of inertia (diagonal inertia) and orientation
+    from URDF link inertia tensor using eigenvalue decomposition.
+
+    Args:
+        inertia: URDF inertia tensor element
+
+    Returns:
+        tuple[Gf.Quatf, Gf.Vec3f]: (orientation, diagonal_inertia)
+    """
     ixx = inertia.get_with_default("ixx")
     ixy = inertia.get_with_default("ixy")
     ixz = inertia.get_with_default("ixz")
@@ -231,19 +241,34 @@ def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
     iyz = inertia.get_with_default("iyz")
     izz = inertia.get_with_default("izz")
 
-    mat = np.zeros((3, 3))
-    mat[0, 0] = ixx
-    mat[1, 1] = iyy
-    mat[2, 2] = izz
-    mat[0, 1] = ixy
-    mat[1, 0] = ixy
-    mat[0, 2] = ixz
-    mat[2, 0] = ixz
-    mat[1, 2] = iyz
-    mat[2, 1] = iyz
+    # Build inertia tensor matrix (symmetric matrix)
+    mat = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]])
 
-    # TODO: Calculated by eigenvalue decomposition
-    return Gf.Quatf(0, 0, 0, 0), Gf.Vec3f(0, 0, 0)
+    # Eigenvalue decomposition (using eigh for symmetric matrix)
+    # eigenvalues: principal moments of inertia
+    # eigenvectors: rotation matrix representing principal axes
+    eigenvalues, eigenvectors = np.linalg.eigh(mat)
+
+    # Use eigenvalues as diagonal inertia
+    diag_inertia = Gf.Vec3f(float(eigenvalues[0]), float(eigenvalues[1]), float(eigenvalues[2]))
+
+    # Convert eigenvector matrix (rotation matrix) to quaternion
+    # Use Gf.Matrix3d to extract quaternion from rotation matrix
+    rotation_matrix = Gf.Matrix3d(
+        eigenvectors[0, 0],
+        eigenvectors[0, 1],
+        eigenvectors[0, 2],
+        eigenvectors[1, 0],
+        eigenvectors[1, 1],
+        eigenvectors[1, 2],
+        eigenvectors[2, 0],
+        eigenvectors[2, 1],
+        eigenvectors[2, 2],
+    )
+
+    # Extract quaternion from rotation matrix
+    orientation = Gf.Quatf(rotation_matrix.ExtractRotation().GetQuat())
+    return orientation, diag_inertia
 
 
 def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementLink, data: ConversionData):
