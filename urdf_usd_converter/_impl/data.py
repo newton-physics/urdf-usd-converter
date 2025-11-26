@@ -5,7 +5,7 @@ from dataclasses import dataclass
 import usdex.core
 from pxr import Usd
 
-from .conversion_mesh_data import ConversionMeshData
+from .mesh_cache import MeshCache
 from .urdf_parser.parser import URDFParser
 
 __all__ = ["ConversionData", "Tokens"]
@@ -31,4 +31,4 @@ class ConversionData:
     name_cache: usdex.core.NameCache
     scene: bool
     comment: str
-    mesh_data: ConversionMeshData
+    mesh_cache: MeshCache

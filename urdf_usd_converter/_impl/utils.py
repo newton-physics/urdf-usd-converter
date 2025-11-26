@@ -7,14 +7,13 @@ from typing import Any
 import usdex.core
 from pxr import Gf, Sdf, Usd, UsdGeom
 
-from urdf_usd_converter._impl.urdf_parser.elements import (
+from .._version import __version__
+from .urdf_parser.elements import (
     ElementCollision,
     ElementJoint,
     ElementMesh,
     ElementVisual,
 )
-
-from .._version import __version__
 
 __all__ = [
     "float3_to_quatf",

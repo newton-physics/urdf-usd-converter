@@ -51,7 +51,7 @@ def convert_cylinder(parent: Usd.Prim, name: str, cylinder: ElementCylinder, dat
 def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: ConversionData) -> UsdGeom.Gprim:
     filename = mesh.get_with_default("filename")
     scale = mesh.get_with_default("scale")
-    mesh_safe_name = data.mesh_data.get_safe_name(filename, scale)
+    mesh_safe_name = data.mesh_cache.get_safe_name(filename)
 
     ref_mesh: Usd.Prim = data.references[Tokens.Geometry].get(mesh_safe_name)
     if not ref_mesh:  # pragma: no cover
@@ -59,12 +59,9 @@ def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: Conversio
         Tf.RaiseRuntimeError(f"Mesh '{mesh_safe_name}' not found in Geometry Library {data.libraries[Tokens.Geometry].GetRootLayer().identifier}")
 
     prim = usdex.core.defineReference(parent, ref_mesh, name)
-    # the reference mesh may have an invalid source name, and thus a display name
-    # however, the prim name may already be valid and override this, in which case
-    # we need to block the referenced display name
-    if prim.GetPrim().GetName() != ref_mesh.GetPrim().GetName():
-        usdex.core.blockDisplayName(prim.GetPrim())
 
-    usdex.core.setLocalTransform(prim.GetPrim(), Gf.Vec3d(0), Gf.Quatf.GetIdentity(), Gf.Vec3f(scale))
+    if scale != Gf.Vec3d(1):
+        scale_op = UsdGeom.Xformable(prim).AddScaleOp()
+        scale_op.Set(Gf.Vec3f(scale))
 
     return UsdGeom.Mesh(prim)
