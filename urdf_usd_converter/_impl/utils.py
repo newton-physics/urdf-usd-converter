@@ -18,17 +18,12 @@ __all__ = [
     "float3_to_quatf",
     "get_authoring_metadata",
     "get_geometry_name",
-    "radians_to_degrees",
     "set_transform",
 ]
 
 
 def get_authoring_metadata() -> str:
     return f"URDF USD Converter v{__version__}"
-
-
-def radians_to_degrees(radians: float) -> float:
-    return radians * 180.0 / math.pi
 
 
 def float3_to_quatf(rpy: tuple[float, float, float]) -> Gf.Quatf:
@@ -38,9 +33,9 @@ def float3_to_quatf(rpy: tuple[float, float, float]) -> Gf.Quatf:
     USD converts this to degrees.
     """
     rotation = (
-        Gf.Rotation(Gf.Vec3d(1, 0, 0), radians_to_degrees(rpy[0]))
-        * Gf.Rotation(Gf.Vec3d(0, 1, 0), radians_to_degrees(rpy[1]))
-        * Gf.Rotation(Gf.Vec3d(0, 0, 1), radians_to_degrees(rpy[2]))
+        Gf.Rotation(Gf.Vec3d(1, 0, 0), math.degrees(rpy[0]))
+        * Gf.Rotation(Gf.Vec3d(0, 1, 0), math.degrees(rpy[1]))
+        * Gf.Rotation(Gf.Vec3d(0, 0, 1), math.degrees(rpy[2]))
     )
     return Gf.Quatf(rotation.GetQuat())
 
@@ -58,7 +53,9 @@ def get_geometry_name(element: ElementVisual | ElementCollision) -> str:
     if element.geometry:
         geometry = element.geometry.shape
         if geometry and isinstance(geometry, ElementMesh):
-            return pathlib.Path(geometry.filename).stem
+            name = pathlib.Path(geometry.filename).stem
+            name = name if isinstance(element, ElementVisual) else name + "_collision"
+            return name
 
     return element.geometry.shape.tag if isinstance(element, ElementVisual) else element.geometry.shape.tag + "_collision"
 

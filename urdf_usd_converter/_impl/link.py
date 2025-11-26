@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 
+import math
+
 import numpy as np
 import usdex.core
 from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
@@ -17,7 +19,6 @@ from .urdf_parser.elements import (
 from .utils import (
     float3_to_quatf,
     get_geometry_name,
-    radians_to_degrees,
     set_transform,
 )
 
@@ -45,33 +46,27 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
 
     data.references[Tokens.Physics][link.name] = link_prim
 
-    apply_physics_rigidbody(link_prim, data)
+    # Apply RigidBodyAPI to a link.
+    prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
+    UsdPhysics.RigidBodyAPI.Apply(prim_over)
+
+    if link == data.link_hierarchy.get_root_link():
+        # Set the root of the Link to ArticulationRoot.
+        UsdPhysics.ArticulationRootAPI.Apply(prim_over)
 
     # Assigning MassAPI to a Rigid Body.
     apply_inertial(link_prim, link, data)
 
     # Create visual or collision geometry.
-    geometry_basses: list[ElementVisual | ElementCollision] = [visual for visual in link.visuals if visual.geometry and visual.geometry.shape] + [
+    geometries: list[ElementVisual | ElementCollision] = [visual for visual in link.visuals if visual.geometry and visual.geometry.shape] + [
         collision for collision in link.collisions if collision.geometry and collision.geometry.shape
     ]
 
-    names = [get_geometry_name(geometry_base) for geometry_base in geometry_basses]
+    names = [get_geometry_name(geometry_base) for geometry_base in geometries]
     safe_names = data.name_cache.getPrimNames(link_prim, names)
 
-    for geometry_base, name, safe_name in zip(geometry_basses, names, safe_names):
-        geom_prim = convert_geometry(link_prim, safe_name, geometry_base.geometry, data)
-        if geom_prim:
-            is_collision = isinstance(geometry_base, ElementCollision)
-            if name != safe_name:
-                usdex.core.setDisplayName(geom_prim.GetPrim(), name)
-            set_transform(geom_prim, geometry_base)
-            if is_collision:
-                geom_prim.GetPurposeAttr().Set(UsdGeom.Tokens.guide)
-
-            # Set the physics rigidbody and collision for the geometry.
-            if is_collision:
-                # Apply CollisionAPI to collision geometry
-                apply_physics_collision_mesh(geom_prim.GetPrim(), data)
+    for geometry, name, safe_name in zip(geometries, names, safe_names):
+        convert_geometry(link_prim, name, safe_name, geometry, data)
 
     children = data.link_hierarchy.get_link_children(link.name)
     joints = data.link_hierarchy.get_link_joints(link.name)
@@ -84,41 +79,15 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
     return link_xform
 
 
-def apply_physics_rigidbody(prim: Usd.Prim, data: ConversionData):
-    """
-    Apply the physics rigidbody to a prim.
-    """
-    prim_over = data.content[Tokens.Physics].OverridePrim(prim.GetPath())
-    UsdPhysics.RigidBodyAPI.Apply(prim_over)
-
-
-def apply_physics_collision_mesh(geom_prim: Usd.Prim, data: ConversionData):
-    """
-    Apply the physics collision to a collision mesh geometry.
-    This applies CollisionAPI and MeshCollisionAPI (for mesh types).
-    """
-    geom_over = data.content[Tokens.Physics].OverridePrim(geom_prim.GetPath())
-
-    # Apply CollisionAPI
-    collider: UsdPhysics.CollisionAPI = UsdPhysics.CollisionAPI.Apply(geom_over)
-    collider.GetCollisionEnabledAttr().Set(True)
-
-    # If it's a mesh, apply MeshCollisionAPI with appropriate approximation
-    if geom_prim.IsA(UsdGeom.Mesh):
-        mesh_collider: UsdPhysics.MeshCollisionAPI = UsdPhysics.MeshCollisionAPI.Apply(geom_over)
-        # Use 'none' to use the mesh as-is
-        mesh_collider.GetApproximationAttr().Set(UsdPhysics.Tokens.none)
-
-
-def apply_inertial(geom_prim: Usd.Prim, link: ElementLink, data: ConversionData):
+def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
     """
     Set the inertial parameters of a link.
     """
     if not link.inertial or (not link.inertial.origin and not link.inertial.mass and not link.inertial.inertia):
         return
 
-    geom_over = data.content[Tokens.Physics].OverridePrim(geom_prim.GetPath())
-    mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI.Apply(geom_over)
+    prim_over = data.content[Tokens.Physics].OverridePrim(prim.GetPath())
+    mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI.Apply(prim_over)
 
     if link.inertial and link.inertial.inertia:
         orientation, diag_inertia = extract_inertia(link.inertial.inertia)
@@ -193,10 +162,6 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     joint_names = [joint.name for joint in joints] if joints else []
     joint_safe_names = data.name_cache.getPrimNames(parent, joint_names)
 
-    # Set the root of the Link to ArticulationRoot.
-    root_link_prim = data.references[Tokens.Physics][link.name]
-    UsdPhysics.ArticulationRootAPI.Apply(root_link_prim)
-
     # Create physics joints.
     for joint, joint_safe_name in zip(joints, joint_safe_names):
         body0_link_name = joint.parent.get_with_default("link")
@@ -217,8 +182,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         if joint.type == "fixed":
             physics_joint = usdex.core.definePhysicsFixedJoint(parent, joint_safe_name, body0, body1, joint_frame)
         elif joint.type == "revolute" or joint.type == "continuous":
-            limit_lower = None if joint.type == "continuous" else radians_to_degrees(limit_lower)
-            limit_upper = None if joint.type == "continuous" else radians_to_degrees(limit_upper)
+            limit_lower = None if joint.type == "continuous" else math.degrees(limit_lower)
+            limit_upper = None if joint.type == "continuous" else math.degrees(limit_upper)
             physics_joint = usdex.core.definePhysicsRevoluteJoint(parent, joint_safe_name, body0, body1, joint_frame, axis, limit_lower, limit_upper)
         elif joint.type == "prismatic":
             physics_joint = usdex.core.definePhysicsPrismaticJoint(parent, joint_safe_name, body0, body1, joint_frame, axis, limit_lower, limit_upper)
