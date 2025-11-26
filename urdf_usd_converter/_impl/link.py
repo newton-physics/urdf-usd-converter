@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 import usdex.core
-from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
@@ -309,7 +309,10 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         elif joint.type == "prismatic":
             physics_joint = usdex.core.definePhysicsPrismaticJoint(parent, joint_safe_name, body0, body1, joint_frame, axis, limit_lower, limit_upper)
         elif joint.type == "floating":
-            Tf.Warn("Floating joints are not supported.")
+            # Floating uses a rigid body for free movement.
+            # This rigid body does not belong to the joint structure.
+            # So there's nothing to do here.
+            pass
         elif joint.type == "planar":
             physics_joint = define_physics_planar_joint(parent, joint_safe_name, body0, body1, joint_frame, axis)
 

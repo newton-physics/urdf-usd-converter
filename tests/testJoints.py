@@ -3,8 +3,7 @@
 import math
 import pathlib
 
-import usdex.test
-from pxr import Gf, Tf, Usd, UsdPhysics
+from pxr import Gf, Usd, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -498,13 +497,41 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Floating joints are not supported.*"),
-            ],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
-            asset_path = converter.convert(input_path, output_dir)
+        asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        self.assertTrue(default_prim.IsValid())
+        default_prim_path = default_prim.GetPath()
+
+        physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
+        self.assertTrue(physics_scope_prim.IsValid())
+
+        # Joint_root.
+        physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
+        self.assertTrue(physics_fixed_joint_prim.IsValid())
+        self.assertTrue(physics_fixed_joint_prim.IsA(UsdPhysics.FixedJoint))
+        fixed_joint = UsdPhysics.FixedJoint(physics_fixed_joint_prim)
+        self.assertEqual(fixed_joint.GetBody0Rel().GetTargets(), ["/fixed_floating_joints/Geometry/BaseLink"])
+        self.assertEqual(fixed_joint.GetBody1Rel().GetTargets(), ["/fixed_floating_joints/Geometry/BaseLink/Arm_1"])
+        self.assertTrue(Gf.IsClose(fixed_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0.15, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(fixed_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assert_rotation_almost_equal(Gf.Rotation(fixed_joint.GetLocalRot0Attr().Get()), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
+        self.assert_rotation_almost_equal(Gf.Rotation(fixed_joint.GetLocalRot1Attr().Get()), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
+
+        # The number of children of physics_scope_prim is 1.
+        self.assertEqual(len(physics_scope_prim.GetChildren()), 1)
+
+        # Confirm that Arm_2 is assigned as a rigid body.
+        # This is a rigid body that is not participating in the joint structure.
+        geometry_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Geometry"))
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        arm2_prim_path = geometry_scope_prim.GetPath().AppendChild("BaseLink").AppendChild("Arm_1").AppendChild("Arm_2")
+        arm_2_prim = stage.GetPrimAtPath(arm2_prim_path)
+        self.assertTrue(arm_2_prim.IsValid())
+        self.assertTrue(arm_2_prim.HasAPI(UsdPhysics.RigidBodyAPI))
