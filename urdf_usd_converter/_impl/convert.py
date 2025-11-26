@@ -10,6 +10,7 @@ from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 from ._flatten import export_flattened
 from .data import ConversionData, Tokens
 from .link import convert_links
+from .link_hierarchy import LinkHierarchy
 from .material import convert_materials
 from .mesh import convert_meshes
 from .mesh_cache import MeshCache
@@ -70,6 +71,7 @@ class Converter:
             name_cache=usdex.core.NameCache(),
             scene=self.params.scene,
             comment=self.params.comment,
+            link_hierarchy=LinkHierarchy(parser.get_root_element()),
             mesh_cache=MeshCache(),
         )
 

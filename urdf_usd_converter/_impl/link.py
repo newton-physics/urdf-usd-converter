@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
-from typing import Any
 
 import numpy as np
 import usdex.core
@@ -12,9 +11,7 @@ from .planar_joint import define_physics_planar_joint
 from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
-    ElementJoint,
     ElementLink,
-    ElementRobot,
     ElementVisual,
 )
 from .utils import (
@@ -29,100 +26,17 @@ __all__ = ["convert_links"]
 
 def convert_links(data: ConversionData):
     geo_scope = data.content[Tokens.Geometry].GetDefaultPrim().GetChild(Tokens.Geometry).GetPrim()
-    root_element: ElementRobot = data.urdf_parser.get_root_element()
-
-    # Get link hierarchy.
-    link_hierarchy = LinkHierarchy(root_element)
-    link_hierarchy.create_link_hierarchy()
-    root_link = link_hierarchy.get_root_link()
+    root_link = data.link_hierarchy.get_root_link()
 
     # Creating a Link Hierarchy.
-    convert_link(parent=geo_scope, link_hierarchy=link_hierarchy, link=root_link, data=data)
+    convert_link(parent=geo_scope, link=root_link, data=data)
 
     # Create Physics joints
     physics_scope = data.content[Tokens.Physics].GetDefaultPrim().GetChild(Tokens.Physics).GetPrim()
-    physics_joints(parent=physics_scope, link_hierarchy=link_hierarchy, link=root_link, data=data)
+    physics_joints(parent=physics_scope, link=root_link, data=data)
 
 
-class LinkHierarchy:
-    """
-    Maintains the link hierarchy from joints.
-    """
-
-    def __init__(self, root_element: ElementRobot):
-        self.root_element = root_element
-
-        # A dictionary of link names and their child link names.
-        self.link_tree: dict[str, dict[str, Any]] = {}
-
-    def create_link_hierarchy(self):
-        """
-        Create a hierarchy of links and their children from the joints.
-        """
-        for joint in self.root_element.joints:
-            parent_link_name = joint.parent.get_with_default("link")
-
-            if parent_link_name not in self.link_tree:
-                self.link_tree[parent_link_name] = {
-                    "link": self.get_link_by_name(parent_link_name),  # link
-                    "children": [],  # children links
-                    "joints": [],  # The joints corresponding to the "children" links
-                }
-            if joint.child not in self.link_tree[parent_link_name]["children"]:
-                link = self.get_link_by_name(joint.child.get_with_default("link"))
-                self.link_tree[parent_link_name]["children"].append(link)
-                self.link_tree[parent_link_name]["joints"].append(joint)
-
-        # If the link tree is empty, make the first link the root.
-        if len(self.link_tree) == 0:
-            link = self.root_element.links[0]
-            self.link_tree[link.name] = {
-                "link": link,
-                "joints": [],
-                "children": [],
-            }
-
-    def get_root_link(self) -> ElementLink:
-        """
-        Get the root link name from the link hierarchy.
-        """
-        links = [data["link"] for data in self.link_tree.values()]
-        for link in links:
-            is_child = False
-            for d in self.link_tree.values():
-                if link in d["children"]:
-                    is_child = True
-                    break
-            if not is_child:
-                return link
-
-        # If it is a looping joint structure, the process reaches this point.
-        raise ValueError("Closed loop articulations are not supported.")
-
-    def get_link_joints(self, link_name: str) -> list[ElementJoint]:
-        """
-        Get the joints that connect to a link.
-        """
-        if link_name not in self.link_tree:
-            return None
-        return self.link_tree[link_name]["joints"]
-
-    def get_link_children(self, link_name: str) -> list[ElementLink]:
-        """
-        Get the children of a link.
-        """
-        if link_name not in self.link_tree:
-            return []
-        return self.link_tree[link_name]["children"]
-
-    def get_link_by_name(self, link_name: str) -> ElementLink:
-        """
-        Get a link by name.
-        """
-        return next((link for link in self.root_element.links if link.name == link_name), None)
-
-
-def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementLink, data: ConversionData) -> UsdGeom.Xform:
+def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> UsdGeom.Xform:
     link_safe_name = data.name_cache.getPrimName(parent, link.name)
     link_xform = usdex.core.defineXform(parent, link_safe_name)
     link_prim = link_xform.GetPrim()
@@ -159,12 +73,12 @@ def convert_link(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementL
                 # Apply CollisionAPI to collision geometry
                 apply_physics_collision_mesh(geom_prim.GetPrim(), data)
 
-    children = link_hierarchy.get_link_children(link.name)
-    joints = link_hierarchy.get_link_joints(link.name)
+    children = data.link_hierarchy.get_link_children(link.name)
+    joints = data.link_hierarchy.get_link_joints(link.name)
 
     if len(children) > 0:
         for child, joint in zip(children, joints):
-            child_xform = convert_link(link_prim, link_hierarchy, child, data)
+            child_xform = convert_link(link_prim, child, data)
             set_transform(child_xform, joint)
 
     return link_xform
@@ -271,7 +185,7 @@ def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
     return orientation, diag_inertia
 
 
-def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: ElementLink, data: ConversionData):
+def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     """
     Create physics joints.
     """

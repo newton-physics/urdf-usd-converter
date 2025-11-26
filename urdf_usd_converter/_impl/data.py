@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import usdex.core
 from pxr import Usd
 
+from .link_hierarchy import LinkHierarchy
 from .mesh_cache import MeshCache
 from .urdf_parser.parser import URDFParser
 
@@ -31,4 +32,5 @@ class ConversionData:
     name_cache: usdex.core.NameCache
     scene: bool
     comment: str
+    link_hierarchy: LinkHierarchy
     mesh_cache: MeshCache
