@@ -62,7 +62,7 @@
     <child link="Arm_2"/>
     <axis xyz="1 0 0"/>
     <!-- If lower is omitted -->
-    <limit upper="0.5" effort="0" velocity="0.01"/>
+    <limit upper="0.5" effort="0.01"/>
   </joint>
   <joint name="joint_arm_2" type="prismatic">
     <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
@@ -70,14 +70,14 @@
     <child link="Arm_3"/>
     <axis xyz="1 0 0"/>
     <!-- If upper is omitted -->
-    <limit lower="-0.2" effort="0" velocity="0.01"/>
+    <limit lower="-0.2" effort="0.02" velocity="0.01"/>
   </joint>
   <joint name="joint_arm_3" type="prismatic">
     <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
     <parent link="Arm_3"/>
     <child link="Arm_4"/>
     <axis xyz="1 0 0"/>
-    <limit lower="0" upper="0.5" effort="0" velocity="0.01"/>
+    <limit lower="0" upper="0.5" effort="0.03" velocity="0.01"/>
   </joint>
 
 </robot>

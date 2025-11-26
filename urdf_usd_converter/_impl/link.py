@@ -4,7 +4,7 @@ from typing import Any
 
 import numpy as np
 import usdex.core
-from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
@@ -316,4 +316,11 @@ def physics_joints(parent: Usd.Prim, link_hierarchy: LinkHierarchy, link: Elemen
         if physics_joint and joint.name != joint_safe_name:
             usdex.core.setDisplayName(physics_joint.GetPrim(), joint.name)
 
-        # TODO: Custom attributes.
+        # Custom attributes.
+        if physics_joint and joint.limit:
+            limit_effort = joint.limit.get_with_default("effort")
+            limit_velocity = joint.limit.get_with_default("velocity")
+            if limit_effort is not None:
+                physics_joint.GetPrim().CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(limit_effort)
+            if limit_velocity is not None:
+                physics_joint.GetPrim().CreateAttribute("urdf:limit:velocity", Sdf.ValueTypeNames.Float, custom=True).Set(limit_velocity)

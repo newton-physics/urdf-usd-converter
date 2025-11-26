@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import math
 import pathlib
-from typing import Any
 
 import usdex.core
-from pxr import Gf, Sdf, Usd, UsdGeom
+from pxr import Gf, UsdGeom
 
 from .._version import __version__
 from .urdf_parser.elements import (
@@ -20,7 +19,6 @@ __all__ = [
     "get_authoring_metadata",
     "get_geometry_name",
     "radians_to_degrees",
-    "set_custom_attribute",
     "set_transform",
 ]
 
@@ -39,9 +37,11 @@ def float3_to_quatf(rpy: tuple[float, float, float]) -> Gf.Quatf:
     The roll, pitch, yaw angles are in radians.
     USD converts this to degrees.
     """
-    rotation = Gf.Rotation(Gf.Vec3d(1, 0, 0), radians_to_degrees(rpy[0]))  # X-axis
-    rotation = rotation * Gf.Rotation(Gf.Vec3d(0, 1, 0), radians_to_degrees(rpy[1]))  # Y-axis
-    rotation = rotation * Gf.Rotation(Gf.Vec3d(0, 0, 1), radians_to_degrees(rpy[2]))  # Z-axis
+    rotation = (
+        Gf.Rotation(Gf.Vec3d(1, 0, 0), radians_to_degrees(rpy[0]))
+        * Gf.Rotation(Gf.Vec3d(0, 1, 0), radians_to_degrees(rpy[1]))
+        * Gf.Rotation(Gf.Vec3d(0, 0, 1), radians_to_degrees(rpy[2]))
+    )
     return Gf.Quatf(rotation.GetQuat())
 
 
@@ -127,20 +127,3 @@ def multiply_transforms_preserve_scale(transform1: Gf.Transform, transform2: Gf.
     result.SetScale(combined_scale)
 
     return result
-
-
-def set_custom_attribute(prim: Usd.Prim, name: str, type_name: Sdf.ValueTypeNames, value: Any):
-    """
-    Set a custom attribute on a prim.
-
-    Args:
-        prim: The prim to set the custom attribute on.
-        name: The name of the custom attribute.
-        type_name: The type of the custom attribute.
-        value: The value of the custom attribute.
-    """
-    if value is None:
-        return
-
-    attr: Usd.Attribute = prim.CreateAttribute(name, type_name, custom=True)
-    attr.Set(value)
