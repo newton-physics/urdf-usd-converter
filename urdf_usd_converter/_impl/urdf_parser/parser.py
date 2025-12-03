@@ -27,12 +27,6 @@ from .elements import (
     ElementRobot,
     ElementSafetyController,
     ElementTexture,
-    ElementTransmission,
-    ElementTransmissionActuator,
-    ElementTransmissionHardwareInterface,
-    ElementTransmissionJoint,
-    ElementTransmissionMechanicalReduction,
-    ElementTransmissionType,
     ElementUndefined,
     ElementVerbose,
     ElementVisual,
@@ -241,14 +235,7 @@ class URDFParser:
             # If the name does not exist and a name is required, an error occurs.
             if isinstance(
                 element,
-                ElementRobot
-                | ElementMaterialGlobal
-                | ElementMaterial
-                | ElementLink
-                | ElementJoint
-                | ElementTransmission
-                | ElementTransmissionActuator
-                | ElementTransmissionJoint,
+                ElementRobot | ElementMaterialGlobal | ElementLink | ElementJoint,
             ):
                 raise ValueError(self._get_error_message("name is required", node))
 
@@ -370,18 +357,6 @@ class URDFParser:
             if "value" in node.attrib:
                 element.value = node.attrib["value"]
 
-        elif isinstance(element, ElementTransmissionHardwareInterface):
-            if node.text:
-                element.text = node.text
-
-        elif isinstance(element, ElementTransmissionMechanicalReduction):
-            if node.text:
-                element.text = float(node.text)
-
-        elif isinstance(element, ElementTransmissionType):
-            if node.text:
-                element.text = node.text
-
         # Parse child elements.
         for child in node:
             self._parse_xml_elements(child, element)
@@ -400,10 +375,6 @@ class URDFParser:
                 if element.name in [joint.name for joint in prev_element.joints]:
                     raise ValueError(self._get_error_message(f"Joint name '{element.name}' already exists", node))
                 prev_element.joints.append(element)
-            elif node.tag == "transmission":
-                if element.name in [transmission.name for transmission in prev_element.transmissions]:
-                    raise ValueError(self._get_error_message(f"Transmission name '{element.name}' already exists", node))
-                prev_element.transmissions.append(element)
 
         elif prev_element_type in (ElementMaterialGlobal, ElementMaterial):
             if node.tag == "color":
@@ -460,23 +431,6 @@ class URDFParser:
                 prev_element.safety_controller = element
             elif node.tag == "mimic":
                 prev_element.mimic = element
-
-        elif prev_element_type == ElementTransmission:
-            if node.tag == "actuator":
-                prev_element.actuator = element
-            elif node.tag == "joint":
-                prev_element.joint = element
-            elif node.tag == "type":
-                prev_element.type = element
-
-        elif prev_element_type == ElementTransmissionActuator:
-            if node.tag == "mechanicalReduction":
-                prev_element.mechanicalReduction = element
-            elif node.tag == "hardwareInterface":
-                prev_element.hardwareInterface = element
-
-        elif prev_element_type == ElementTransmissionJoint and node.tag == "hardwareInterface":
-            prev_element.hardwareInterface = element
 
         # Stores undefined elements.
         if prev_element_type == ElementUndefined or isinstance(element, ElementUndefined):
@@ -668,8 +622,6 @@ class URDFParser:
             for e in element.links:
                 self._get_undefined_elements_nested(e, undefined_elements)
             for e in element.joints:
-                self._get_undefined_elements_nested(e, undefined_elements)
-            for e in element.transmissions:
                 self._get_undefined_elements_nested(e, undefined_elements)
         elif isinstance(element, ElementLink):
             for e in element.visuals:

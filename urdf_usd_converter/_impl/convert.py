@@ -141,8 +141,8 @@ class Converter:
     def warn(self, parser: URDFParser):
         element_root: ElementRobot = parser.get_root_element()
 
-        if element_root.transmissions:
-            Tf.Warn("Transmissions are not supported")
+        if "transmission" in [element.tag for element in element_root.undefined_elements]:
+            Tf.Warn("Transmission is not supported")
 
         if "gazebo" in [element.tag for element in element_root.undefined_elements]:
             Tf.Warn("Gazebo is not supported")

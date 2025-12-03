@@ -36,7 +36,6 @@ reserved_element_names = [
     "safety_controller",
     "sphere",
     "texture",
-    "transmission",
     "type",
     "verbose",
     "vertical",
@@ -136,8 +135,6 @@ reserved_element_attribute_names = [
             # joint attributes.
             "name",
             "type",
-            # transmission-Joint attributes.
-            "hardwareInterface",
         ],
     },
     {
@@ -225,12 +222,6 @@ reserved_element_attribute_names = [
         "element": "texture",
         "attributes": [
             "filename",
-        ],
-    },
-    {
-        "element": "transmission",
-        "attributes": [
-            "name",
         ],
     },
     {
