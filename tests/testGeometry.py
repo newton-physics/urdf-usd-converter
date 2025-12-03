@@ -3,7 +3,7 @@
 import pathlib
 
 import usdex.core
-from pxr import Gf, Usd, UsdGeom
+from pxr import Gf, Tf, Usd, UsdGeom
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -15,7 +15,15 @@ class TestGeometry(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Calibration is not supported.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Dynamics is not supported.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
