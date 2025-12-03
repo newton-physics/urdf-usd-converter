@@ -36,19 +36,17 @@ class TestGeometry(ConverterTestCase):
         cube = UsdGeom.Cube(box_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(box_prim.GetPrim()).GetTranslation(), Gf.Vec3d(-0.5, 0.0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(box_prim.GetPrim()).GetScale(), Gf.Vec3d(0.5, 0.5, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(usdex.core.getLocalTransform(box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
         self.assertEqual(cube.GetSizeAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        collision_box_prim = stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_collision"))
+        collision_box_prim = stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_1"))
         self.assertTrue(collision_box_prim.IsValid())
         self.assertTrue(collision_box_prim.IsA(UsdGeom.Cube))
         collision_box = UsdGeom.Cube(collision_box_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetTranslation(), Gf.Vec3d(-0.5, 0.0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetScale(), Gf.Vec3d(0.5, 0.5, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(
-            usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6
-        )
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
         self.assertEqual(collision_box.GetSizeAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(collision_box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
 
@@ -62,22 +60,22 @@ class TestGeometry(ConverterTestCase):
         cylinder = UsdGeom.Cylinder(cylinder_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(cylinder_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.5, 0.0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(cylinder_prim.GetPrim()).GetScale(), Gf.Vec3d(1.0, 1.0, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(
-            usdex.core.getLocalTransform(cylinder_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(0.96592593, 0.25881866, 0, 0)), 1e-6
+        self.assertRotationsAlmostEqual(
+            usdex.core.getLocalTransform(cylinder_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(0.96592593, 0.25881866, 0, 0))
         )
         self.assertEqual(cylinder.GetAxisAttr().Get(), UsdGeom.Tokens.z)
         self.assertEqual(cylinder.GetRadiusAttr().Get(), 0.3)
         self.assertEqual(cylinder.GetHeightAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(cylinder_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        collision_cylinder_prim = stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_collision"))
+        collision_cylinder_prim = stage.GetPrimAtPath(link_cylinder_prim.GetPath().AppendChild("cylinder_1"))
         self.assertTrue(collision_cylinder_prim.IsValid())
         self.assertTrue(collision_cylinder_prim.IsA(UsdGeom.Cylinder))
         collision_cylinder = UsdGeom.Cylinder(collision_cylinder_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_cylinder_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.5, 0.0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_cylinder_prim.GetPrim()).GetScale(), Gf.Vec3d(1.0, 1.0, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(
-            usdex.core.getLocalTransform(collision_cylinder_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(0.96592593, 0.25881866, 0, 0)), 1e-6
+        self.assertRotationsAlmostEqual(
+            usdex.core.getLocalTransform(collision_cylinder_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(0.96592593, 0.25881866, 0, 0))
         )
         self.assertEqual(collision_cylinder.GetAxisAttr().Get(), UsdGeom.Tokens.z)
         self.assertEqual(collision_cylinder.GetRadiusAttr().Get(), 0.3)
@@ -89,9 +87,7 @@ class TestGeometry(ConverterTestCase):
         self.assertTrue(link_sphere_prim.IsA(UsdGeom.Xform))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(link_sphere_prim.GetPrim()).GetTranslation(), Gf.Vec3d(1.5, 0.0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(link_sphere_prim.GetPrim()).GetScale(), Gf.Vec3d(1.0, 1.0, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(
-            usdex.core.getLocalTransform(link_sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6
-        )
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(link_sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
 
         sphere_prim = stage.GetPrimAtPath(link_sphere_prim.GetPath().AppendChild("sphere"))
         self.assertTrue(sphere_prim.IsValid())
@@ -99,7 +95,7 @@ class TestGeometry(ConverterTestCase):
         sphere = UsdGeom.Sphere(sphere_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.0, 0.0, 0.0), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetScale(), Gf.Vec3d(1.0, 1.0, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
         self.assertEqual(sphere.GetRadiusAttr().Get(), 0.5)
         self.assertEqual(UsdGeom.Imageable(sphere_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
@@ -134,7 +130,7 @@ class TestGeometry(ConverterTestCase):
         cube = UsdGeom.Cube(box_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(box_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.0, 0.0, 0.0), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(box_prim.GetPrim()).GetScale(), Gf.Vec3d(0.5, 0.5, 0.5), 1e-6))
-        self.assert_rotation_almost_equal(usdex.core.getLocalTransform(box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
         self.assertEqual(cube.GetSizeAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
@@ -144,30 +140,28 @@ class TestGeometry(ConverterTestCase):
         sphere = UsdGeom.Sphere(sphere_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.0, 0.0, 0.45), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetScale(), Gf.Vec3d(1.0, 1.0, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6)
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
         self.assertEqual(sphere.GetRadiusAttr().Get(), 0.2)
         self.assertEqual(UsdGeom.Imageable(sphere_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        collision_box_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("box_collision"))
+        collision_box_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("box_1"))
         self.assertTrue(collision_box_prim.IsValid())
         self.assertTrue(collision_box_prim.IsA(UsdGeom.Cube))
         collision_box = UsdGeom.Cube(collision_box_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.0, 0.0, 0.0), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetScale(), Gf.Vec3d(0.5, 0.5, 0.5), 1e-6))
-        self.assert_rotation_almost_equal(
-            usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6
-        )
+        self.assertRotationsAlmostEqual(usdex.core.getLocalTransform(collision_box_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)))
         self.assertEqual(collision_box.GetSizeAttr().Get(), 1.0)
         self.assertEqual(UsdGeom.Imageable(collision_box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
 
-        collision_sphere_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("sphere_collision"))
+        collision_sphere_prim = stage.GetPrimAtPath(link_prim.GetPath().AppendChild("sphere_1"))
         self.assertTrue(collision_sphere_prim.IsValid())
         self.assertTrue(collision_sphere_prim.IsA(UsdGeom.Sphere))
         collision_sphere = UsdGeom.Sphere(collision_sphere_prim)
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_sphere_prim.GetPrim()).GetTranslation(), Gf.Vec3d(0.0, 0.0, 0.45), 1e-6))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(collision_sphere_prim.GetPrim()).GetScale(), Gf.Vec3d(1.0, 1.0, 1.0), 1e-6))
-        self.assert_rotation_almost_equal(
-            usdex.core.getLocalTransform(collision_sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0)), 1e-6
+        self.assertRotationsAlmostEqual(
+            usdex.core.getLocalTransform(collision_sphere_prim.GetPrim()).GetRotation(), Gf.Rotation(Gf.Quatf(1, 0, 0, 0))
         )
         self.assertEqual(collision_sphere.GetRadiusAttr().Get(), 0.2)
         self.assertEqual(UsdGeom.Imageable(collision_sphere_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
@@ -196,7 +190,7 @@ class TestGeometry(ConverterTestCase):
         self.assertTrue(box_prim.IsValid())
         self.assertTrue(box_prim.IsA(UsdGeom.Cube))
 
-        collision_box_prim = stage.GetPrimAtPath(root_link_prim.GetPath().AppendChild("box_collision"))
+        collision_box_prim = stage.GetPrimAtPath(root_link_prim.GetPath().AppendChild("box_1"))
         self.assertTrue(collision_box_prim.IsValid())
         self.assertTrue(collision_box_prim.IsA(UsdGeom.Cube))
 

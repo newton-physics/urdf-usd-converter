@@ -53,11 +53,9 @@ def get_geometry_name(element: ElementVisual | ElementCollision) -> str:
     if element.geometry:
         geometry = element.geometry.shape
         if geometry and isinstance(geometry, ElementMesh):
-            name = pathlib.Path(geometry.filename).stem
-            name = name if isinstance(element, ElementVisual) else name + "_collision"
-            return name
+            return pathlib.Path(geometry.filename).stem
 
-    return element.geometry.shape.tag if isinstance(element, ElementVisual) else element.geometry.shape.tag + "_collision"
+    return element.geometry.shape.tag
 
 
 def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementVisual | ElementCollision) -> None:
