@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<robot name="meshes">
+  <link name="link_mesh_stl">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.stl" scale="0.8 0.8 0.8" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_mesh_obj">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.8 0.8 0.8" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_mesh_dae">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.dae" scale="0.8 0.8 0.8" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_mesh_dxf"> <!-- Unsupported formats -->
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.dxf" scale="0.8 0.8 0.8" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_stl_obj" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_mesh_stl"/>
+    <child link="link_mesh_obj"/>
+  </joint>
+  <joint name="joint_obj_dae" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_mesh_obj"/>
+    <child link="link_mesh_dae"/>
+  </joint>
+  <joint name="joint_dae_dxf" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_mesh_dae"/>
+    <child link="link_mesh_dxf"/>
+  </joint>
+</robot>

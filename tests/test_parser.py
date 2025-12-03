@@ -214,12 +214,12 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*parent: Link is required \(line: 23\).*"):
             parser.parse()
 
-    def test_load_error_duplicate_transmission_names(self):
+    def test_load_error_joint_axis_0(self):
         # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_duplicate_transmission_names.urdf")
+        model_path = pathlib.Path("tests/data/error_joint_axis_0.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*transmission: Transmission name 'transmission_1' already exists \(line: 8\).*"):
+        with self.assertRaisesRegex(RuntimeError, r".*axis: Axis xyz cannot be \(0, 0, 0\) \(line: 25\).*"):
             parser.parse()
 
     def test_has_no_material(self):
@@ -301,7 +301,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(link.get_with_default("name"), "BaseLink")
         self.assertIsNone(link.type)
 
-        visual = link.visual
+        self.assertEqual(len(link.visuals), 1)
+        visual = link.visuals[0]
         self.assertTrue(visual)
         origin = visual.origin
         self.assertTrue(origin)
@@ -309,8 +310,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "box")
-        self.assertEqual(geometry.geometry.get_with_default("size"), (1.0, 1.0, 1.0))
+        self.assertEqual(geometry.shape.tag, "box")
+        self.assertEqual(geometry.shape.get_with_default("size"), (1.0, 1.0, 1.0))
         material = visual.material
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "red")
@@ -335,7 +336,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(link.get_with_default("name"), "link2")
         self.assertIsNone(link.type)
 
-        visual = link.visual
+        self.assertEqual(len(link.visuals), 1)
+        visual = link.visuals[0]
         self.assertTrue(visual)
         origin = visual.origin
         self.assertTrue(origin)
@@ -343,15 +345,16 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.rpy, (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "mesh")
-        mesh = geometry.geometry
+        self.assertEqual(geometry.shape.tag, "mesh")
+        mesh = geometry.shape
         self.assertEqual(mesh.get_with_default("filename"), "assets/box.obj")
         self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
         material = visual.material
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "green")
 
-        collision = link.collision
+        self.assertEqual(len(link.collisions), 1)
+        collision = link.collisions[0]
         self.assertTrue(collision)
         origin = collision.origin
         self.assertTrue(origin)
@@ -359,8 +362,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.rpy, (0.0, 0.0, 0.0))
         geometry = collision.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "mesh")
-        mesh = geometry.geometry
+        self.assertEqual(geometry.shape.tag, "mesh")
+        mesh = geometry.shape
         self.assertEqual(mesh.get_with_default("filename"), "assets/box.stl")
         self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
 
@@ -368,7 +371,8 @@ class TestURDFParser(ConverterTestCase):
         link = root_element.links[2]
         self.assertEqual(link.get_with_default("name"), "link3")
         self.assertIsNone(link.type)
-        visual = link.visual
+        self.assertEqual(len(link.visuals), 1)
+        visual = link.visuals[0]
         self.assertTrue(visual)
         origin = visual.origin
         self.assertTrue(origin)
@@ -376,14 +380,15 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "cylinder")
-        self.assertEqual(geometry.geometry.get_with_default("radius"), 0.5)
-        self.assertEqual(geometry.geometry.get_with_default("length"), 1.0)
+        self.assertEqual(geometry.shape.tag, "cylinder")
+        self.assertEqual(geometry.shape.get_with_default("radius"), 0.5)
+        self.assertEqual(geometry.shape.get_with_default("length"), 1.0)
         material = visual.material
         self.assertTrue(material)
         self.assertEqual(material.get_with_default("name"), "yellow")
 
-        collision = link.collision
+        self.assertEqual(len(link.collisions), 1)
+        collision = link.collisions[0]
         self.assertTrue(collision)
         origin = collision.origin
         self.assertTrue(origin)
@@ -391,8 +396,8 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
         geometry = collision.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.geometry.tag, "mesh")
-        mesh = geometry.geometry
+        self.assertEqual(geometry.shape.tag, "mesh")
+        mesh = geometry.shape
         self.assertEqual(mesh.get_with_default("filename"), "assets/box.stl")
         self.assertEqual(mesh.get_with_default("scale"), (0.5, 0.6, 1.0))
         verbose = collision.verbose
@@ -496,68 +501,102 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(material[1], (1.0, 1.0, 0.0, 1.0))
         self.assertEqual(material[2], None)
 
-    def test_get_transmissions(self):
-        # Get the root element.
-        root_element = self.parser.get_root_element()
-
-        self.assertEqual(len(root_element.transmissions), 1)
-
-        # transmissions[0]
-        transmission = root_element.transmissions[0]
-        self.assertEqual(transmission.get_with_default("name"), "simple_trans")
-        self.assertTrue(transmission.type)
-        self.assertEqual(transmission.type.text, "transmission_interface/SimpleTransmission")
-        self.assertTrue(transmission.joint)
-        self.assertEqual(transmission.joint.get_with_default("name"), "foo_joint")
-        self.assertTrue(transmission.actuator)
-        self.assertEqual(transmission.actuator.get_with_default("name"), "foo_motor")
-        self.assertTrue(transmission.actuator.mechanicalReduction)
-        self.assertEqual(transmission.actuator.mechanicalReduction.text, 50.0)
-        self.assertTrue(transmission.actuator.hardwareInterface)
-        self.assertEqual(transmission.actuator.hardwareInterface.text, "EffortJointInterface")
-
     def test_get_undefined_elements(self):
         # Get undefined elements and attributes in XML.
 
         # Get undefined elements.
         undefined_elements = self.parser.get_undefined_elements()
-        self.assertEqual(len(undefined_elements), 7)
+        self.assertEqual(len(undefined_elements), 14)
 
+        # The transmission is stored as undefined because the schema specification is unstable.
         element = undefined_elements[0]
+        self.assertEqual(element.tag, "transmission")
+        self.assertEqual(element.path, "/robot/transmission")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {"name": "simple_trans"})
+        self.assertEqual(element.line_number, 91)
+
+        element = undefined_elements[1]
+        self.assertEqual(element.tag, "type")
+        self.assertEqual(element.path, "/robot/transmission/type")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {})
+        self.assertEqual(element.undefined_text, "transmission_interface/SimpleTransmission")
+        self.assertEqual(element.line_number, 92)
+
+        element = undefined_elements[2]
+        self.assertEqual(element.tag, "joint")
+        self.assertEqual(element.path, "/robot/transmission/joint")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {"name": "foo_joint"})
+        self.assertEqual(element.line_number, 93)
+
+        element = undefined_elements[3]
+        self.assertEqual(element.tag, "hardwareInterface")
+        self.assertEqual(element.path, "/robot/transmission/joint/hardwareInterface")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {})
+        self.assertEqual(element.undefined_text, "EffortJointInterface")
+        self.assertEqual(element.line_number, 94)
+
+        element = undefined_elements[4]
+        self.assertEqual(element.tag, "actuator")
+        self.assertEqual(element.path, "/robot/transmission/actuator")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {"name": "foo_motor"})
+        self.assertEqual(element.line_number, 96)
+
+        element = undefined_elements[5]
+        self.assertEqual(element.tag, "mechanicalReduction")
+        self.assertEqual(element.path, "/robot/transmission/actuator/mechanicalReduction")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {})
+        self.assertEqual(element.undefined_text, "50")
+        self.assertEqual(element.line_number, 97)
+
+        element = undefined_elements[6]
+        self.assertEqual(element.tag, "hardwareInterface")
+        self.assertEqual(element.path, "/robot/transmission/actuator/hardwareInterface")
+        self.assertEqual(element.undefined_element, True)
+        self.assertEqual(element.undefined_attributes, {})
+        self.assertEqual(element.undefined_text, "EffortJointInterface")
+        self.assertEqual(element.line_number, 98)
+
+        element = undefined_elements[7]
         self.assertEqual(element.tag, "gazebo")
         self.assertEqual(element.path, "/robot/gazebo")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.line_number, 102)
 
-        element = undefined_elements[1]
+        element = undefined_elements[8]
         self.assertEqual(element.tag, "static")
         self.assertEqual(element.path, "/robot/gazebo/static")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_text, "true")
         self.assertEqual(element.line_number, 103)
 
-        element = undefined_elements[2]
+        element = undefined_elements[9]
         self.assertEqual(element.tag, "custom")
         self.assertEqual(element.path, "/robot/link/visual/custom")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {})
         self.assertEqual(element.line_number, 29)
 
-        element = undefined_elements[3]
+        element = undefined_elements[10]
         self.assertEqual(element.tag, "item1")
         self.assertEqual(element.path, "/robot/link/visual/custom/item1")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"name": "data1", "value": "1"})
         self.assertEqual(element.line_number, 30)
 
-        element = undefined_elements[4]
+        element = undefined_elements[11]
         self.assertEqual(element.tag, "item2")
         self.assertEqual(element.path, "/robot/link/visual/custom/item2")
         self.assertEqual(element.undefined_element, True)
         self.assertEqual(element.undefined_attributes, {"name": "data2", "value": "2"})
         self.assertEqual(element.line_number, 31)
 
-        element = undefined_elements[5]
+        element = undefined_elements[12]
         self.assertEqual(element.tag, "data")
         self.assertEqual(element.path, "/robot/link/visual/custom/data")
         self.assertEqual(element.undefined_element, True)
@@ -567,7 +606,7 @@ class TestURDFParser(ConverterTestCase):
 
         # When adding custom attributes to an existing element.
         # In this case, element.undefined_element will be False.
-        element = undefined_elements[6]
+        element = undefined_elements[13]
         self.assertEqual(element.tag, "visual")
         self.assertEqual(element.path, "/robot/link/visual")
         self.assertEqual(element.undefined_element, False)

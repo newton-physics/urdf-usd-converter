@@ -36,12 +36,6 @@ __all__ = [
     "ElementSafetyController",
     "ElementSphere",
     "ElementTexture",
-    "ElementTransmission",
-    "ElementTransmissionActuator",
-    "ElementTransmissionHardwareInterface",
-    "ElementTransmissionJoint",
-    "ElementTransmissionMechanicalReduction",
-    "ElementTransmissionType",
     "ElementUndefined",
     "ElementVerbose",
     "ElementVisual",
@@ -132,68 +126,6 @@ class ElementVerbose(ElementBase):
 
         # attributes.
         self.value: str | None = None
-
-
-class ElementTransmissionJoint(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["joint"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.name: str | None = None
-
-        # elements.
-        self.hardwareInterface: ElementTransmissionHardwareInterface | None = None
-
-
-class ElementTransmissionActuator(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["actuator"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.name: str | None = None
-
-        # elements.
-        self.mechanicalReduction: ElementTransmissionMechanicalReduction | None = None
-        self.hardwareInterface: ElementTransmissionHardwareInterface | None = None
-
-
-class ElementTransmissionHardwareInterface(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["actuator", "joint"]
-    available_tag_names: ClassVar[list[str]] = ["hardwareInterface"]
-
-    def __init__(self):
-        super().__init__()
-
-        # text value.
-        self.text: str | None = None
-
-
-class ElementTransmissionMechanicalReduction(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["actuator"]
-    available_tag_names: ClassVar[list[str]] = ["mechanicalReduction"]
-
-    def __init__(self):
-        super().__init__()
-
-        # text value.
-        self.text: float | None = None
-
-
-class ElementTransmissionType(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["transmission"]
-    available_tag_names: ClassVar[list[str]] = ["type"]
-
-    def __init__(self):
-        super().__init__()
-
-        # text value.
-        self.text: str | None = None
 
 
 class ElementMass(ElementBase):
@@ -316,7 +248,7 @@ class ElementGeometry(ElementBase):
         super().__init__()
 
         # elements.
-        self.geometry: ElementBox | ElementSphere | ElementCylinder | ElementMesh = None
+        self.shape: ElementBox | ElementSphere | ElementCylinder | ElementMesh = None
 
 
 class ElementTexture(ElementBase):
@@ -367,6 +299,9 @@ class ElementVisual(ElementBase):
     def __init__(self):
         super().__init__()
 
+        # attributes.
+        self.name: str | None = None
+
         # elements.
         self.origin: ElementPose | None = None
         self.geometry: ElementGeometry = None
@@ -402,8 +337,8 @@ class ElementLink(ElementBase):
 
         # elements.
         self.inertial: ElementInertial | None = None
-        self.visual: ElementVisual | None = None
-        self.collision: ElementCollision | None = None
+        self.visuals: list[ElementVisual] = []
+        self.collisions: list[ElementCollision] = []
 
 
 class ElementParent(ElementBase):
@@ -532,22 +467,6 @@ class ElementMimic(ElementBase):
         self.offset: float | None = None
 
 
-class ElementTransmission(ElementBase):
-    allowed_parent_tags: ClassVar[list[str]] = ["robot"]
-    available_tag_names: ClassVar[list[str]] = ["transmission"]
-
-    def __init__(self):
-        super().__init__()
-
-        # attributes.
-        self.name: str = None
-        self.type: ElementTransmissionType | None = None
-
-        # elements.
-        self.actuator: ElementTransmissionActuator | None = None
-        self.joint: ElementTransmissionJoint | None = None
-
-
 class ElementJoint(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["robot"]
     available_tag_names: ClassVar[list[str]] = ["joint"]
@@ -590,4 +509,3 @@ class ElementRobot(ElementBase):
         self.links: list[ElementLink] = []
         self.materials: list[ElementMaterialGlobal] = []
         self.joints: list[ElementJoint] = []
-        self.transmissions: list[ElementTransmission] = []

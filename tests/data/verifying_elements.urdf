@@ -1,4 +1,4 @@
-<?xml verison="1.0"?>
+<?xml version="1.0"?>
 <robot name="verifying_elements" version="1.0">
   <material name="red">
     <color rgba="1.0 0.0 0.0 1"/>

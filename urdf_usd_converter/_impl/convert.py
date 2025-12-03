@@ -10,8 +10,10 @@ from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 from ._flatten import export_flattened
 from .data import ConversionData, Tokens
 from .link import convert_links
+from .link_hierarchy import LinkHierarchy
 from .material import convert_materials
 from .mesh import convert_meshes
+from .mesh_cache import MeshCache
 from .scene import convert_scene
 from .urdf_parser.elements import ElementRobot
 from .urdf_parser.parser import URDFParser
@@ -69,6 +71,8 @@ class Converter:
             name_cache=usdex.core.NameCache(),
             scene=self.params.scene,
             comment=self.params.comment,
+            link_hierarchy=LinkHierarchy(parser.get_root_element()),
+            mesh_cache=MeshCache(),
         )
 
         # setup the main output layer (which will become an asset interface later)
@@ -137,8 +141,8 @@ class Converter:
     def warn(self, parser: URDFParser):
         element_root: ElementRobot = parser.get_root_element()
 
-        if element_root.transmissions:
-            Tf.Warn("Transmissions are not supported")
+        if "transmission" in [element.tag for element in element_root.undefined_elements]:
+            Tf.Warn("Transmission is not supported")
 
         if "gazebo" in [element.tag for element in element_root.undefined_elements]:
             Tf.Warn("Gazebo is not supported")

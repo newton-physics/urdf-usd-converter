@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<robot name="prismatic_joints">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0 0"/>
+      <geometry>
+        <box size="0.2 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm_1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm_2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm_3">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm_4">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="Arm_5">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_root" type="prismatic">
+    <origin rpy="0 0 0" xyz="0.15 0 0.0"/>
+    <parent link="BaseLink"/>
+    <child link="Arm_1"/>
+    <axis xyz="1 0 0"/>
+    <!-- If limit is omitted -->
+  </joint>
+  <joint name="joint_arm_1" type="prismatic">
+    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <parent link="Arm_1"/>
+    <child link="Arm_2"/>
+    <axis xyz="1 0 0"/>
+    <!-- If lower is omitted -->
+    <limit upper="0.5" effort="0.01"/>
+  </joint>
+  <joint name="joint_arm_2" type="prismatic">
+    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <parent link="Arm_2"/>
+    <child link="Arm_3"/>
+    <axis xyz="1 0 0"/>
+    <!-- If upper is omitted -->
+    <limit lower="-0.2" effort="0.02" velocity="0.01"/>
+  </joint>
+  <joint name="joint_arm_3" type="prismatic">
+    <origin rpy="0 0 0" xyz="1.1 0 0.0"/>
+    <parent link="Arm_3"/>
+    <child link="Arm_4"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="0.5" effort="0.03" velocity="0.01"/>
+  </joint>
+
+</robot>

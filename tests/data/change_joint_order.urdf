@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<robot name="change_joint_order">
+  <link name="link_box">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_box2">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_box3">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_box" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box2"/>
+    <child link="link_box3"/>
+  </joint>
+
+  <!-- Change the joint order to verify root joint detection. -->
+  <joint name="joint_root" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box"/>
+    <child link="link_box2"/>
+  </joint>
+</robot>

@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
-
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -27,12 +27,6 @@ from .elements import (
     ElementRobot,
     ElementSafetyController,
     ElementTexture,
-    ElementTransmission,
-    ElementTransmissionActuator,
-    ElementTransmissionHardwareInterface,
-    ElementTransmissionJoint,
-    ElementTransmissionMechanicalReduction,
-    ElementTransmissionType,
     ElementUndefined,
     ElementVerbose,
     ElementVisual,
@@ -156,8 +150,9 @@ class URDFParser:
         if name not in element.attrib:
             return None
 
-        attr_value = element.attrib[name]
-        values = attr_value.split(" ")
+        attr_value = element.attrib[name].strip()
+        # Separated by one or more spaces or tabs.
+        values = re.split(r"\s+", attr_value)
         if len(values) != 3:
             raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
         return (float(values[0]), float(values[1]), float(values[2]))
@@ -169,8 +164,9 @@ class URDFParser:
         if name not in element.attrib:
             return None
 
-        attr_value = element.attrib[name]
-        values = attr_value.split(" ")
+        attr_value = element.attrib[name].strip()
+        # Separated by one or more spaces or tabs.
+        values = re.split(r"\s+", attr_value)
         if len(values) != 4:
             raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
         return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
@@ -239,14 +235,7 @@ class URDFParser:
             # If the name does not exist and a name is required, an error occurs.
             if isinstance(
                 element,
-                ElementRobot
-                | ElementMaterialGlobal
-                | ElementMaterial
-                | ElementLink
-                | ElementJoint
-                | ElementTransmission
-                | ElementTransmissionActuator
-                | ElementTransmissionJoint,
+                ElementRobot | ElementMaterialGlobal | ElementLink | ElementJoint,
             ):
                 raise ValueError(self._get_error_message("name is required", node))
 
@@ -361,22 +350,12 @@ class URDFParser:
 
         elif isinstance(element, ElementAxis):
             element.xyz = self._convert_attribute_float3(node, "xyz")
+            if element.xyz == (0, 0, 0):
+                raise ValueError(self._get_error_message("Axis xyz cannot be (0, 0, 0)", node))
 
         elif isinstance(element, ElementVerbose):
             if "value" in node.attrib:
                 element.value = node.attrib["value"]
-
-        elif isinstance(element, ElementTransmissionHardwareInterface):
-            if node.text:
-                element.text = node.text
-
-        elif isinstance(element, ElementTransmissionMechanicalReduction):
-            if node.text:
-                element.text = float(node.text)
-
-        elif isinstance(element, ElementTransmissionType):
-            if node.text:
-                element.text = node.text
 
         # Parse child elements.
         for child in node:
@@ -396,10 +375,6 @@ class URDFParser:
                 if element.name in [joint.name for joint in prev_element.joints]:
                     raise ValueError(self._get_error_message(f"Joint name '{element.name}' already exists", node))
                 prev_element.joints.append(element)
-            elif node.tag == "transmission":
-                if element.name in [transmission.name for transmission in prev_element.transmissions]:
-                    raise ValueError(self._get_error_message(f"Transmission name '{element.name}' already exists", node))
-                prev_element.transmissions.append(element)
 
         elif prev_element_type in (ElementMaterialGlobal, ElementMaterial):
             if node.tag == "color":
@@ -409,9 +384,9 @@ class URDFParser:
 
         elif prev_element_type == ElementLink:
             if node.tag == "visual":
-                prev_element.visual = element
+                prev_element.visuals.append(element)
             elif node.tag == "collision":
-                prev_element.collision = element
+                prev_element.collisions.append(element)
             elif node.tag == "inertial":
                 prev_element.inertial = element
 
@@ -427,7 +402,7 @@ class URDFParser:
 
         elif prev_element_type == ElementGeometry:
             if node.tag == "box" or node.tag == "sphere" or node.tag == "cylinder" or node.tag == "mesh":
-                prev_element.geometry = element
+                prev_element.shape = element
 
         elif prev_element_type == ElementInertial:
             if node.tag == "origin":
@@ -457,23 +432,6 @@ class URDFParser:
             elif node.tag == "mimic":
                 prev_element.mimic = element
 
-        elif prev_element_type == ElementTransmission:
-            if node.tag == "actuator":
-                prev_element.actuator = element
-            elif node.tag == "joint":
-                prev_element.joint = element
-            elif node.tag == "type":
-                prev_element.type = element
-
-        elif prev_element_type == ElementTransmissionActuator:
-            if node.tag == "mechanicalReduction":
-                prev_element.mechanicalReduction = element
-            elif node.tag == "hardwareInterface":
-                prev_element.hardwareInterface = element
-
-        elif prev_element_type == ElementTransmissionJoint and node.tag == "hardwareInterface":
-            prev_element.hardwareInterface = element
-
         # Stores undefined elements.
         if prev_element_type == ElementUndefined or isinstance(element, ElementUndefined):
             prev_element.undefined_elements.append(element)
@@ -497,21 +455,42 @@ class URDFParser:
         """
         return self.line_info.get(element, -1)
 
+    def _get_defined_material_names(self) -> list[str]:
+        """
+        Get the defined material names.
+
+        Returns:
+            A list of defined material names.
+        """
+        # Create a list of defined material names.
+        # This includes both global materials and materials specified within the visual.
+        defined_material_names = [material.name for material in self.root_element.materials]
+        for link in self.root_element.links:
+            for visual in link.visuals:
+                material = visual.material
+                if (
+                    material
+                    and material.name is not None
+                    and (material.color is not None or material.texture is not None)
+                    and material.name not in defined_material_names
+                ):
+                    defined_material_names.append(material.name)
+
+        return defined_material_names
+
     def _validate(self):
         """
         Validate the parsed elements.
         """
+        defined_material_names = self._get_defined_material_names()
+
         # If there is a material name in the link, check if there is a material with that name in self.root_element.materials.
         for link in self.root_element.links:
-            if link.visual and link.visual.material:
-                material = link.visual.material
-                if (
-                    material.name
-                    and not material.color
-                    and not material.texture
-                    and material.name not in [material.name for material in self.root_element.materials]
-                ):
-                    raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
+            for visual in link.visuals:
+                if visual.material:
+                    material = visual.material
+                    if material.name and not material.color and not material.texture and material.name not in defined_material_names:
+                        raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
 
         for joint in self.root_element.joints:
             # Checks if parent and child links exist.
@@ -529,18 +508,20 @@ class URDFParser:
 
         # If no elements exist within the geometry tab of the link, an error occurs.
         for link in self.root_element.links:
-            if link.visual and link.visual.geometry:
-                geometry = link.visual.geometry.geometry
-                if not geometry:
-                    raise ValueError(
-                        self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.visual.geometry)
-                    )
-            if link.collision and link.collision.geometry:
-                geometry = link.collision.geometry.geometry
-                if not geometry:
-                    raise ValueError(
-                        self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", link.collision.geometry)
-                    )
+            for visual in link.visuals:
+                if visual and visual.geometry:
+                    geometry = visual.geometry.shape
+                    if not geometry:
+                        raise ValueError(
+                            self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", visual.geometry)
+                        )
+            for collision in link.collisions:
+                if collision.geometry:
+                    geometry = collision.geometry.shape
+                    if not geometry:
+                        raise ValueError(
+                            self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", collision.geometry)
+                        )
 
     def _get_element_class(self, tag_name: str, prev_element_tag: str) -> type[ElementBase]:
         """
@@ -568,14 +549,16 @@ class URDFParser:
         """
         geometry_list = []
         for link in self.root_element.links:
-            if link.visual and link.visual.geometry:
-                geometry = link.visual.geometry.geometry
-                if geometry and isinstance(geometry, ElementMesh):
-                    geometry_list.append(geometry)
-            if link.collision and link.collision.geometry:
-                geometry = link.collision.geometry.geometry
-                if geometry and isinstance(geometry, ElementMesh):
-                    geometry_list.append(geometry)
+            for visual in link.visuals:
+                if visual.geometry:
+                    geometry = visual.geometry.shape
+                    if geometry and isinstance(geometry, ElementMesh):
+                        geometry_list.append(geometry)
+            for collision in link.collisions:
+                if collision.geometry:
+                    geometry = collision.geometry.shape
+                    if geometry and isinstance(geometry, ElementMesh):
+                        geometry_list.append(geometry)
 
         for geometry in geometry_list:
             scale = geometry.get_with_default("scale")
@@ -597,16 +580,18 @@ class URDFParser:
             self.materials.append((material.name, color, texture))
 
         for link in self.root_element.links:
-            if link.visual and link.visual.material:
-                visual_material = link.visual.material
+            for visual in link.visuals:
+                visual_material = visual.material
+                if visual_material:
+                    material_name = visual_material.name if visual_material.name is not None else ""
 
-                # If the material name is already stored, skip it.
-                if visual_material.name in [material[0] for material in self.materials]:
-                    continue
+                    # If the material name is already stored, skip it.
+                    if material_name in [material[0] for material in self.materials]:
+                        continue
 
-                color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
-                texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
-                self.materials.append((visual_material.name, color, texture))
+                    color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
+                    texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
+                    self.materials.append((material_name, color, texture))
 
     def _get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         """
@@ -638,7 +623,10 @@ class URDFParser:
                 self._get_undefined_elements_nested(e, undefined_elements)
             for e in element.joints:
                 self._get_undefined_elements_nested(e, undefined_elements)
-            for e in element.transmissions:
+        elif isinstance(element, ElementLink):
+            for e in element.visuals:
+                self._get_undefined_elements_nested(e, undefined_elements)
+            for e in element.collisions:
                 self._get_undefined_elements_nested(e, undefined_elements)
         else:
             for e in element.__dict__:
