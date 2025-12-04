@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
+import stl
 import usdex.core
-from pxr import Tf, Usd
+from pxr import Tf, Usd, UsdGeom, Vt
 
 from .data import ConversionData, Tokens
+from .numpy import convert_vec3f_array
 
 __all__ = ["convert_meshes"]
 
@@ -51,8 +53,7 @@ def convert_meshes(data: ConversionData):
 def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData):
     mesh_prim = None
     if input_path.suffix.lower() == ".stl":
-        # TODO: Implement STL conversion.
-        Tf.Warn(f"The stl format is not yet supported: {input_path}")
+        mesh_prim = convert_stl(prim, input_path, data)
     elif input_path.suffix.lower() == ".obj":
         # TODO: Implement OBJ conversion.
         Tf.Warn(f"The obj format is not yet supported: {input_path}")
@@ -63,3 +64,29 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
         Tf.Warn(f"Unsupported mesh format: {input_path}")
 
     return mesh_prim
+
+
+def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:
+    stl_mesh = stl.Mesh.from_file(input_path, calculate_normals=False)
+
+    points = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.vertex, convert_vec3f_array(stl_mesh.points))
+    points.index()
+    face_vertex_indices = points.indices()
+    face_vertex_counts = [3] * stl_mesh.points.shape[0]
+
+    normals = None
+    if stl_mesh.normals.any():
+        normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.uniform, convert_vec3f_array(stl_mesh.normals))
+        normals.index()
+
+    usd_mesh = usdex.core.definePolyMesh(
+        prim.GetParent(),
+        prim.GetName(),
+        faceVertexCounts=Vt.IntArray(face_vertex_counts),
+        faceVertexIndices=Vt.IntArray(face_vertex_indices),
+        points=points.values(),
+        normals=normals,
+    )
+    if not usd_mesh:
+        Tf.RaiseRuntimeError(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+    return usd_mesh
