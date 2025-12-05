@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
+import numpy as np
 import stl
 import tinyobjloader
 import usdex.core
@@ -48,19 +49,16 @@ def convert_meshes(data: ConversionData):
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 
 
-def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh | UsdGeom.Xform:
-    geom_prim = None
+def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData):
     if input_path.suffix.lower() == ".stl":
-        geom_prim = convert_stl(prim, input_path, data)
+        convert_stl(prim, input_path, data)
     elif input_path.suffix.lower() == ".obj":
-        geom_prim = convert_obj(prim, input_path, data)
+        convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
         # TODO: Implement DAE conversion.
         Tf.Warn(f"The dae format is not yet supported: {input_path}")
     else:
         Tf.Warn(f"Unsupported mesh format: {input_path}")
-
-    return geom_prim
 
 
 def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:
@@ -154,51 +152,45 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         obj_mesh = shape.mesh
         face_vertex_counts = obj_mesh.num_face_vertices
 
-        # Collect vertex indices used in this shape
-        vertex_indices_in_shape = [idx.vertex_index for idx in obj_mesh.indices]
-        unique_vertex_indices = sorted(set(vertex_indices_in_shape))
+        # Get indices directly as arrays
+        vertex_indices_in_shape = np.array(obj_mesh.vertex_indices(), dtype=np.int32)
 
-        # Create mapping from old indices to new indices
-        vertex_index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(unique_vertex_indices)}
+        # Process vertices using NumPy for speed
+        unique_vertex_indices = np.unique(vertex_indices_in_shape)
 
-        # Extract only vertices used in this shape
-        points = []
-        for old_idx in unique_vertex_indices:
-            i = old_idx * 3
-            points.append(Gf.Vec3f(attrib.vertices[i], attrib.vertices[i + 1], attrib.vertices[i + 2]))
+        # Extract vertices: reshape attrib.vertices and use NumPy indexing
+        vertices_array = np.array(attrib.vertices, dtype=np.float32).reshape(-1, 3)
+        points_array = vertices_array[unique_vertex_indices]
+        points = [Gf.Vec3f(float(p[0]), float(p[1]), float(p[2])) for p in points_array]
 
-        # Remap to new indices
-        face_vertex_indices = [vertex_index_map[old_idx] for old_idx in vertex_indices_in_shape]
+        # Remap indices using NumPy searchsorted
+        face_vertex_indices = np.searchsorted(unique_vertex_indices, vertex_indices_in_shape).tolist()
 
         # Process normals
         normals = None
         if len(attrib.normals) > 0:
-            normal_indices_in_shape = [idx.normal_index for idx in obj_mesh.indices]
-            unique_normal_indices = sorted(set(normal_indices_in_shape))
-            normal_index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(unique_normal_indices)}
+            normal_indices_in_shape = np.array(obj_mesh.normal_indices(), dtype=np.int32)
+            unique_normal_indices = np.unique(normal_indices_in_shape)
 
-            normals_data = []
-            for old_idx in unique_normal_indices:
-                i = old_idx * 3
-                normals_data.append(Gf.Vec3f(attrib.normals[i], attrib.normals[i + 1], attrib.normals[i + 2]))
+            normals_array = np.array(attrib.normals, dtype=np.float32).reshape(-1, 3)
+            normals_data_array = normals_array[unique_normal_indices]
+            normals_data = [Gf.Vec3f(float(n[0]), float(n[1]), float(n[2])) for n in normals_data_array]
 
-            remapped_normal_indices = [normal_index_map[old_idx] for old_idx in normal_indices_in_shape]
+            remapped_normal_indices = np.searchsorted(unique_normal_indices, normal_indices_in_shape).tolist()
             normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec3fArray(normals_data), Vt.IntArray(remapped_normal_indices))
             normals.index()  # re-index the normals to remove duplicates
 
         # Process UV coordinates
         uvs = None
         if len(attrib.texcoords) > 0:
-            texcoord_indices_in_shape = [idx.texcoord_index for idx in obj_mesh.indices]
-            unique_texcoord_indices = sorted(set(texcoord_indices_in_shape))
-            texcoord_index_map = {old_idx: new_idx for new_idx, old_idx in enumerate(unique_texcoord_indices)}
+            texcoord_indices_in_shape = np.array(obj_mesh.texcoord_indices(), dtype=np.int32)
+            unique_texcoord_indices = np.unique(texcoord_indices_in_shape)
 
-            uv_data = []
-            for old_idx in unique_texcoord_indices:
-                i = old_idx * 2
-                uv_data.append(Gf.Vec2f(attrib.texcoords[i], attrib.texcoords[i + 1]))
+            texcoords_array = np.array(attrib.texcoords, dtype=np.float32).reshape(-1, 2)
+            uv_data_array = texcoords_array[unique_texcoord_indices]
+            uv_data = [Gf.Vec2f(float(uv[0]), float(uv[1])) for uv in uv_data_array]
 
-            remapped_texcoord_indices = [texcoord_index_map[old_idx] for old_idx in texcoord_indices_in_shape]
+            remapped_texcoord_indices = np.searchsorted(unique_texcoord_indices, texcoord_indices_in_shape).tolist()
             uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec2fArray(uv_data), Vt.IntArray(remapped_texcoord_indices))
             uvs.index()  # re-index the uvs to remove duplicates
 
