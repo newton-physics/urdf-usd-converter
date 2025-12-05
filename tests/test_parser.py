@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
+import usdex.core
+from pxr import Tf
+
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.urdf_parser.parser import URDFParser
 
@@ -58,16 +61,6 @@ class TestURDFParser(ConverterTestCase):
         parser = URDFParser(model_path)
 
         with self.assertRaisesRegex(RuntimeError, r".*rgba: Invalid value: 0.0 1.0 \(line: 5\).*"):
-            parser.parse()
-
-    def test_load_error_different_place(self):
-        # Load the specified URDF file.
-        model_path = pathlib.Path("tests/data/error_different_place.urdf")
-        parser = URDFParser(model_path)
-
-        with self.assertRaisesRegex(
-            RuntimeError, r".*geometry: Invalid element type. This uses a reserved tag, but in the wrong place \(line: 8\).*"
-        ):
             parser.parse()
 
     def test_load_error_no_material_name(self):
@@ -220,6 +213,18 @@ class TestURDFParser(ConverterTestCase):
         parser = URDFParser(model_path)
 
         with self.assertRaisesRegex(RuntimeError, r".*axis: Axis xyz cannot be \(0, 0, 0\) \(line: 25\).*"):
+            parser.parse()
+
+    def test_load_warning_different_place(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/warning_different_place.urdf")
+        parser = URDFParser(model_path)
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*geometry: Invalid element type. This uses a reserved tag, but in the wrong place.*")],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
 
     def test_has_no_material(self):
