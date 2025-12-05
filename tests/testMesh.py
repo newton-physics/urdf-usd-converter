@@ -75,35 +75,16 @@ class TestMesh(ConverterTestCase):
         box_prim_path = link_prim_path.AppendChild("box")
         box_prim = self.stage.GetPrimAtPath(box_prim_path)
         self.assertTrue(box_prim.IsValid())
-        self.assertTrue(box_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_prim.HasAuthoredReferences())
         self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_prim = box_prim.GetChild("box_1")
-        self.assertTrue(mesh_prim.IsValid())
-        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
-
-        usd_mesh_obj = UsdGeom.Mesh(mesh_prim)
-        self.assertTrue(usd_mesh_obj.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_obj.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_obj.GetFaceVertexIndicesAttr().HasAuthoredValue())
-
-        box_collision_prim_path = link_prim_path.AppendChild("box_1")
+        box_collision_prim_path = link_prim_path.AppendChild("collision_box")
         box_collision_prim = self.stage.GetPrimAtPath(box_collision_prim_path)
         self.assertTrue(box_collision_prim.IsValid())
-        self.assertTrue(box_collision_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_collision_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_collision_prim.HasAuthoredReferences())
         self.assertEqual(UsdGeom.Imageable(box_collision_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
-
-        mesh_collision_prim = box_collision_prim.GetChild("box_1")
-        self.assertTrue(mesh_collision_prim.IsValid())
-        self.assertTrue(mesh_collision_prim.IsA(UsdGeom.Mesh))
-
-        usd_mesh_collision_obj = UsdGeom.Mesh(mesh_collision_prim)
-        self.assertTrue(usd_mesh_collision_obj.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_collision_obj.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_collision_obj.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
     def test_obj_two_meshes(self):
         default_prim = self.stage.GetDefaultPrim()
@@ -144,7 +125,7 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
         self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
-        two_boxes_collision_prim_path = link_prim_path.AppendChild("two_boxes_1")
+        two_boxes_collision_prim_path = link_prim_path.AppendChild("two_collision_boxes")
         two_boxes_collision_prim = self.stage.GetPrimAtPath(two_boxes_collision_prim_path)
         self.assertTrue(two_boxes_collision_prim.IsValid())
         self.assertTrue(two_boxes_collision_prim.IsA(UsdGeom.Xform))

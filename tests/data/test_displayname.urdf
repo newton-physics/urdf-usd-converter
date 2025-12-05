@@ -18,7 +18,7 @@
   <link name="link-mesh_obj">
     <visual>
       <geometry>
-        <!-- The mesh name is "Cube:1". -->
+        <!-- Contains "Cube:Red" and "Cube:Green" as meshes. -->
         <mesh filename="assets/name_test.obj" scale="0.5 0.5 0.5"/>
       </geometry>
     </visual>

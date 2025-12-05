@@ -34,7 +34,6 @@ def convert_meshes(data: ConversionData):
     mesh_names = data.mesh_cache.get_mesh_names()
 
     for filename in mesh_names:
-        name = mesh_names[filename]["name"]
         safe_name = mesh_names[filename]["safe_name"]
 
         filename = pathlib.Path(filename) if pathlib.Path(filename).is_absolute() else urdf_dir / pathlib.Path(filename)
@@ -44,26 +43,24 @@ def convert_meshes(data: ConversionData):
         # Therefore, this reference is keyed by a unique safe-name.
         data.references[Tokens.Geometry][safe_name] = mesh_prim
 
-        if name != safe_name:
-            usdex.core.setDisplayName(mesh_prim, name)
         convert_mesh(mesh_prim, filename, data)
 
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 
 
-def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData):
-    mesh_prim = None
+def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh | UsdGeom.Xform:
+    geom_prim = None
     if input_path.suffix.lower() == ".stl":
-        mesh_prim = convert_stl(prim, input_path, data)
+        geom_prim = convert_stl(prim, input_path, data)
     elif input_path.suffix.lower() == ".obj":
-        mesh_prim = convert_obj(prim, input_path, data)
+        geom_prim = convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
         # TODO: Implement DAE conversion.
         Tf.Warn(f"The dae format is not yet supported: {input_path}")
     else:
         Tf.Warn(f"Unsupported mesh format: {input_path}")
 
-    return mesh_prim
+    return geom_prim
 
 
 def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:
@@ -92,7 +89,49 @@ def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
     return usd_mesh
 
 
-def convert_obj(parent_prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:
+def _convert_single_obj(prim: Usd.Prim, input_path: pathlib.Path, reader: tinyobjloader.ObjReader) -> UsdGeom.Mesh:
+    """
+    Convert a single OBJ mesh to a USD mesh.
+    """
+    shapes = reader.GetShapes()
+    attrib = reader.GetAttrib()
+    obj_mesh = shapes[0].mesh
+
+    vertices = attrib.vertices
+    face_vertex_counts = obj_mesh.num_face_vertices
+    face_vertex_indices = obj_mesh.vertex_indices()
+
+    points = [Gf.Vec3f(vertices[i], vertices[i + 1], vertices[i + 2]) for i in range(0, len(vertices), 3)]
+
+    normals = None
+    source_normals = attrib.normals
+    if len(source_normals) > 0:
+        normals_data = [Gf.Vec3f(source_normals[i], source_normals[i + 1], source_normals[i + 2]) for i in range(0, len(source_normals), 3)]
+        normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec3fArray(normals_data), Vt.IntArray(obj_mesh.normal_indices()))
+        normals.index()  # re-index the normals to remove duplicates
+
+    uvs = None
+    source_uvs = attrib.texcoords
+    if len(source_uvs) > 0:
+        uv_data = [Gf.Vec2f(source_uvs[i], source_uvs[i + 1]) for i in range(0, len(source_uvs), 2)]
+        uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec2fArray(uv_data), Vt.IntArray(obj_mesh.texcoord_indices()))
+        uvs.index()  # re-index the uvs to remove duplicates
+
+    usd_mesh = usdex.core.definePolyMesh(
+        prim.GetParent(),
+        prim.GetName(),
+        faceVertexCounts=Vt.IntArray(face_vertex_counts),
+        faceVertexIndices=Vt.IntArray(face_vertex_indices),
+        points=Vt.Vec3fArray(points),
+        normals=normals,
+        uvs=uvs,
+    )
+    if not usd_mesh:
+        Tf.RaiseRuntimeError(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+    return usd_mesh
+
+
+def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh | UsdGeom.Xform:
     reader = tinyobjloader.ObjReader()
     if not reader.ParseFromFile(str(input_path)):
         Tf.RaiseRuntimeError(f'Invalid input_path: "{input_path}" could not be parsed. {reader.Error()}')
@@ -100,14 +139,16 @@ def convert_obj(parent_prim: Usd.Prim, input_path: pathlib.Path, data: Conversio
     shapes = reader.GetShapes()
     if len(shapes) == 0:
         Tf.RaiseRuntimeError(f'Invalid input_path: "{input_path}" contains no meshes')
+    elif len(shapes) == 1:
+        return _convert_single_obj(prim, input_path, reader)
 
     attrib = reader.GetAttrib()
 
     names = []
     for shape in shapes:
-        name = shape.name if shape.name else parent_prim.GetName()
+        name = shape.name if shape.name else prim.GetName()
         names.append(name)
-    safe_names = data.name_cache.getPrimNames(parent_prim, names)
+    safe_names = data.name_cache.getPrimNames(prim, names)
 
     for shape, name, safe_name in zip(shapes, names, safe_names):
         obj_mesh = shape.mesh
@@ -162,7 +203,7 @@ def convert_obj(parent_prim: Usd.Prim, input_path: pathlib.Path, data: Conversio
             uvs.index()  # re-index the uvs to remove duplicates
 
         usd_mesh = usdex.core.definePolyMesh(
-            parent_prim,
+            prim,
             safe_name,
             faceVertexCounts=Vt.IntArray(face_vertex_counts),
             faceVertexIndices=Vt.IntArray(face_vertex_indices),
@@ -171,9 +212,9 @@ def convert_obj(parent_prim: Usd.Prim, input_path: pathlib.Path, data: Conversio
             uvs=uvs,
         )
         if not usd_mesh:
-            Tf.RaiseRuntimeError(f'Failed to convert mesh "{parent_prim.GetPath()}" from {input_path}')
+            Tf.RaiseRuntimeError(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
 
-    return parent_prim
+    return prim

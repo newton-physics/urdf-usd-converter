@@ -13,7 +13,7 @@
         <mesh filename="assets/box.obj" scale="0.8 0.8 0.8" />
       </geometry>
     </visual>
-    <collision>
+    <collision name="collision_box">
       <geometry>
         <mesh filename="assets/box.obj" scale="0.8 0.8 0.8" />
       </geometry>
@@ -25,7 +25,7 @@
         <mesh filename="assets/two_boxes.obj" scale="0.8 0.8 0.8" />
       </geometry>
     </visual>
-    <collision>
+    <collision name="two_collision_boxes">
       <geometry>
         <mesh filename="assets/two_boxes.obj" scale="0.8 0.8 0.8" />
       </geometry>

@@ -46,6 +46,7 @@ class TestDisplayName(ConverterTestCase):
         self.assertTrue(box_2_prim.IsValid())
         self.assertTrue(box_2_prim.IsA(UsdGeom.Cube))
 
+        # Check for obj containing two meshes.
         link_mesh_obj_prim = link_box_2_prim.GetChild("tn__linkmesh_obj_VI")
         self.assertTrue(link_mesh_obj_prim.IsValid())
         self.assertTrue(link_mesh_obj_prim.IsA(UsdGeom.Xform))
@@ -55,11 +56,17 @@ class TestDisplayName(ConverterTestCase):
         self.assertTrue(mesh_obj_prim.IsValid())
         self.assertTrue(mesh_obj_prim.IsA(UsdGeom.Xform))
 
-        mesh_obj_mesh_prim = mesh_obj_prim.GetChild("tn__Cube1_gA")
+        mesh_obj_mesh_prim = mesh_obj_prim.GetChild("tn__CubeRed_YE")
         self.assertTrue(mesh_obj_mesh_prim.IsValid())
         self.assertTrue(mesh_obj_mesh_prim.IsA(UsdGeom.Mesh))
-        self.assertEqual(usdex.core.getDisplayName(mesh_obj_mesh_prim), "Cube:1")
+        self.assertEqual(usdex.core.getDisplayName(mesh_obj_mesh_prim), "Cube:Red")
 
+        mesh_obj_mesh_prim = mesh_obj_prim.GetChild("tn__CubeGreen_vH")
+        self.assertTrue(mesh_obj_mesh_prim.IsValid())
+        self.assertTrue(mesh_obj_mesh_prim.IsA(UsdGeom.Mesh))
+        self.assertEqual(usdex.core.getDisplayName(mesh_obj_mesh_prim), "Cube:Green")
+
+        # Check for physics.
         physics_scope_prim = default_prim.GetChild("Physics")
         self.assertTrue(physics_scope_prim.IsValid())
 

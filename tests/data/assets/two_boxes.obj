@@ -1,5 +1,3 @@
-# Blender 4.5.4 LTS
-# www.blender.org
 mtllib two_boxes.mtl
 o Cube_Red
 v 0.500000 0.300000 0.500000
