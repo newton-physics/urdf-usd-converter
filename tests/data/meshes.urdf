@@ -13,6 +13,23 @@
         <mesh filename="assets/box.obj" scale="0.8 0.8 0.8" />
       </geometry>
     </visual>
+    <collision name="collision_box">
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.8 0.8 0.8" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link_mesh_multi_objs">
+    <visual>
+      <geometry>
+        <mesh filename="assets/two_boxes.obj" scale="0.8 0.8 0.8" />
+      </geometry>
+    </visual>
+    <collision name="two_collision_boxes">
+      <geometry>
+        <mesh filename="assets/two_boxes.obj" scale="0.8 0.8 0.8" />
+      </geometry>
+    </collision>
   </link>
   <link name="link_mesh_dae">
     <visual>
@@ -44,4 +61,12 @@
     <parent link="link_mesh_dae"/>
     <child link="link_mesh_dxf"/>
   </joint>
+
+  <!-- Verify that the multi-object mesh is converted correctly. -->
+  <joint name="joint_obj_multi_objs" type="fixed">
+    <origin rpy="0 0 0" xyz="-1 0 0"/>
+    <parent link="link_mesh_stl"/>
+    <child link="link_mesh_multi_objs"/>
+  </joint>
+
 </robot>

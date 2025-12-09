@@ -20,7 +20,6 @@ class TestMesh(ConverterTestCase):
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*The obj format is not yet supported:.*"),
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*The dae format is not yet supported:.*"),
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Unsupported mesh format:.*"),
             ],
@@ -60,3 +59,93 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(normals_primvar.HasAuthoredValue())
         self.assertTrue(normals_primvar.GetIndicesAttr().HasAuthoredValue())
         self.assertEqual(UsdGeom.Imageable(stl_mesh_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
+
+    def test_obj_single_mesh(self):
+        default_prim = self.stage.GetDefaultPrim()
+        self.assertTrue(default_prim.IsValid())
+
+        geom_scope_prim = self.stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        self.assertTrue(geom_scope_prim.IsValid())
+
+        link_prim_path = geom_scope_prim.GetPath().AppendChild("link_mesh_stl").AppendChild("link_mesh_obj")
+        link_prim = self.stage.GetPrimAtPath(link_prim_path)
+        self.assertTrue(link_prim.IsValid())
+        self.assertTrue(link_prim.IsA(UsdGeom.Xform))
+
+        box_prim_path = link_prim_path.AppendChild("box")
+        box_prim = self.stage.GetPrimAtPath(box_prim_path)
+        self.assertTrue(box_prim.IsValid())
+        self.assertTrue(box_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_prim.HasAuthoredReferences())
+        self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
+
+        box_collision_prim_path = link_prim_path.AppendChild("collision_box")
+        box_collision_prim = self.stage.GetPrimAtPath(box_collision_prim_path)
+        self.assertTrue(box_collision_prim.IsValid())
+        self.assertTrue(box_collision_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_collision_prim.HasAuthoredReferences())
+        self.assertEqual(UsdGeom.Imageable(box_collision_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
+
+    def test_obj_two_meshes(self):
+        default_prim = self.stage.GetDefaultPrim()
+        self.assertIsNotNone(default_prim)
+
+        geom_scope_prim = self.stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        self.assertTrue(geom_scope_prim.IsValid())
+
+        link_prim_path = geom_scope_prim.GetPath().AppendChild("link_mesh_stl").AppendChild("link_mesh_multi_objs")
+        link_prim = self.stage.GetPrimAtPath(link_prim_path)
+        self.assertTrue(link_prim.IsValid())
+        self.assertTrue(link_prim.IsA(UsdGeom.Xform))
+
+        # When an obj file contains multiple meshes, each mesh exists as a child of the Xform.
+        two_boxes_prim_path = link_prim_path.AppendChild("two_boxes")
+
+        two_boxes_prim = self.stage.GetPrimAtPath(two_boxes_prim_path)
+        self.assertTrue(two_boxes_prim.IsValid())
+        self.assertTrue(two_boxes_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(two_boxes_prim.HasAuthoredReferences())
+        self.assertEqual(UsdGeom.Imageable(two_boxes_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
+
+        cube_red_prim = two_boxes_prim.GetChild("Cube_Red")
+        self.assertTrue(cube_red_prim.IsValid())
+        self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
+
+        usd_mesh_red = UsdGeom.Mesh(cube_red_prim)
+        self.assertTrue(usd_mesh_red.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
+
+        cube_green_prim = two_boxes_prim.GetChild("Cube_Green")
+        self.assertTrue(cube_green_prim.IsValid())
+        self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
+
+        usd_mesh_green = UsdGeom.Mesh(cube_green_prim)
+        self.assertTrue(usd_mesh_green.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
+
+        two_boxes_collision_prim_path = link_prim_path.AppendChild("two_collision_boxes")
+        two_boxes_collision_prim = self.stage.GetPrimAtPath(two_boxes_collision_prim_path)
+        self.assertTrue(two_boxes_collision_prim.IsValid())
+        self.assertTrue(two_boxes_collision_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(two_boxes_collision_prim.HasAuthoredReferences())
+        self.assertEqual(UsdGeom.Imageable(two_boxes_collision_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
+
+        cube_red_prim = two_boxes_collision_prim.GetChild("Cube_Red")
+        self.assertTrue(cube_red_prim.IsValid())
+        self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
+
+        usd_mesh_red = UsdGeom.Mesh(cube_red_prim)
+        self.assertTrue(usd_mesh_red.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
+
+        cube_green_prim = two_boxes_collision_prim.GetChild("Cube_Green")
+        self.assertTrue(cube_green_prim.IsValid())
+        self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
+
+        usd_mesh_green = UsdGeom.Mesh(cube_green_prim)
+        self.assertTrue(usd_mesh_green.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())

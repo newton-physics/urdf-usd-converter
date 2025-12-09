@@ -43,3 +43,23 @@ class TestConverter(ConverterTestCase):
         converter = urdf_usd_converter.Converter()
         with self.assertRaisesRegex(ValueError, r".*Closed loop articulations are not supported.*"):
             converter.convert(input_path, output_dir)
+
+    def test_load_error_obj_no_exist_filename(self):
+        # A non-existent obj file is specified.
+
+        input_path = "tests/data/error_obj_no_exist_filename.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "error_obj_no_exist_filename")
+
+        converter = urdf_usd_converter.Converter()
+        with self.assertRaisesRegex(RuntimeError, r".*could not be parsed..*"):
+            converter.convert(input_path, output_dir)
+
+    def test_load_error_obj_no_shape(self):
+        # There is no shape.
+
+        input_path = "tests/data/error_obj_no_shape.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "error_obj_no_shape")
+
+        converter = urdf_usd_converter.Converter()
+        with self.assertRaisesRegex(RuntimeError, r".*contains no meshes.*"):
+            converter.convert(input_path, output_dir)
