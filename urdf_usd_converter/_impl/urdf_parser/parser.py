@@ -4,6 +4,8 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from pxr import Tf
+
 from .elements import (
     ElementAxis,
     ElementBase,
@@ -207,7 +209,7 @@ class URDFParser:
 
         # Check if the geometry type is valid.
         if prev_element_type == ElementGeometry and node.tag not in ElementGeometry.available_geometry_types:
-            raise ValueError(self._get_error_message("Invalid geometry type", node))
+            Tf.Warn(self._get_error_message("Invalid geometry type", node))
 
         element = None
 
@@ -223,7 +225,8 @@ class URDFParser:
 
         # Error if using reserved tags but structure is different.
         if not element:
-            raise ValueError(self._get_error_message("Invalid element type. This uses a reserved tag, but in the wrong place", node))
+            Tf.Warn(self._get_error_message("Invalid element type. This uses a reserved tag, but in the wrong place", node))
+            element = ElementUndefined()
 
         element.tag = node.tag
         element.path = current_path
@@ -280,7 +283,7 @@ class URDFParser:
             if "filename" in node.attrib:
                 element.filename = node.attrib["filename"]
             else:
-                raise ValueError(self._get_error_message("Filename is required", node))
+                Tf.Warn(self._get_error_message("Filename is required", node))
 
         elif isinstance(element, ElementSafetyController):
             if "soft_lower_limit" in node.attrib:
@@ -292,7 +295,7 @@ class URDFParser:
             if "k_velocity" in node.attrib:
                 element.k_velocity = float(node.attrib["k_velocity"])
             else:
-                raise ValueError(self._get_error_message("k_velocity is required", node))
+                Tf.Warn(self._get_error_message("k_velocity is required", node))
 
         elif isinstance(element, ElementInertia):
             if "ixx" in node.attrib:
@@ -458,13 +461,13 @@ class URDFParser:
     def _get_defined_material_names(self) -> list[str]:
         """
         Get the defined material names.
-
         Returns:
             A list of defined material names.
         """
         # Create a list of defined material names.
         # This includes both global materials and materials specified within the visual.
         defined_material_names = [material.name for material in self.root_element.materials]
+
         for link in self.root_element.links:
             for visual in link.visuals:
                 material = visual.material
@@ -490,7 +493,7 @@ class URDFParser:
                 if visual.material:
                     material = visual.material
                     if material.name and not material.color and not material.texture and material.name not in defined_material_names:
-                        raise ValueError(self._get_error_message(f"link: Material name '{material.name}' not found", material))
+                        Tf.Warn(self._get_error_message(f"link: Material name '{material.name}' not found", material))
 
         for joint in self.root_element.joints:
             # Checks if parent and child links exist.
@@ -512,14 +515,12 @@ class URDFParser:
                 if visual and visual.geometry:
                     geometry = visual.geometry.shape
                     if not geometry:
-                        raise ValueError(
-                            self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", visual.geometry)
-                        )
+                        Tf.Warn(self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", visual.geometry))
             for collision in link.collisions:
                 if collision.geometry:
                     geometry = collision.geometry.shape
                     if not geometry:
-                        raise ValueError(
+                        Tf.Warn(
                             self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", collision.geometry)
                         )
 

@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
+import usdex.test
+from pxr import Tf
+
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
 
@@ -44,22 +47,34 @@ class TestConverter(ConverterTestCase):
         with self.assertRaisesRegex(ValueError, r".*Closed loop articulations are not supported.*"):
             converter.convert(input_path, output_dir)
 
-    def test_load_error_obj_no_exist_filename(self):
+    def test_load_warning_obj_no_exist_filename(self):
         # A non-existent obj file is specified.
 
-        input_path = "tests/data/error_obj_no_exist_filename.urdf"
-        output_dir = str(pathlib.Path(self.tmpDir()) / "error_obj_no_exist_filename")
+        input_path = "tests/data/warning_obj_no_exist_filename.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "warning_obj_no_exist_filename")
 
         converter = urdf_usd_converter.Converter()
-        with self.assertRaisesRegex(RuntimeError, r".*could not be parsed..*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*could not be parsed. Cannot open file.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             converter.convert(input_path, output_dir)
 
-    def test_load_error_obj_no_shape(self):
+    def test_load_warning_obj_no_shape(self):
         # There is no shape.
 
-        input_path = "tests/data/error_obj_no_shape.urdf"
+        input_path = "tests/data/warning_obj_no_shape.urdf"
         output_dir = str(pathlib.Path(self.tmpDir()) / "error_obj_no_shape")
 
         converter = urdf_usd_converter.Converter()
-        with self.assertRaisesRegex(RuntimeError, r".*contains no meshes.*"):
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*contains no meshes.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             converter.convert(input_path, output_dir)

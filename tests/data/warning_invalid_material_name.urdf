@@ -1,4 +1,4 @@
-<robot name="invalid_material_name">
+<robot name="warning_invalid_material_name">
   <material name="red">
     <color rgba="1.0 0.0 0.0 1"/>
   </material>

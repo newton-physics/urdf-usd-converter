@@ -44,7 +44,10 @@ def convert_meshes(data: ConversionData):
         # Therefore, this reference is keyed by a unique safe-name.
         data.references[Tokens.Geometry][safe_name] = mesh_prim
 
-        convert_mesh(mesh_prim, filename, data)
+        try:
+            convert_mesh(mesh_prim, filename, data)
+        except Exception as e:
+            Tf.Warn(f"Failed to convert mesh: {filename}: {e}")
 
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 
@@ -83,7 +86,7 @@ def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         normals=normals,
     )
     if not usd_mesh:
-        Tf.RaiseRuntimeError(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+        Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
     return usd_mesh
 
 
@@ -125,18 +128,20 @@ def _convert_single_obj(prim: Usd.Prim, input_path: pathlib.Path, reader: tinyob
         uvs=uvs,
     )
     if not usd_mesh:
-        Tf.RaiseRuntimeError(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+        Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
     return usd_mesh
 
 
 def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh | UsdGeom.Xform:
     reader = tinyobjloader.ObjReader()
     if not reader.ParseFromFile(str(input_path)):
-        Tf.RaiseRuntimeError(f'Invalid input_path: "{input_path}" could not be parsed. {reader.Error()}')
+        Tf.Warn(f'Invalid input_path: "{input_path}" could not be parsed. {reader.Error()}')
+        return None
 
     shapes = reader.GetShapes()
     if len(shapes) == 0:
-        Tf.RaiseRuntimeError(f'Invalid input_path: "{input_path}" contains no meshes')
+        Tf.Warn(f'Invalid input_path: "{input_path}" contains no meshes')
+        return None
     elif len(shapes) == 1:
         return _convert_single_obj(prim, input_path, reader)
 
@@ -204,7 +209,8 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             uvs=uvs,
         )
         if not usd_mesh:
-            Tf.RaiseRuntimeError(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+            Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+            return None
 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)

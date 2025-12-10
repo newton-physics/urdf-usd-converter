@@ -1,4 +1,4 @@
-<robot name="no_mesh_filename">
+<robot name="warning_no_mesh_filename">
   <link name="BaseLink">
     <visual>
       <origin rpy="0 0 0" xyz="-2 0 0.5"/>

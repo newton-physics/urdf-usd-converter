@@ -1,4 +1,4 @@
-<robot name="obj_no_exist_filename">
+<robot name="warning_obj_no_exist_filename">
   <link name="BaseLink">
     <visual>
       <geometry>
