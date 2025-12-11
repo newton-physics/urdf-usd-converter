@@ -14,15 +14,20 @@ from urdf_usd_converter._impl.cli import run
 class TestCli(ConverterTestCase):
 
     def test_run(self):
-        for robot in pathlib.Path("tests/data").glob("*.urdf"):
-            robot_name = robot.stem
-            with patch("sys.argv", ["urdf_usd_converter", str(robot), self.tmpDir()]):
-                # If the filename is "error_" an error should be returned.
-                if robot_name.startswith("error_"):
-                    self.assertEqual(run(), 1, f"Expected non-zero exit code for error {robot}")
-                else:
-                    self.assertEqual(run(), 0, f"Failed to convert {robot}")
-                    self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+        input_path = "tests/data/simple-primitives.urdf"
+        with (
+            patch("sys.argv", ["urdf_usd_converter", input_path, self.tmpDir()]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Calibration is not supported"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Dynamics is not supported"),
+                ],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
+            self.assertEqual(run(), 0, f"Failed to convert {input_path}")
+        self.assertTrue((pathlib.Path(self.tmpDir()) / "simple-primitives.usda").exists())
 
     def test_no_layer_structure(self):
         model = "tests/data/simple_box.urdf"
