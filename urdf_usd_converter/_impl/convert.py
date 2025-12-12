@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import usdex.core
 from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
@@ -28,9 +28,10 @@ class Converter:
         layer_structure: bool = True
         scene: bool = True
         comment: str = ""
+        ros_packages: list[dict[str, str]] = field(default_factory=list)
 
-    def __init__(self, layer_structure: bool = True, scene: bool = True, comment: str = ""):
-        self.params = self.Params(layer_structure=layer_structure, scene=scene, comment=comment)
+    def __init__(self, layer_structure: bool = True, scene: bool = True, comment: str = "", ros_packages: list[dict[str, str]] = []):
+        self.params = self.Params(layer_structure=layer_structure, scene=scene, comment=comment, ros_packages=ros_packages)
 
     def convert(self, input_file: str, output_dir: str) -> Sdf.AssetPath:
         """
@@ -62,6 +63,12 @@ class Converter:
         parser = URDFParser(input_path)
         parser.parse()
 
+        # Get the package name and path of the ROS package from the CLI arguments
+        ros_packages = {}
+        for package in self.params.ros_packages:
+            if package.get("name", None) and package.get("path", None):
+                ros_packages[package.get("name")] = package.get("path")
+
         # Create the conversion data object
         data = ConversionData(
             urdf_parser=parser,
@@ -73,6 +80,7 @@ class Converter:
             comment=self.params.comment,
             link_hierarchy=LinkHierarchy(parser.get_root_element()),
             mesh_cache=MeshCache(),
+            ros_packages=ros_packages,
         )
 
         # setup the main output layer (which will become an asset interface later)
