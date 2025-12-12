@@ -23,6 +23,14 @@
       </geometry>
     </visual>
   </link>
+  <link name="link-mesh_dae">
+    <visual>
+      <geometry>
+        <!-- The node name is "Cube:1". -->
+        <mesh filename="assets/name_test.dae" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
 
   <joint name="joint:root" type="fixed">
     <origin rpy="0 0 0" xyz="1 0 0"/>
@@ -33,6 +41,11 @@
     <origin rpy="0 0 0" xyz="1 0 0"/>
     <parent link="link-box2"/>
     <child link="link-mesh_obj"/>
+  </joint>
+  <joint name="mesh_dae" type="fixed">
+    <origin rpy="0 0 0" xyz="0 1 0"/>
+    <parent link="link-box2"/>
+    <child link="link-mesh_dae"/>
   </joint>
 
 </robot>

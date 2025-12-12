@@ -37,6 +37,32 @@
         <mesh filename="assets/box.dae" scale="0.8 0.8 0.8" />
       </geometry>
     </visual>
+    <collision name="collision_box">
+      <geometry>
+        <mesh filename="assets/box.dae" scale="0.8 0.8 0.8" />
+      </geometry>
+    </collision>
+  </link>
+  <link name="link_mesh_dae_unit_cm">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_unit_cm.dae" scale="0.8 0.8 0.8" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_two_meshes_dae">
+    <visual>
+      <geometry>
+        <mesh filename="assets/two_meshes.dae" scale="0.6 0.6 0.6" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_two_meshes_triangle_dae">
+    <visual>
+      <geometry>
+        <mesh filename="assets/two_meshes_triangle.dae" scale="0.6 0.6 0.6" />
+      </geometry>
+    </visual>
   </link>
   <link name="link_mesh_dxf"> <!-- Unsupported formats -->
     <visual>
@@ -51,14 +77,11 @@
     <parent link="link_mesh_stl"/>
     <child link="link_mesh_obj"/>
   </joint>
-  <joint name="joint_obj_dae" type="fixed">
-    <origin rpy="0 0 0" xyz="1 0 0"/>
-    <parent link="link_mesh_obj"/>
-    <child link="link_mesh_dae"/>
-  </joint>
-  <joint name="joint_dae_dxf" type="fixed">
-    <origin rpy="0 0 0" xyz="1 0 0"/>
-    <parent link="link_mesh_dae"/>
+
+  <!-- unsupported format (dxf) -->
+  <joint name="joint_stl_dxf" type="fixed">
+    <origin rpy="0 0 0" xyz="-1 0 0"/>
+    <parent link="link_mesh_stl"/>
     <child link="link_mesh_dxf"/>
   </joint>
 
@@ -67,6 +90,28 @@
     <origin rpy="0 0 0" xyz="-1 0 0"/>
     <parent link="link_mesh_stl"/>
     <child link="link_mesh_multi_objs"/>
+  </joint>
+
+  <!-- dae mesh conversion -->
+  <joint name="joint_stl_dae" type="fixed">
+    <origin rpy="0 0 0" xyz="2.0 0 0"/>
+    <parent link="link_mesh_stl"/>
+    <child link="link_mesh_dae"/>
+  </joint>
+  <joint name="joint_dae_unit_cm" type="fixed">
+    <origin rpy="0 0 0" xyz="1.5 0 0"/>
+    <parent link="link_mesh_dae"/>
+    <child link="link_mesh_dae_unit_cm"/>
+  </joint>
+  <joint name="joint_dae_multiple" type="fixed">
+    <origin rpy="0 0 1.570796" xyz="3.0 0 0"/>
+    <parent link="link_mesh_dae"/>
+    <child link="link_two_meshes_dae"/>
+  </joint>
+  <joint name="joint_dae_multiple_triangle" type="fixed">
+    <origin rpy="0 0 3.1415926" xyz="0 -2.0 0"/>
+    <parent link="link_two_meshes_dae"/>
+    <child link="link_two_meshes_triangle_dae"/>
   </joint>
 
 </robot>
