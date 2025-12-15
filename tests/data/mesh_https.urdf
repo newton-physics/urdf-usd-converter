@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot name="mesh_https">
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_mesh_stl">
+    <visual>
+      <geometry>
+        <!-- This is a file that does not actually exist on the web. -->
+        <mesh filename="https://example.com/tests/data/assets/box.stl"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="root_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="BaseLink"/>
+    <child link="link_mesh_stl"/>
+  </joint>
+</robot> 

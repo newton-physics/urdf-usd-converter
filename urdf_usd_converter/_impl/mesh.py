@@ -38,22 +38,28 @@ def convert_meshes(data: ConversionData):
     for filename in mesh_names:
         safe_name = mesh_names[filename]["safe_name"]
 
-        # Resolve the ROS package paths.
-        resolved_path = resolve_ros_package_paths(filename, data)
-        if resolved_path != pathlib.Path(filename):
-            Tf.Status(f"Resolved ROS package path: {filename} -> {resolved_path!s}")
-
-        resolved_path = resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
         mesh_prim: Usd.Prim = usdex.core.defineXform(geo_scope, safe_name).GetPrim()
 
         # If there are multiple mesh names (using file names), the meshes may have the same name but different scale values.
         # Therefore, this reference is keyed by a unique safe-name.
         data.references[Tokens.Geometry][safe_name] = mesh_prim
 
-        try:
-            convert_mesh(mesh_prim, resolved_path, data)
-        except Exception as e:
-            Tf.Warn(f"Failed to convert mesh: {resolved_path!s}: {e}")
+        if "://" in filename and not filename.startswith("package://"):
+            # TODO: Implement https mesh conversion.
+            protocol = filename.partition("://")[0]
+            Tf.Warn(f"'{protocol}' mesh is not yet supported: {filename}")
+        else:
+            # Resolve the ROS package paths.
+            resolved_path = resolve_ros_package_paths(filename, data)
+            if resolved_path != pathlib.Path(filename):
+                Tf.Status(f"Resolved ROS package path: {filename} -> {resolved_path!s}")
+
+            resolved_path = resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
+
+            try:
+                convert_mesh(mesh_prim, resolved_path, data)
+            except Exception as e:
+                Tf.Warn(f"Failed to convert mesh: {resolved_path!s}: {e}")
 
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 

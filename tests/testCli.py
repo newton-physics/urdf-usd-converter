@@ -195,3 +195,19 @@ class TestCli(ConverterTestCase):
         ):
             self.assertEqual(run(), 0, "Expected non-zero exit code for invalid input")
             self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+
+    def test_conversion_warning_https(self):
+        robot = "tests/data/mesh_https.urdf"
+        robot_name = pathlib.Path(robot).stem
+        output_dir = self.tmpDir()
+
+        with (
+            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*'https' mesh is not yet supported:.*")],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
+            self.assertEqual(run(), 0, "Expected non-zero exit code for invalid input")
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
