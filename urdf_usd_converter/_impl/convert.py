@@ -14,6 +14,7 @@ from .link_hierarchy import LinkHierarchy
 from .material import convert_materials
 from .mesh import convert_meshes
 from .mesh_cache import MeshCache
+from .ros_package import search_ros_packages
 from .scene import convert_scene
 from .urdf_parser.elements import ElementRobot
 from .urdf_parser.parser import URDFParser
@@ -68,6 +69,13 @@ class Converter:
         for package in self.params.ros_packages:
             if package.get("name", None) and package.get("path", None):
                 ros_packages[package.get("name")] = package.get("path")
+
+        # Search for ROS packages that reference meshes and material textures within URDF files.
+        # If the package name is not in the ros_packages dictionary, add it.
+        ros_packages_in_urdf = search_ros_packages(parser)
+        for package_name in ros_packages_in_urdf:
+            if package_name not in ros_packages:
+                ros_packages[package_name] = ros_packages_in_urdf[package_name]
 
         # Create the conversion data object
         data = ConversionData(

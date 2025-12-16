@@ -138,6 +138,28 @@ class TestCli(ConverterTestCase):
         ):
             self.assertEqual(run(), 1, "Expected non-zero exit code when conversion raises exception")
 
+    def test_conversion_warning_verifying_elements(self):
+        robot = "tests/data/verifying_elements.urdf"
+        robot_name = pathlib.Path(robot).stem
+        output_dir = self.tmpDir()
+        with (
+            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Transmission is not supported.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Gazebo is not supported.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Calibration is not supported.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Dynamics is not supported.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Mimic is not supported.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Safety controller is not supported.*"),
+                ],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
+            self.assertEqual(run(), 0, "Expected non-zero exit code for invalid input")
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+
     def test_conversion_exception_verbose(self):
         # Test exception handling when verbose=True (should re-raise)
         robot = "tests/data/simple_box.urdf"
@@ -190,6 +212,22 @@ class TestCli(ConverterTestCase):
             usdex.test.ScopedDiagnosticChecker(
                 self,
                 [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Failed to convert mesh:.*")],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
+            self.assertEqual(run(), 0, "Expected non-zero exit code for invalid input")
+            self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
+
+    def test_conversion_warning_ros_package_not_exist(self):
+        robot = "tests/data/warning_ref_ros_package_not_exist.urdf"
+        robot_name = pathlib.Path(robot).stem
+        output_dir = self.tmpDir()
+
+        with (
+            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No such file or directory:.*")],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
         ):
