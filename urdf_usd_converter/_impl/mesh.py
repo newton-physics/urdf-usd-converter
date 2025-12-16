@@ -45,21 +45,20 @@ def convert_meshes(data: ConversionData):
         data.references[Tokens.Geometry][safe_name] = mesh_prim
 
         if "://" in filename and not filename.startswith("package://"):
-            # TODO: Implement https mesh conversion.
             protocol = filename.partition("://")[0]
-            Tf.Warn(f"'{protocol}' mesh is not yet supported: {filename}")
+            Tf.Warn(f"'{protocol}' mesh is not supported: {filename}")
         else:
             # Resolve the ROS package paths.
             resolved_path = resolve_ros_package_paths(filename, data)
             if resolved_path != pathlib.Path(filename):
-                Tf.Status(f"Resolved ROS package path: {filename} -> {resolved_path!s}")
+                Tf.Status(f"Resolved ROS package path: {filename} -> {resolved_path}")
 
             resolved_path = resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
 
             try:
                 convert_mesh(mesh_prim, resolved_path, data)
             except Exception as e:
-                Tf.Warn(f"Failed to convert mesh: {resolved_path!s}: {e}")
+                Tf.Warn(f"Failed to convert mesh: {resolved_path}: {e}")
 
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 

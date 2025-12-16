@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="mesh_https">
+<robot name="warning_mesh_https">
   <link name="BaseLink">
     <visual>
       <geometry>
@@ -11,6 +11,7 @@
     <visual>
       <geometry>
         <!-- This is a file that does not actually exist on the web. -->
+        <!-- Only local files are supported. -->
         <mesh filename="https://example.com/tests/data/assets/box.stl"/>
       </geometry>
     </visual>
