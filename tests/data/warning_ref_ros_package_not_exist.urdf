@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot name="warning_ref_ros_package_not_exist">
+  <link name="Baselink">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_mesh_stl">
+    <visual>
+      <geometry>
+        <!-- When specifying a package name and a non-existent relative path. -->
+        <mesh filename="package://test_package/not_exist/not_exist_box.stl"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="root_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="Baselink"/>
+    <child link="link_mesh_stl"/>
+  </joint>
+</robot> 

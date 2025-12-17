@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot name="ros_packages">
+  <material name="texture_material">
+    <texture filename="package://test_texture_package/assets/grid.png"/>
+  </material>
+
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+  <link name="link_mesh_stl">
+    <visual>
+      <geometry>
+        <mesh filename="package://test_package/assets/box.stl"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="root_joint" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="BaseLink"/>
+    <child link="link_mesh_stl"/>
+  </joint>
+</robot> 
