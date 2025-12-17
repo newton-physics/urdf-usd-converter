@@ -29,9 +29,6 @@ def convert_meshes(data: ConversionData):
     # Get and store the mesh name.
     data.mesh_cache.store_mesh_cache(geo_scope, data.name_cache, data.urdf_parser)
 
-    # URDF file directory
-    urdf_dir = data.urdf_parser.input_file.parent
-
     # Get a list of names and safe names keyed by mesh paths.
     mesh_names = data.mesh_cache.get_mesh_names()
 
@@ -44,21 +41,15 @@ def convert_meshes(data: ConversionData):
         # Therefore, this reference is keyed by a unique safe-name.
         data.references[Tokens.Geometry][safe_name] = mesh_prim
 
-        if "://" in filename and not filename.startswith("package://"):
-            protocol = filename.partition("://")[0]
-            Tf.Warn(f"'{protocol}' mesh is not supported: {filename}")
-        else:
-            # Resolve the ROS package paths.
-            resolved_path = resolve_ros_package_paths(filename, data)
-            if resolved_path != pathlib.Path(filename):
-                Tf.Status(f"Resolved ROS package path: {filename} -> {resolved_path}")
+        # Resolve the ROS package paths.
+        # If the path is not a ROS package, it will return the original path.
+        # It also converts the path to a relative path based on the urdf file.
+        resolved_path = resolve_ros_package_paths(filename, data)
 
-            resolved_path = resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
-
-            try:
-                convert_mesh(mesh_prim, resolved_path, data)
-            except Exception as e:
-                Tf.Warn(f"Failed to convert mesh: {resolved_path}: {e}")
+        try:
+            convert_mesh(mesh_prim, resolved_path, data)
+        except Exception as e:
+            Tf.Warn(f"Failed to convert mesh: {resolved_path}: {e}")
 
     usdex.core.saveStage(data.libraries[Tokens.Geometry], comment=f"Mesh Library for {data.urdf_parser.get_robot_name()}. {data.comment}")
 
@@ -71,9 +62,10 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     elif input_path.suffix.lower() == ".dae":
         # TODO: Implement DAE conversion.
         Tf.Warn(f"The dae format is not yet supported: {input_path}")
+    elif not input_path.is_dir():
+        Tf.Warn(f"Unsupported mesh format: {input_path}")
     else:
-        if not input_path.is_dir():
-            Tf.Warn(f"Unsupported mesh format: {input_path}")
+        Tf.Warn(f"No file has been specified. It is a directory: {input_path}")
 
 
 def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:

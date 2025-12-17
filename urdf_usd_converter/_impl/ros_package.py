@@ -22,20 +22,30 @@ def resolve_ros_package_paths(uri: str, data: ConversionData) -> pathlib.Path:
     Returns:
         The resolved path.
     """
-    if uri.startswith("package://"):
+    if "://" in uri and not uri.startswith("package://"):
+        protocol = uri.partition("://")[0]
+        Tf.Warn(f"'{protocol}' is not supported: {uri}")
+        resolved_path = pathlib.Path()
+
+    elif uri.startswith("package://"):
         package_name, relative_path = _split_package_name_and_path(uri)
         if not package_name or not relative_path:
             Tf.Warn(f"Invalid ROS package URI. No relative path specified: {uri}")
-            return pathlib.Path()
-
-        package_path = data.ros_packages.get(package_name, None)
-        if package_path:
-            base_path = pathlib.Path(package_path)
-            return base_path / relative_path
+            resolved_path = pathlib.Path()
         else:
-            return relative_path
+            package_path = data.ros_packages.get(package_name, None)
+            resolved_path = pathlib.Path(package_path) / relative_path if package_path else relative_path
 
-    return pathlib.Path(uri)
+            if resolved_path != pathlib.Path(uri):
+                Tf.Status(f"Resolved ROS package path: {uri} -> {resolved_path}")
+    else:
+        resolved_path = pathlib.Path(uri)
+
+    # URDF file directory
+    urdf_dir = data.urdf_parser.input_file.parent
+
+    # Convert the path to a relative path based on the urdf file.
+    return resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
 
 
 def search_ros_packages(urdf_parser: URDFParser) -> dict[str]:

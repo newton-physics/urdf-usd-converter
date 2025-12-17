@@ -91,6 +91,7 @@ class TestConverter(ConverterTestCase):
             self,
             [
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Invalid ROS package URI. No relative path specified: package://test_package.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No file has been specified. It is a directory:*"),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):

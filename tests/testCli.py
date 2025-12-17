@@ -243,7 +243,10 @@ class TestCli(ConverterTestCase):
             patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]),
             usdex.test.ScopedDiagnosticChecker(
                 self,
-                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*'https' mesh is not supported:.*")],
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*'https' is not supported:.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No file has been specified. It is a directory:.*"),
+                ],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
         ):
