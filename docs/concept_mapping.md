@@ -875,11 +875,11 @@ It is important to note that the ROS2 installation assumes that the package itse
 
 If the ROS2 software stack is not available, we must locate the package roots on the local storage through other means. The following techniques could be attempted, falling back to the next check if one fails:
 
+- Ask the client to provide the package mapping explicitly  
+   - Ask for a list of configured package root locations or ask for an explicit mapping of package\_name to root location  
 - Assume the mesh & textures are local to the URDF  
     - Use a filesystem module (e.g. std::filesystem in C++ or pathlib in python) to determine a common anchor between the URDF file & the mesh or texture URI  
     - Strip off the anchor & compose a relative filesystem path to the mesh or texture file & check if it exists  
-- Ask the client to provide the package mapping explicitly  
-   - Ask for a list of configured package root locations or ask for an explicit mapping of package\_name to root location  
 - If all of the above failed, it would be reasonable to emit an error for the unresolvable packages
 
 ## Appendix B: USD Schemas
