@@ -3,7 +3,7 @@
 import pathlib
 
 import usdex.core
-from pxr import Usd, UsdGeom, UsdPhysics
+from pxr import Usd, UsdGeom, UsdPhysics, UsdShade
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -74,3 +74,12 @@ class TestDisplayName(ConverterTestCase):
         self.assertTrue(joint_root_prim.IsValid())
         self.assertTrue(joint_root_prim.IsA(UsdPhysics.FixedJoint))
         self.assertEqual(usdex.core.getDisplayName(joint_root_prim), "joint:root")
+
+        # Check for materials.
+        material_scope_prim = default_prim.GetChild("Materials")
+        self.assertTrue(material_scope_prim.IsValid())
+
+        material_red_prim = material_scope_prim.GetChild("tn__materialred_rL")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_red_prim), "material:red")

@@ -211,7 +211,10 @@ class TestCli(ConverterTestCase):
             patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir), "--package", package_1]),
             usdex.test.ScopedDiagnosticChecker(
                 self,
-                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Failed to convert mesh:.*")],
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Failed to convert mesh:.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                ],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
         ):

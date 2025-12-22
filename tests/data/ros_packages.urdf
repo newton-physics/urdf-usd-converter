@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot name="ros_packages">
   <material name="texture_material">
+    <color rgba="1 1 1 1"/>
     <texture filename="package://test_texture_package/assets/grid.png"/>
   </material>
 

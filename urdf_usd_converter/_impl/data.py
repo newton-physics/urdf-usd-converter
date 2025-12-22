@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
+import pathlib
 from dataclasses import dataclass
 
 import usdex.core
@@ -35,3 +36,4 @@ class ConversionData:
     link_hierarchy: LinkHierarchy
     mesh_cache: MeshCache
     ros_packages: list[dict[str, str]]
+    texture_paths: dict[pathlib.Path, str]

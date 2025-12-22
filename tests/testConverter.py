@@ -4,7 +4,7 @@ import pathlib
 import shutil
 
 import usdex.test
-from pxr import Tf, Usd, UsdGeom
+from pxr import Tf, Usd, UsdGeom, UsdShade
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -124,7 +124,15 @@ class TestConverter(ConverterTestCase):
             {"name": "test_texture_package", "path": test_texture_package_dir},
         ]
         converter = urdf_usd_converter.Converter(ros_packages=packages)
-        asset_path = converter.convert(input_path, output_dir)
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
+
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
@@ -152,4 +160,21 @@ class TestConverter(ConverterTestCase):
         self.assertTrue(stl_mesh_prim.HasAuthoredReferences())
 
         # Check material texture.
-        # TODO: Here we need to make sure that the reference to the usd file is correct after the texture is loaded.
+        material_scope_prim = default_prim.GetChild("Materials")
+        self.assertTrue(material_scope_prim.IsValid())
+        self.assertTrue(material_scope_prim.IsA(UsdGeom.Scope))
+
+        texture_material_prim = material_scope_prim.GetChild("texture_material")
+        self.assertTrue(texture_material_prim.IsValid())
+        self.assertTrue(texture_material_prim.IsA(UsdShade.Material))
+
+        texture_material = UsdShade.Material(texture_material_prim)
+        self.assertTrue(texture_material)
+        self.assertTrue(texture_material.GetPrim().HasAuthoredReferences())
+
+        texture_path = self.get_material_diffuse_color_texture_path(texture_material)
+        self.assertEqual(texture_path, pathlib.Path("./Textures/grid.png"))
+        diffuse_color = self.get_material_diffuse_color(texture_material)
+        self.assertEqual(diffuse_color, None)
+        opacity = self.get_material_opacity(texture_material)
+        self.assertEqual(opacity, 1.0)

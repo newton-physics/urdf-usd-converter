@@ -11,7 +11,7 @@ from ._flatten import export_flattened
 from .data import ConversionData, Tokens
 from .link import convert_links
 from .link_hierarchy import LinkHierarchy
-from .material import convert_materials
+from .material import convert_materials, get_material_texture_paths
 from .mesh import convert_meshes
 from .mesh_cache import MeshCache
 from .ros_package import search_ros_packages
@@ -89,6 +89,7 @@ class Converter:
             link_hierarchy=LinkHierarchy(parser.get_root_element()),
             mesh_cache=MeshCache(),
             ros_packages=ros_packages,
+            texture_paths={},
         )
 
         # setup the main output layer (which will become an asset interface later)
@@ -119,6 +120,10 @@ class Converter:
 
         # setup the root layer of the payload
         data.content[Tokens.Contents] = usdex.core.createAssetPayload(asset_stage)
+
+        # Get a dictionary of resolved texture paths and unique names.
+        # It stores all the texture file paths referenced by urdf materials and each mesh.
+        data.texture_paths = get_material_texture_paths(data)
 
         # author the mesh library
         convert_meshes(data)

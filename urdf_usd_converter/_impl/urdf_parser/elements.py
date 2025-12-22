@@ -107,7 +107,7 @@ class ElementColor(ElementBase):
     available_tag_names: ClassVar[list[str]] = ["color"]
 
     _defaults: ClassVar[dict[str, Any]] = {
-        "rgba": (0.0, 0.0, 0.0, 0.0),
+        "rgba": (1.0, 1.0, 1.0, 1.0),
     }
 
     def __init__(self):

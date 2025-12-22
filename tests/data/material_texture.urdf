@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<robot name="material_texture">
+  <material name="texture_material">
+    <texture filename="assets/grid.png"/>
+  </material>
+  <material name="color_texture_material">
+    <color rgba="0.5 0.2 0.5 1.0"/>
+    <texture filename="assets/grid.png"/>
+  </material>
+
+  <link name="link_box">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+  <link name="link_sphere">
+    <visual>
+      <geometry>
+        <sphere radius="0.5"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+  <link name="link_cylinder">
+    <visual>
+      <geometry>
+        <cylinder radius="0.5" length="1.0"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+
+  <link name="link_obj_texture">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+  <link name="link_obj_color_texture">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="color_texture_material"/>
+    </visual>
+  </link>
+
+  <joint name="joint_box_sphere" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box"/>
+    <child link="link_sphere"/>
+  </joint>
+  <joint name="joint_sphere_cylinder" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_sphere"/>
+    <child link="link_cylinder"/>
+  </joint>
+  <joint name="joint_cylinder_obj_texture" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_cylinder"/>
+    <child link="link_obj_texture"/>
+  </joint>
+  <joint name="joint_cylinder_obj_color_texture" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj_texture"/>
+    <child link="link_obj_color_texture"/>
+  </joint>
+</robot>
