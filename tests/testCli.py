@@ -30,13 +30,22 @@ class TestCli(ConverterTestCase):
         self.assertTrue((pathlib.Path(self.tmpDir()) / "simple-primitives.usda").exists())
 
     def test_no_layer_structure(self):
-        model = "tests/data/simple_box.urdf"
+        model = "tests/data/material_mesh_texture.urdf"
         robot_name = pathlib.Path(model).stem
+
+        # This is the process to check whether an existing folder will be removed.
+        textures_dir = pathlib.Path(self.tmpDir()) / "Textures"
+        if not textures_dir.exists():
+            textures_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy("tests/data/assets/grid.png", textures_dir / "foo.png")
+
         with patch("sys.argv", ["urdf_usd_converter", model, self.tmpDir(), "--no-layer-structure"]):
             self.assertEqual(run(), 0, f"Failed to convert {model}")
             self.assertFalse((pathlib.Path(self.tmpDir()) / "Payload").exists())
             self.assertFalse((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
             self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usdc").exists())
+            self.assertTrue((textures_dir / "grid.png").exists())
+            self.assertFalse((textures_dir / "foo.png").exists())
 
     def test_no_physics_scene(self):
         model = "tests/data/simple_box.urdf"
