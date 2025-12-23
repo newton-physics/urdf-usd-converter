@@ -15,14 +15,14 @@ __all__ = ["ConversionCollada"]
 
 class ConversionCollada:
     def __init__(self, input_path: pathlib.Path):
-        # Collada mesh IDs and USD.prim dictionary.
-        self.meshes: dict[str, Usd.Prim] = {}
-
         try:
             self.collada = collada.Collada(str(input_path))
 
             # The default unit for the scene is meters (= 1.0).
             self.unit_meter = self.collada.assetInfo.unitmeter if self.collada.assetInfo.unitmeter is not None else 1.0
+
+            # The default up axis is Z_UP.
+            self.up_axis = self.collada.assetInfo.upaxis if self.collada.assetInfo else "Z_UP"
 
         except Exception as e:
             self.collada = None
@@ -35,54 +35,48 @@ class ConversionCollada:
         if not self.collada:
             return None
 
-        # Store the meshes.
-        self._store_meshes(prim, data)
-
-        # Convert the scene hierarchy.
         for scene in self.collada.scenes:
             for node in scene.nodes:
-                target_prim = self._convert_scene(node, prim, data)
-
-                # Metric scaling.
-                if target_prim and not Gf.IsClose(self.unit_meter, 1.0, 1e-6):
-                    scale_op = UsdGeom.Xformable(target_prim).AddScaleOp()
-                    scale_op.Set(Gf.Vec3f(self.unit_meter))
-
+                self._traverse_scene(prim, None, node, Gf.Matrix4d(), data)
         return prim
 
-    def _store_meshes(self, prim: Usd.Prim, data: ConversionData):
+    def _multiply_root_matrix(self, matrix: Gf.Matrix4d) -> Gf.Matrix4d:
         """
-        Meshes contained in the dae file are stored in the "Meshes" scope.
-        The scene hierarchy of dae internally references these meshes.
+        Multiply the matrix by the up axis matrix and the scale matrix.
         """
-        meshes_scope = usdex.core.defineScope(prim, "Meshes")
+        if self.up_axis == "Y_UP":
+            up_axis_matrix = Gf.Matrix4d(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90.0), Gf.Vec3d(0))
+            matrix = up_axis_matrix * matrix
 
-        names = [geometry.name for geometry in self.collada.geometries]
-        safe_names = data.name_cache.getPrimNames(meshes_scope.GetPrim(), names)
+        if not Gf.IsClose(self.unit_meter, 1.0, 1e-6):
+            scale_matrix = Gf.Matrix4d().SetScale(self.unit_meter)
+            matrix = scale_matrix * matrix
 
-        for geometry, name, safe_name in zip(self.collada.geometries, names, safe_names):
-            prim = self._convert_mesh(meshes_scope.GetPrim(), geometry, safe_name, data)
-            if prim:
-                # Since it is an internal reference, it is hidden here.
-                UsdGeom.Imageable(prim).GetVisibilityAttr().Set(UsdGeom.Tokens.invisible)
-                self.meshes[geometry.id] = prim
+        return matrix
 
-    def _convert_mesh(self, prim: Usd.Prim, geometry: collada.geometry.Geometry, safe_name: str, data: ConversionData) -> Usd.Prim:
+    def _convert_mesh(self, prim: Usd.Prim, name: str, geometry: collada.geometry.Geometry, matrix: Gf.Matrix4d, data: ConversionData) -> Usd.Prim:
         """
         Gets and stores primitives from a dae Geometry.
         """
-        # An Xform is created here as it will be used for internal references.
-        parent_prim = usdex.core.defineXform(prim, safe_name).GetPrim()
+        # Multiply the matrix by the up axis matrix and the scale matrix.
+        matrix = self._multiply_root_matrix(matrix)
 
         # Since dae does not have primitive names, sequential numbers are assigned.
         names = []
         for primitive in geometry.primitives:
             if len(names) == 0:
-                names.append(geometry.name)
+                names.append(name)
             else:
-                names.append(f"{geometry.name}_{len(names)}")
+                names.append(f"{name}_{len(names)}")
 
-        safe_names = data.name_cache.getPrimNames(parent_prim, names)
+        safe_names = data.name_cache.getPrimNames(prim, names)
+
+        # An Xform is created here as it will be used for internal references.
+        if len(names) > 1:
+            parent_prim = usdex.core.defineXform(prim, safe_names[0]).GetPrim()
+            if safe_names[0] != name:
+                usdex.core.setDisplayName(parent_prim, name)
+            prim = parent_prim
 
         for primitive, _name, _safe_name in zip(geometry.primitives, names, safe_names):
             primitive_type = type(primitive).__name__
@@ -93,6 +87,12 @@ class ConversionCollada:
 
             # Determine if this is a triangle-based or polygon-based primitive once
             is_triangle_type = primitive_type in ["TriangleSet", "Triangles"]
+
+            # If there is only one geometry, the prim is the parent of the geometry.
+            _prim = prim
+            if len(names) == 1 and len(self.collada.geometries) == 1:
+                _prim = prim.GetParent()
+                _safe_name = prim.GetName()
 
             vertices = None
             normals = None
@@ -141,7 +141,7 @@ class ConversionCollada:
 
             if face_vertex_counts is not None and face_vertex_indices is not None and vertices is not None:
                 usd_mesh = usdex.core.definePolyMesh(
-                    parent_prim,
+                    _prim,
                     _safe_name,
                     faceVertexCounts=Vt.IntArray(face_vertex_counts),
                     faceVertexIndices=Vt.IntArray(face_vertex_indices),
@@ -150,43 +150,35 @@ class ConversionCollada:
                     uvs=uvs,
                 )
                 if not usd_mesh:
-                    Tf.Warn(f'Failed to convert mesh "{parent_prim.GetPath()}"')
+                    Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}"')
                     return None
 
                 if _name != _safe_name:
                     usdex.core.setDisplayName(usd_mesh.GetPrim(), _name)
 
-        return parent_prim
+                usdex.core.setLocalTransform(usd_mesh, matrix)
 
-    def _convert_scene(self, node: collada.scene.Node, prim: Usd.Prim, data: ConversionData) -> Usd.Prim:
+        return prim
+
+    def _traverse_scene(
+        self, prim: Usd.Prim, parent_node: collada.scene.Node | None, node: collada.scene.Node, matrix: Gf.Matrix4d, data: ConversionData
+    ):
         """
-        Converts the scene hierarchy.
+        Traverse the scene hierarchy, and upon reaching the geometry,
+        provide the accumulated matrix to store it flat in the GeometryLibrary.
         """
-        node_name = node.name if hasattr(node, "name") else None
-
-        target_prim = prim
-        if isinstance(node, collada.scene.Node) and node_name is not None:
-            safe_name = data.name_cache.getPrimName(prim, node_name)
-            xform = usdex.core.defineXform(prim, safe_name)
-            if node_name != safe_name:
-                usdex.core.setDisplayName(xform.GetPrim(), node_name)
-
+        if isinstance(node, collada.scene.Node) and hasattr(node, "name"):
             # Set the transformation matrix if available
-            usd_matrix = convert_matrix4d(node.matrix) if hasattr(node, "matrix") else Gf.Matrix4d.GetIdentity()
-            usdex.core.setLocalTransform(xform, usd_matrix)
-
-            target_prim = xform.GetPrim()
+            node_matrix = convert_matrix4d(node.matrix) if hasattr(node, "matrix") else Gf.Matrix4d()
+            matrix = node_matrix * matrix
 
         # Geometry Node.
         if isinstance(node, collada.scene.GeometryNode):
-            # The mesh is internally referenced from the dictionary stored in self.meshes.
-            prim = self.meshes.get(node.geometry.id)
-            if prim:
-                target_prim.GetReferences().AddInternalReference(prim.GetPath())
-                UsdGeom.Imageable(target_prim).GetVisibilityAttr().Set(UsdGeom.Tokens.inherited)
+            name = parent_node.name if parent_node else node.geometry.name
+
+            # Converts geometry to usd meshes.
+            self._convert_mesh(prim, name, node.geometry, matrix, data)
 
         if hasattr(node, "children") and node.children:
             for child in node.children:
-                self._convert_scene(child, target_prim, data)
-
-        return target_prim
+                self._traverse_scene(prim, node, child, matrix, data)

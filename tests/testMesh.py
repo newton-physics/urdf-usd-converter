@@ -48,13 +48,13 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(stl_mesh_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(stl_mesh_prim.HasAuthoredReferences())
 
-        usd_mesh_stl = UsdGeom.Mesh(stl_mesh_prim)
-        self.assertTrue(usd_mesh_stl.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_stl.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_stl.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_stl = UsdGeom.Mesh(stl_mesh_prim)
+        self.assertTrue(mesh_stl.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_stl.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_stl.GetFaceVertexIndicesAttr().HasAuthoredValue())
         # The sample box.stl has normals and they are authored as a primvar
-        self.assertFalse(usd_mesh_stl.GetNormalsAttr().HasAuthoredValue())
-        normals_primvar: UsdGeom.Primvar = UsdGeom.PrimvarsAPI(usd_mesh_stl).GetPrimvar("normals")
+        self.assertFalse(mesh_stl.GetNormalsAttr().HasAuthoredValue())
+        normals_primvar: UsdGeom.Primvar = UsdGeom.PrimvarsAPI(mesh_stl).GetPrimvar("normals")
         self.assertTrue(normals_primvar.IsDefined())
         self.assertTrue(normals_primvar.HasAuthoredValue())
         self.assertTrue(normals_primvar.GetIndicesAttr().HasAuthoredValue())
@@ -111,19 +111,19 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(cube_red_prim.IsValid())
         self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
 
-        usd_mesh_red = UsdGeom.Mesh(cube_red_prim)
-        self.assertTrue(usd_mesh_red.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_red = UsdGeom.Mesh(cube_red_prim)
+        self.assertTrue(mesh_red.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
         cube_green_prim = two_boxes_prim.GetChild("Cube_Green")
         self.assertTrue(cube_green_prim.IsValid())
         self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
 
-        usd_mesh_green = UsdGeom.Mesh(cube_green_prim)
-        self.assertTrue(usd_mesh_green.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_green = UsdGeom.Mesh(cube_green_prim)
+        self.assertTrue(mesh_green.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
         two_boxes_collision_prim_path = link_prim_path.AppendChild("two_collision_boxes")
         two_boxes_collision_prim = self.stage.GetPrimAtPath(two_boxes_collision_prim_path)
@@ -136,19 +136,19 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(cube_red_prim.IsValid())
         self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
 
-        usd_mesh_red = UsdGeom.Mesh(cube_red_prim)
-        self.assertTrue(usd_mesh_red.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_red = UsdGeom.Mesh(cube_red_prim)
+        self.assertTrue(mesh_red.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
         cube_green_prim = two_boxes_collision_prim.GetChild("Cube_Green")
         self.assertTrue(cube_green_prim.IsValid())
         self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
 
-        usd_mesh_green = UsdGeom.Mesh(cube_green_prim)
-        self.assertTrue(usd_mesh_green.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_green = UsdGeom.Mesh(cube_green_prim)
+        self.assertTrue(mesh_green.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
     def test_dae_single_mesh(self):
         default_prim = self.stage.GetDefaultPrim()
@@ -164,43 +164,23 @@ class TestMesh(ConverterTestCase):
 
         box_prim = link_prim.GetChild("box")
         self.assertTrue(box_prim.IsValid())
-        self.assertTrue(box_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_prim.HasAuthoredReferences())
         self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        cube_prim = box_prim.GetChild("Cube")
-        self.assertTrue(cube_prim.IsValid())
-        self.assertTrue(cube_prim.IsA(UsdGeom.Xform))
-
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_prim = cube_prim.GetChild("Cube")
-        self.assertTrue(mesh_prim.IsValid())
-        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
-
-        usd_mesh = UsdGeom.Mesh(mesh_prim)
-        self.assertTrue(usd_mesh.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh = UsdGeom.Mesh(box_prim)
+        self.assertTrue(mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
         box_collision_prim = link_prim.GetChild("collision_box")
         self.assertTrue(box_collision_prim.IsValid())
-        self.assertTrue(box_collision_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_collision_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_collision_prim.HasAuthoredReferences())
         self.assertEqual(UsdGeom.Imageable(box_collision_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.guide)
 
-        cube_collision_prim = box_collision_prim.GetChild("Cube")
-        self.assertTrue(cube_collision_prim.IsValid())
-        self.assertTrue(cube_prim.IsA(UsdGeom.Xform))
-
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_collision_prim = cube_collision_prim.GetChild("Cube")
-        self.assertTrue(mesh_collision_prim.IsValid())
-        self.assertTrue(mesh_collision_prim.IsA(UsdGeom.Mesh))
-
-        usd_mesh = UsdGeom.Mesh(mesh_collision_prim)
-        self.assertTrue(usd_mesh.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh = UsdGeom.Mesh(box_collision_prim)
+        self.assertTrue(mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
     def test_dae_unit_cm(self):
         default_prim = self.stage.GetDefaultPrim()
@@ -216,22 +196,14 @@ class TestMesh(ConverterTestCase):
 
         box_prim = link_prim.GetChild("box_unit_cm")
         self.assertTrue(box_prim.IsValid())
-        self.assertTrue(box_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_prim.HasAuthoredReferences())
         self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        cube_prim = box_prim.GetChild("Cube")
-        self.assertTrue(cube_prim.IsValid())
-        self.assertTrue(cube_prim.IsA(UsdGeom.Xform))
-
-        mesh_prim = cube_prim.GetChild("Cube")
-        self.assertTrue(mesh_prim.IsValid())
-        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
-
-        usd_mesh = UsdGeom.Mesh(mesh_prim)
-        self.assertTrue(usd_mesh.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh = UsdGeom.Mesh(box_prim)
+        self.assertTrue(mesh.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
     def test_dae_two_meshes(self):
         default_prim = self.stage.GetDefaultPrim()
@@ -245,44 +217,29 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(link_prim.IsValid())
         self.assertTrue(link_prim.IsA(UsdGeom.Xform))
 
-        box_prim = link_prim.GetChild("two_meshes")
-        self.assertTrue(box_prim.IsValid())
-        self.assertTrue(box_prim.IsA(UsdGeom.Xform))
-        self.assertTrue(box_prim.HasAuthoredReferences())
-        self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
+        two_meshes_prim = link_prim.GetChild("two_meshes")
+        self.assertTrue(two_meshes_prim.IsValid())
+        self.assertTrue(two_meshes_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(two_meshes_prim.HasAuthoredReferences())
+        self.assertEqual(UsdGeom.Imageable(two_meshes_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        cubes_prim = box_prim.GetChild("cubes")
-        self.assertTrue(cubes_prim.IsValid())
-        self.assertTrue(cubes_prim.IsA(UsdGeom.Xform))
-
-        cube_red_prim = cubes_prim.GetChild("Cube_Red")
+        cube_red_prim = two_meshes_prim.GetChild("Cube_Red")
         self.assertTrue(cube_red_prim.IsValid())
-        self.assertTrue(cube_red_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
 
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_red_prim = cube_red_prim.GetChild("Cube")
-        self.assertTrue(mesh_red_prim.IsValid())
-        self.assertTrue(mesh_red_prim.IsA(UsdGeom.Mesh))
+        mesh_red = UsdGeom.Mesh(cube_red_prim)
+        self.assertTrue(mesh_red.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
-        usd_mesh_red = UsdGeom.Mesh(mesh_red_prim)
-        self.assertTrue(usd_mesh_red.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
-
-        cube_green_prim = cubes_prim.GetChild("Cube_Green")
+        cube_green_prim = two_meshes_prim.GetChild("Cube_Green")
         self.assertTrue(cube_green_prim.IsValid())
-        self.assertTrue(cube_green_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
 
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_green_prim = cube_green_prim.GetChild("tn__Cube001_VB")
-        self.assertTrue(mesh_green_prim.IsValid())
-        self.assertTrue(mesh_green_prim.IsA(UsdGeom.Mesh))
-        self.assertTrue(usdex.core.getDisplayName(mesh_green_prim), "Cube.001")
-
-        usd_mesh_green = UsdGeom.Mesh(mesh_green_prim)
-        self.assertTrue(usd_mesh_green.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_green = UsdGeom.Mesh(cube_green_prim)
+        self.assertTrue(mesh_green.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
     def test_dae_two_triangle_meshes(self):
         default_prim = self.stage.GetDefaultPrim()
@@ -302,41 +259,26 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(link_prim.IsValid())
         self.assertTrue(link_prim.IsA(UsdGeom.Xform))
 
-        box_prim = link_prim.GetChild("two_meshes_triangle")
-        self.assertTrue(box_prim.IsValid())
-        self.assertTrue(box_prim.IsA(UsdGeom.Xform))
-        self.assertTrue(box_prim.HasAuthoredReferences())
-        self.assertEqual(UsdGeom.Imageable(box_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
+        two_meshes_triangle_prim = link_prim.GetChild("two_meshes_triangle")
+        self.assertTrue(two_meshes_triangle_prim.IsValid())
+        self.assertTrue(two_meshes_triangle_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(two_meshes_triangle_prim.HasAuthoredReferences())
+        self.assertEqual(UsdGeom.Imageable(two_meshes_triangle_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        cubes_prim = box_prim.GetChild("cubes")
-        self.assertTrue(cubes_prim.IsValid())
-        self.assertTrue(cubes_prim.IsA(UsdGeom.Xform))
-
-        cube_red_prim = cubes_prim.GetChild("Cube_Red")
+        cube_red_prim = two_meshes_triangle_prim.GetChild("Cube_Red")
         self.assertTrue(cube_red_prim.IsValid())
-        self.assertTrue(cube_red_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
 
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_red_prim = cube_red_prim.GetChild("Cube")
-        self.assertTrue(mesh_red_prim.IsValid())
-        self.assertTrue(mesh_red_prim.IsA(UsdGeom.Mesh))
+        mesh_red = UsdGeom.Mesh(cube_red_prim)
+        self.assertTrue(mesh_red.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
-        usd_mesh_red = UsdGeom.Mesh(mesh_red_prim)
-        self.assertTrue(usd_mesh_red.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_red.GetFaceVertexIndicesAttr().HasAuthoredValue())
-
-        cube_green_prim = cubes_prim.GetChild("Cube_Green")
+        cube_green_prim = two_meshes_triangle_prim.GetChild("Cube_Green")
         self.assertTrue(cube_green_prim.IsValid())
-        self.assertTrue(cube_green_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
 
-        # A Mesh prim exists as a child of the Xform prim in the link.
-        mesh_green_prim = cube_green_prim.GetChild("tn__Cube001_VB")
-        self.assertTrue(mesh_green_prim.IsValid())
-        self.assertTrue(mesh_green_prim.IsA(UsdGeom.Mesh))
-        self.assertTrue(usdex.core.getDisplayName(mesh_green_prim), "Cube.001")
-
-        usd_mesh_green = UsdGeom.Mesh(mesh_green_prim)
-        self.assertTrue(usd_mesh_green.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(usd_mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        mesh_green = UsdGeom.Mesh(cube_green_prim)
+        self.assertTrue(mesh_green.GetPointsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexCountsAttr().HasAuthoredValue())
+        self.assertTrue(mesh_green.GetFaceVertexIndicesAttr().HasAuthoredValue())

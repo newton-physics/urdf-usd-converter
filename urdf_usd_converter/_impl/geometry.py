@@ -102,7 +102,8 @@ def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: Conversio
     prim = usdex.core.defineReference(parent, ref_mesh, name)
 
     if scale != Gf.Vec3d(1):
+        prim_scale = usdex.core.getLocalTransform(prim).GetScale()
         scale_op = UsdGeom.Xformable(prim).AddScaleOp()
-        scale_op.Set(Gf.Vec3f(scale))
+        scale_op.Set(Gf.Vec3f(Gf.CompMult(prim_scale, scale)))
 
     return prim
