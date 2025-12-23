@@ -8,6 +8,7 @@ import tinyobjloader
 import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, Vt
 
+from .conversion_collada import ConversionCollada
 from .data import ConversionData, Tokens
 from .numpy import convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
@@ -60,8 +61,7 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     elif input_path.suffix.lower() == ".obj":
         convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
-        # TODO: Implement DAE conversion.
-        Tf.Warn(f"The dae format is not yet supported: {input_path}")
+        convert_dae(prim, input_path, data)
     elif not input_path.is_dir():
         Tf.Warn(f"Unsupported mesh format: {input_path}")
     else:
@@ -219,4 +219,10 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
 
+    return prim
+
+
+def convert_dae(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:
+    conversion_collada = ConversionCollada(input_path)
+    conversion_collada.convert(prim, data)
     return prim
