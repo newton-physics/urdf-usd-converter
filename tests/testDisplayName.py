@@ -66,7 +66,7 @@ class TestDisplayName(ConverterTestCase):
         self.assertTrue(mesh_obj_mesh_prim.IsA(UsdGeom.Mesh))
         self.assertEqual(usdex.core.getDisplayName(mesh_obj_mesh_prim), "Cube:Green")
 
-        # Check for physics.
+        # Check for dae containing two meshes.
         link_mesh_dae_prim = link_box_2_prim.GetChild("tn__linkmesh_dae_VI")
         self.assertTrue(link_mesh_dae_prim.IsValid())
         self.assertTrue(link_mesh_dae_prim.IsA(UsdGeom.Xform))
@@ -74,8 +74,29 @@ class TestDisplayName(ConverterTestCase):
 
         mesh_dae_prim = link_mesh_dae_prim.GetChild("name_test")
         self.assertTrue(mesh_dae_prim.IsValid())
-        self.assertTrue(mesh_dae_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(mesh_dae_prim.IsA(UsdGeom.Xform))
 
+        mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__CubeRed_YE")
+        self.assertTrue(mesh_dae_mesh_prim.IsValid())
+        self.assertTrue(mesh_dae_mesh_prim.IsA(UsdGeom.Xform))
+        self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube:Red")
+
+        mesh_dae_primitive_prim = mesh_dae_mesh_prim.GetChild("tn__CubeRed_YE")
+        self.assertTrue(mesh_dae_primitive_prim.IsValid())
+        self.assertTrue(mesh_dae_primitive_prim.IsA(UsdGeom.Mesh))
+        self.assertEqual(usdex.core.getDisplayName(mesh_dae_primitive_prim), "Cube:Red")
+
+        mesh_dae_primitive_prim = mesh_dae_mesh_prim.GetChild("tn__CubeRed_1_vH")
+        self.assertTrue(mesh_dae_primitive_prim.IsValid())
+        self.assertTrue(mesh_dae_primitive_prim.IsA(UsdGeom.Mesh))
+        self.assertEqual(usdex.core.getDisplayName(mesh_dae_primitive_prim), "Cube:Red_1")
+
+        mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__CubeGreen_vH")
+        self.assertTrue(mesh_dae_mesh_prim.IsValid())
+        self.assertTrue(mesh_dae_mesh_prim.IsA(UsdGeom.Mesh))
+        self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube:Green")
+
+        # Check for physics.
         physics_scope_prim = default_prim.GetChild("Physics")
         self.assertTrue(physics_scope_prim.IsValid())
 

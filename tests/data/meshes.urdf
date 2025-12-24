@@ -64,6 +64,14 @@
       </geometry>
     </visual>
   </link>
+  <link name="link_box_two_materials_dae">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_two_materials.dae"/>
+      </geometry>
+    </visual>
+  </link>
+
   <link name="link_mesh_dxf"> <!-- Unsupported formats -->
     <visual>
       <geometry>
@@ -113,5 +121,9 @@
     <parent link="link_two_meshes_dae"/>
     <child link="link_two_meshes_triangle_dae"/>
   </joint>
-
+  <joint name="joint_dae_two_materials" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 2.0"/>
+    <parent link="link_two_meshes_triangle_dae"/>
+    <child link="link_box_two_materials_dae"/>
+  </joint>
 </robot>

@@ -21,9 +21,6 @@ class ConversionCollada:
             # The default unit for the scene is meters (= 1.0).
             self.unit_meter = self.collada.assetInfo.unitmeter if self.collada.assetInfo.unitmeter is not None else 1.0
 
-            # The default up axis is Z_UP.
-            self.up_axis = self.collada.assetInfo.upaxis if self.collada.assetInfo else "Z_UP"
-
         except Exception as e:
             self.collada = None
             Tf.Warn(f'Invalid input_path: "{input_path!s}" could not be parsed. {e}')
@@ -42,12 +39,8 @@ class ConversionCollada:
 
     def _multiply_root_matrix(self, matrix: Gf.Matrix4d) -> Gf.Matrix4d:
         """
-        Multiply the matrix by the up axis matrix and the scale matrix.
+        Multiply the matrix by the scale matrix.
         """
-        if self.up_axis == "Y_UP":
-            up_axis_matrix = Gf.Matrix4d(Gf.Rotation(Gf.Vec3d(1, 0, 0), -90.0), Gf.Vec3d(0))
-            matrix = up_axis_matrix * matrix
-
         if not Gf.IsClose(self.unit_meter, 1.0, 1e-6):
             scale_matrix = Gf.Matrix4d().SetScale(self.unit_meter)
             matrix = scale_matrix * matrix
@@ -71,8 +64,10 @@ class ConversionCollada:
 
         safe_names = data.name_cache.getPrimNames(prim, names)
 
-        # An Xform is created here as it will be used for internal references.
-        if len(names) > 1:
+        # When multiple geometries are present. And when each geometry contains multiple primitives.
+        # In this case, an Xform is created, and the meshes are placed within it.
+        # In the case of a single primitive, or a single mesh, the mesh is placed as a direct child of prim.
+        if len(names) > 1 and len(self.collada.geometries) > 1:
             parent_prim = usdex.core.defineXform(prim, safe_names[0]).GetPrim()
             if safe_names[0] != name:
                 usdex.core.setDisplayName(parent_prim, name)
@@ -112,6 +107,22 @@ class ConversionCollada:
 
             if hasattr(primitive, "vertex"):
                 vertices = convert_vec3f_array(primitive.vertex)
+
+            # Remove unused vertices and rebuild vertex indices
+            if len(names) > 1 and vertices is not None and face_vertex_indices is not None:
+                # Find all unique vertex indices that are actually used
+                used_indices = np.unique(face_vertex_indices)
+
+                # Create a mapping from old indices to new indices
+                index_mapping = np.full(len(vertices), -1, dtype=np.int32)
+                index_mapping[used_indices] = np.arange(len(used_indices))
+
+                # Create new vertices array with only used vertices
+                used_indices_list = used_indices.tolist()
+                vertices = Vt.Vec3fArray([vertices[i] for i in used_indices_list])
+
+                # Update face_vertex_indices with new indices using numpy vectorization
+                face_vertex_indices = index_mapping[np.array(face_vertex_indices, dtype=np.int32)].tolist()
 
             if hasattr(primitive, "normal"):
                 primitive_normals = convert_vec3f_array(primitive.normal)
