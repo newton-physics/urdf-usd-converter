@@ -51,29 +51,25 @@ class ConversionCollada:
         """
         Gets and stores primitives from a dae Geometry.
         """
+        stage = prim.GetStage()
+
         # Multiply the matrix by the up axis matrix and the scale matrix.
         matrix = self._multiply_root_matrix(matrix)
 
-        # Since dae does not have primitive names, sequential numbers are assigned.
-        names = []
+        all_face_vertex_counts: list[int] = []
+        all_face_vertex_indices: list[int] = []
+        all_normals: Vt.Vec3fArray | None = None
+        all_normal_indices: list[int] = []
+        all_uvs: Vt.Vec2fArray | None = None
+        all_uv_indices: list[int] = []
+        face_offsets: list[int] = []
+        current_normal_offset = 0
+        current_uv_offset = 0
+
+        # The list of vertex coordinates is shared among the primitives.
+        all_vertices = convert_vec3f_array(geometry.primitives[0].vertex) if hasattr(geometry.primitives[0], "vertex") else None
+
         for primitive in geometry.primitives:
-            if len(names) == 0:
-                names.append(name)
-            else:
-                names.append(f"{name}_{len(names)}")
-
-        safe_names = data.name_cache.getPrimNames(prim, names)
-
-        # When multiple geometries are present. And when each geometry contains multiple primitives.
-        # In this case, an Xform is created, and the meshes are placed within it.
-        # In the case of a single primitive, or a single mesh, the mesh is placed as a direct child of prim.
-        if len(names) > 1 and len(self.collada.geometries) > 1:
-            parent_prim = usdex.core.defineXform(prim, safe_names[0]).GetPrim()
-            if safe_names[0] != name:
-                usdex.core.setDisplayName(parent_prim, name)
-            prim = parent_prim
-
-        for primitive, _name, _safe_name in zip(geometry.primitives, names, safe_names):
             primitive_type = type(primitive).__name__
 
             # The pycollada library always treats Triangles as TriangleSets.
@@ -82,18 +78,6 @@ class ConversionCollada:
 
             # Determine if this is a triangle-based or polygon-based primitive once
             is_triangle_type = primitive_type in ["TriangleSet", "Triangles"]
-
-            # If there is only one geometry, the prim is the parent of the geometry.
-            _prim = prim
-            if len(names) == 1 and len(self.collada.geometries) == 1:
-                _prim = prim.GetParent()
-                _safe_name = prim.GetName()
-
-            vertices = None
-            normals = None
-            uvs = None
-            face_vertex_indices = None
-            face_vertex_counts = None
 
             # vertex indices.
             if is_triangle_type:
@@ -104,28 +88,15 @@ class ConversionCollada:
                 face_vertex_indices = (
                     primitive.vertex_index.tolist() if hasattr(primitive.vertex_index, "tolist") else [int(i) for i in primitive.vertex_index]
                 )
+            all_face_vertex_counts.extend(face_vertex_counts)
+            all_face_vertex_indices.extend(face_vertex_indices)
 
-            if hasattr(primitive, "vertex"):
-                vertices = convert_vec3f_array(primitive.vertex)
+            face_offsets.append(len(face_vertex_counts))
 
-            # Remove unused vertices and rebuild vertex indices
-            if len(names) > 1 and vertices is not None and face_vertex_indices is not None:
-                # Find all unique vertex indices that are actually used
-                used_indices = np.unique(face_vertex_indices)
-
-                # Create a mapping from old indices to new indices
-                index_mapping = np.full(len(vertices), -1, dtype=np.int32)
-                index_mapping[used_indices] = np.arange(len(used_indices))
-
-                # Create new vertices array with only used vertices
-                used_indices_list = used_indices.tolist()
-                vertices = Vt.Vec3fArray([vertices[i] for i in used_indices_list])
-
-                # Update face_vertex_indices with new indices using numpy vectorization
-                face_vertex_indices = index_mapping[np.array(face_vertex_indices, dtype=np.int32)].tolist()
-
-            if hasattr(primitive, "normal"):
+            # normals.
+            if hasattr(primitive, "normal") and len(primitive.normal) > 0:
                 primitive_normals = convert_vec3f_array(primitive.normal)
+                all_normals = primitive_normals if all_normals is None else Vt.Vec3fArray(list(all_normals) + list(primitive_normals))
                 normal_indices = primitive.normal_index
 
                 # Optimize flattening operation using numpy when possible
@@ -138,36 +109,80 @@ class ConversionCollada:
                 else:  # Polylist or Polygons
                     normal_indices = normal_indices.tolist() if hasattr(normal_indices, "tolist") else [int(j) for j in normal_indices]
 
-                normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, primitive_normals, Vt.IntArray(normal_indices))
-                normals.index()  # re-index the normals to remove duplicates
+                normal_indices = (np.array(normal_indices, dtype=np.int32) + current_normal_offset).tolist()
+                all_normal_indices.extend(normal_indices)
+                current_normal_offset += len(primitive_normals)
 
-            # UVs.
-            # If there are multiple UV layers, the first UV layer is used.
+            # uvs.
             if hasattr(primitive, "texcoordset") and len(primitive.texcoordset) > 0:
                 uv_data = convert_vec2f_array(primitive.texcoordset[0])
-                if len(uv_data) == len(face_vertex_indices):
-                    # Use Vt.IntArray constructor with range directly for better performance
-                    uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, Vt.IntArray(len(uv_data)))
-                    uvs.index()  # re-index the uvs to remove duplicates
+                all_uvs = uv_data if all_uvs is None else Vt.Vec2fArray(list(all_uvs) + list(uv_data))
+                uv_indices = primitive.texcoord_index if hasattr(primitive, "texcoord_index") else list(range(len(uv_data)))
+                uv_indices = (np.array(uv_indices, dtype=np.int32) + current_uv_offset).tolist()
+                all_uv_indices.extend(uv_indices)
+                current_uv_offset += len(uv_data)
 
-            if face_vertex_counts is not None and face_vertex_indices is not None and vertices is not None:
-                usd_mesh = usdex.core.definePolyMesh(
-                    _prim,
-                    _safe_name,
-                    faceVertexCounts=Vt.IntArray(face_vertex_counts),
-                    faceVertexIndices=Vt.IntArray(face_vertex_indices),
-                    points=Vt.Vec3fArray(vertices),
-                    normals=normals,
-                    uvs=uvs,
-                )
-                if not usd_mesh:
-                    Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}"')
-                    return None
+        if all_face_vertex_counts is not None and all_face_vertex_indices is not None and all_vertices is not None:
+            # create a normal primvar data for the geometry.
+            normals = None
+            if all_normals and all_normal_indices and len(all_normal_indices) == len(all_face_vertex_indices):
+                normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, all_normals, Vt.IntArray(all_normal_indices))
+                normals.index()  # re-index the normals to remove duplicates
 
-                if _name != _safe_name:
-                    usdex.core.setDisplayName(usd_mesh.GetPrim(), _name)
+            # create a uv primvar data for the geometry.
+            uvs = None
+            if all_uvs and all_uv_indices and len(all_uv_indices) == len(all_face_vertex_indices):
+                uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, all_uvs, Vt.IntArray(all_uv_indices))
+                uvs.index()  # re-index the uvs to remove duplicates
 
-                usdex.core.setLocalTransform(usd_mesh, matrix)
+            # If only one geometry exists within the dae, only one mesh will be placed.
+            if len(self.collada.geometries) == 1:
+                _prim = prim.GetParent()
+                _safe_name = prim.GetName()
+            else:
+                _prim = prim
+                _safe_name = data.name_cache.getPrimName(prim, name)
+
+            usd_mesh = usdex.core.definePolyMesh(
+                _prim,
+                _safe_name,
+                faceVertexCounts=Vt.IntArray(all_face_vertex_counts),
+                faceVertexIndices=Vt.IntArray(all_face_vertex_indices),
+                points=Vt.Vec3fArray(all_vertices),
+                normals=normals,
+                uvs=uvs,
+            )
+            if not usd_mesh:
+                Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}"')
+                return None
+
+            if name != _safe_name:
+                usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
+
+            # Specifies the offset in the Mesh subset.
+            if len(face_offsets) > 1:
+                subset_offset = 0
+                for i, face_offset in enumerate(face_offsets):
+                    subset_name = f"Material_{(i+1):03d}"
+
+                    # Create a list of face indices from face_offsets.
+                    face_indices = list(range(subset_offset, subset_offset + face_offset))
+
+                    geom_subset = UsdGeom.Subset.Define(stage, usd_mesh.GetPath().AppendChild(subset_name))
+                    if geom_subset:
+                        geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
+
+                        # TODO: Apply material binding to the subset.
+
+                    subset_offset += face_offset
+
+            # Decompose the matrix to get the translate, orient, and scale.
+            transform = Gf.Transform(matrix)
+            translate = transform.GetTranslation()
+            orient = Gf.Quatf(transform.GetRotation().GetQuat())
+            scale = Gf.Vec3f(transform.GetScale())
+
+            usdex.core.setLocalTransform(usd_mesh, translate, orient, scale)
 
         return prim
 

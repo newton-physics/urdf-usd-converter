@@ -304,24 +304,18 @@ class TestMesh(ConverterTestCase):
 
         box_two_materials_prim = link_prim.GetChild("box_two_materials")
         self.assertTrue(box_two_materials_prim.IsValid())
-        self.assertTrue(box_two_materials_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_two_materials_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_two_materials_prim.HasAuthoredReferences())
         self.assertEqual(UsdGeom.Imageable(box_two_materials_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
-        cube_prim = box_two_materials_prim.GetChild("Cube")
-        self.assertTrue(cube_prim.IsValid())
-        self.assertTrue(cube_prim.IsA(UsdGeom.Mesh))
-
-        mesh = UsdGeom.Mesh(cube_prim)
+        mesh = UsdGeom.Mesh(box_two_materials_prim)
         self.assertTrue(mesh.GetPointsAttr().HasAuthoredValue())
         self.assertTrue(mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
         self.assertTrue(mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
-        cube_1_prim = box_two_materials_prim.GetChild("Cube_1")
-        self.assertTrue(cube_1_prim.IsValid())
-        self.assertTrue(cube_1_prim.IsA(UsdGeom.Mesh))
-
-        mesh = UsdGeom.Mesh(cube_1_prim)
-        self.assertTrue(mesh.GetPointsAttr().HasAuthoredValue())
-        self.assertTrue(mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
-        self.assertTrue(mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
+        material_001_prim = box_two_materials_prim.GetChild("Material_001")
+        self.assertTrue(material_001_prim.IsValid())
+        self.assertTrue(material_001_prim.IsA(UsdGeom.Subset))
+        material_002_prim = box_two_materials_prim.GetChild("Material_002")
+        self.assertTrue(material_002_prim.IsValid())
+        self.assertTrue(material_002_prim.IsA(UsdGeom.Subset))

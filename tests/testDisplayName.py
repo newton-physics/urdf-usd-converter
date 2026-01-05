@@ -78,18 +78,8 @@ class TestDisplayName(ConverterTestCase):
 
         mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__CubeRed_YE")
         self.assertTrue(mesh_dae_mesh_prim.IsValid())
-        self.assertTrue(mesh_dae_mesh_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(mesh_dae_mesh_prim.IsA(UsdGeom.Mesh))
         self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube:Red")
-
-        mesh_dae_primitive_prim = mesh_dae_mesh_prim.GetChild("tn__CubeRed_YE")
-        self.assertTrue(mesh_dae_primitive_prim.IsValid())
-        self.assertTrue(mesh_dae_primitive_prim.IsA(UsdGeom.Mesh))
-        self.assertEqual(usdex.core.getDisplayName(mesh_dae_primitive_prim), "Cube:Red")
-
-        mesh_dae_primitive_prim = mesh_dae_mesh_prim.GetChild("tn__CubeRed_1_vH")
-        self.assertTrue(mesh_dae_primitive_prim.IsValid())
-        self.assertTrue(mesh_dae_primitive_prim.IsA(UsdGeom.Mesh))
-        self.assertEqual(usdex.core.getDisplayName(mesh_dae_primitive_prim), "Cube:Red_1")
 
         mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__CubeGreen_vH")
         self.assertTrue(mesh_dae_mesh_prim.IsValid())
