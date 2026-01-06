@@ -7,3 +7,6 @@ Ni 1.450000
 d 1.000000
 illum 2
 map_Kd ./grid.png
+norm ./normal.png
+map_Pr ./roughness.png
+map_Pm ./metallic.png

@@ -9,7 +9,7 @@ import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, Vt
 
 from .data import ConversionData, Tokens
-from .material import add_diffuse_texture_to_preview_material
+from .material import convert_obj_materials
 from .numpy import convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
 
@@ -96,7 +96,11 @@ def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
 
 def _convert_single_obj(
-    prim: Usd.Prim, input_path: pathlib.Path, reader: tinyobjloader.ObjReader, materials_prims: dict[str, Usd.Prim], data: ConversionData
+    prim: Usd.Prim,
+    input_path: pathlib.Path,
+    reader: tinyobjloader.ObjReader,
+    materials_prims: dict[str, Usd.Prim],
+    data: ConversionData,
 ) -> UsdGeom.Mesh:
     """
     Convert a single OBJ mesh to a USD mesh.
@@ -114,8 +118,14 @@ def _convert_single_obj(
     shapes = reader.GetShapes()
     attrib = reader.GetAttrib()
     materials = reader.GetMaterials()
+
+    # This method only deals with a single mesh, so it only considers the first mesh.
     obj_mesh = shapes[0].mesh
+
+    # Material references are identified by the ID assigned to each face of the mesh.
+    # This will be a common id for each mesh, so we'll take the first one.
     material_id = obj_mesh.material_ids[0]
+
     material_name = materials[material_id].name if material_id >= 0 else None
 
     vertices = attrib.vertices
@@ -165,7 +175,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         return None
 
     # Convert the materials from the OBJ file to USD.
-    materials_prims = _convert_obj_materials(prim, input_path, reader, data)
+    materials_prims = convert_obj_materials(prim, input_path, reader, data)
 
     shapes = reader.GetShapes()
     if len(shapes) == 0:
@@ -258,51 +268,3 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
 
     return prim
-
-
-def _convert_obj_materials(prim: Usd.Prim, input_path: pathlib.Path, reader: tinyobjloader.ObjReader, data: ConversionData) -> dict[str, Usd.Prim]:
-    """
-    Convert the materials from the OBJ file to USD.
-
-    Args:
-        prim: The prim to convert the materials to.
-        input_path: The path to the OBJ file.
-        reader: The tinyobjloader reader.
-        data: The conversion data.
-
-    Returns:
-        A dictionary of material names and their prims.
-    """
-
-    materials_prims = {}
-    materials = reader.GetMaterials()
-    for material in materials:
-        color = usdex.core.sRgbToLinear(Gf.Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2]))
-        opacity = material.dissolve
-
-        material_kwargs = {
-            "color": color,
-            "opacity": opacity,
-        }
-
-        material_scope = prim.GetChild(Tokens.Materials)
-        if not material_scope:
-            material_scope = usdex.core.defineScope(prim, Tokens.Materials)
-
-        # Define the material.
-        material_prim = usdex.core.definePreviewMaterial(material_scope.GetPrim(), material.name, **material_kwargs)
-        if not material_prim:
-            Tf.Warn(f'Failed to convert material "{material.name}"')
-
-        # Add the diffuse texture to the material.
-        else:
-            if material.diffuse_texname:
-                diffuse_texture_path = input_path.parent / material.diffuse_texname
-
-                # Add the diffuse texture to the preview material.
-                if diffuse_texture_path:
-                    add_diffuse_texture_to_preview_material(material_prim, diffuse_texture_path, data)
-
-        materials_prims[material.name] = material_prim
-
-    return materials_prims

@@ -125,13 +125,16 @@ class Converter:
         # It stores all the texture file paths referenced by urdf materials and each mesh.
         data.texture_paths = get_material_texture_paths(data)
 
+        # author the material library and setup the content layer for materials only if there are materials
+        # In order to specify the bias and scale of the normal map of the UsdPreviewSurface material,
+        # the texture must first be copied to the destination.
+        # Therefore, call the material conversion before convert_meshes.
+        convert_materials(data)
+
         # author the mesh library
         convert_meshes(data)
         # setup a content layer for referenced meshes
         data.content[Tokens.Geometry] = usdex.core.addAssetContent(data.content[Tokens.Contents], Tokens.Geometry, format="usda")
-
-        # author the material library and setup the content layer for materials only if there are materials
-        convert_materials(data)
 
         # setup a content layer for physics
         data.content[Tokens.Physics] = usdex.core.addAssetContent(data.content[Tokens.Contents], Tokens.Physics, format="usda")

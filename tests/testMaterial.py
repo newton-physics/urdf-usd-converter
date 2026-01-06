@@ -149,7 +149,7 @@ class TestMaterial(ConverterTestCase):
         self.assertEqual(diffuse_color, None)
         opacity = self.get_material_opacity(texture_material)
         self.assertEqual(opacity, 1.0)
-        diffuse_color_texture_path = self.get_material_diffuse_color_texture_path(texture_material)
+        diffuse_color_texture_path = self.get_material_texture_path(texture_material, "diffuseColor")
         self.assertEqual(diffuse_color_texture_path, pathlib.Path("./Textures/grid.png"))
 
         color_texture_material_prim = material_scope_prim.GetChild("color_texture_material")
@@ -163,8 +163,8 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(color_texture_material)
         self.assertEqual(opacity, 1.0)
 
-        # This texture is multiplied, so the color value is obtained from the scale.
-        diffuse_color = self.get_material_diffuse_color_texture_scale(color_texture_material)
+        # This texture is multiplied, so the color value is obtained from the fallback.
+        diffuse_color = self.get_material_diffuse_color_texture_fallback(color_texture_material)
         diffuse_color = Gf.Vec3f(*diffuse_color[:3])
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.5, 0.2, 0.5), 1e-6))
@@ -347,7 +347,11 @@ class TestMaterial(ConverterTestCase):
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
         opacity = self.get_material_opacity(red_material)
-        self.assertEqual(opacity, 1.0)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+        roughness = self.get_material_roughness(red_material)
+        self.assertAlmostEqual(roughness, 0.3, places=6)
+        metallic = self.get_material_metallic(red_material)
+        self.assertAlmostEqual(metallic, 0.05, places=6)
 
         mesh_prim = two_boxes_prim.GetChild("Cube_Green")
         self.assertTrue(mesh_prim.IsValid())
@@ -407,9 +411,15 @@ class TestMaterial(ConverterTestCase):
         diffuse_color = self.get_material_diffuse_color(texture_material)
         self.assertIsNone(diffuse_color)
         opacity = self.get_material_opacity(texture_material)
-        self.assertEqual(opacity, 1.0)
-        texture_path = self.get_material_diffuse_color_texture_path(texture_material)
-        self.assertEqual(texture_path, pathlib.Path("./Textures/grid.png"))
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+        diffuse_color_texture_path = self.get_material_texture_path(texture_material, "diffuseColor")
+        self.assertEqual(diffuse_color_texture_path, pathlib.Path("./Textures/grid.png"))
+        normal_texture_path = self.get_material_texture_path(texture_material, "normal")
+        self.assertEqual(normal_texture_path, pathlib.Path("./Textures/normal.png"))
+        roughness_texture_path = self.get_material_texture_path(texture_material, "roughness")
+        self.assertEqual(roughness_texture_path, pathlib.Path("./Textures/roughness.png"))
+        metallic_texture_path = self.get_material_texture_path(texture_material, "metallic")
+        self.assertEqual(metallic_texture_path, pathlib.Path("./Textures/metallic.png"))
 
         mesh_prim = box_with_texture_prim.GetChild("box_with_texture")
         self.assertTrue(mesh_prim.IsValid())

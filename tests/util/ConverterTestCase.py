@@ -33,9 +33,27 @@ class ConverterTestCase(usdex.test.TestCase):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return shader.GetInput("opacity").Get()
 
-    def get_material_diffuse_color_texture_path(self, material: UsdShade.Material) -> pathlib.Path:
+    def get_material_roughness(self, material: UsdShade.Material) -> float:
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        texture_input: UsdShade.Input = shader.GetInput("diffuseColor")
+        return shader.GetInput("roughness").Get()
+
+    def get_material_metallic(self, material: UsdShade.Material) -> float:
+        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
+        return shader.GetInput("metallic").Get()
+
+    def get_material_texture_path(self, material: UsdShade.Material, texture_type: str = "diffuseColor") -> pathlib.Path:
+        """
+        Get the texture path for the given texture type.
+
+        Args:
+            material: The material.
+            texture_type: The texture type. Valid values are "diffuseColor", "normal", "roughness" and "metallic".
+
+        Returns:
+            The texture path.
+        """
+        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
+        texture_input: UsdShade.Input = shader.GetInput(texture_type)
         self.assertTrue(texture_input.HasConnectedSource())
 
         connected_source = texture_input.GetConnectedSource()
@@ -43,12 +61,12 @@ class ConverterTestCase(usdex.test.TestCase):
         texture_file_attr = texture_prim.GetAttribute("inputs:file")
         return pathlib.Path(texture_file_attr.Get().path)
 
-    def get_material_diffuse_color_texture_scale(self, material: UsdShade.Material) -> Gf.Vec4f | None:
+    def get_material_diffuse_color_texture_fallback(self, material: UsdShade.Material) -> Gf.Vec4f | None:
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         diffuse_color_input = shader.GetInput("diffuseColor")
         if diffuse_color_input.HasConnectedSource():
             source = diffuse_color_input.GetConnectedSource()
             if len(source) > 0 and isinstance(source[0], UsdShade.ConnectableAPI) and source[0].GetPrim().IsA(UsdShade.Shader):
                 diffuse_texture_shader = UsdShade.Shader(source[0].GetPrim())
-                return diffuse_texture_shader.GetInput("scale").Get()
+                return diffuse_texture_shader.GetInput("fallback").Get()
         return None
