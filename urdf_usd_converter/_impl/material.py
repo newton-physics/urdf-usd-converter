@@ -89,12 +89,13 @@ def _copy_textures(material_cache: MaterialCache, data: ConversionData):
         local_texture_dir.mkdir(parents=True)
 
     for texture_path in material_cache.texture_paths:
-        unique_file_name = material_cache.texture_paths[texture_path]
-
         # At this stage, the existence has already been checked.
-        local_texture_path = local_texture_dir / unique_file_name
-        shutil.copyfile(texture_path, local_texture_path)
-        Tf.Status(f"Copied texture {texture_path} to {local_texture_path}")
+        if texture_path.exists():
+            unique_file_name = material_cache.texture_paths[texture_path]
+
+            local_texture_path = local_texture_dir / unique_file_name
+            shutil.copyfile(texture_path, local_texture_path)
+            Tf.Status(f"Copied texture {texture_path} to {local_texture_path}")
 
 
 def _convert_material(
@@ -148,16 +149,16 @@ def _convert_material(
         Tf.RaiseRuntimeError(f'Failed to convert material "{safe_name}"')
 
     if diffuse_texture_path:
-        _add_diffuse_texture_to_preview_material(material_prim, diffuse_texture_path, texture_paths, data)
+        usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, _get_texture_asset_path(diffuse_texture_path, texture_paths, data))
 
     if normal_texture_path:
-        _add_normal_texture_to_preview_material(material_prim, normal_texture_path, texture_paths, data)
+        usdex.core.addNormalTextureToPreviewMaterial(material_prim, _get_texture_asset_path(normal_texture_path, texture_paths, data))
 
     if roughness_texture_path:
-        _add_roughness_texture_to_preview_material(material_prim, roughness_texture_path, texture_paths, data)
+        usdex.core.addRoughnessTextureToPreviewMaterial(material_prim, _get_texture_asset_path(roughness_texture_path, texture_paths, data))
 
     if metallic_texture_path:
-        _add_metallic_texture_to_preview_material(material_prim, metallic_texture_path, texture_paths, data)
+        usdex.core.addMetallicTextureToPreviewMaterial(material_prim, _get_texture_asset_path(metallic_texture_path, texture_paths, data))
 
     return material_prim
 
@@ -175,8 +176,6 @@ def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[path
     """
     # The path to the texture to reference. If None, the texture does not exist.
     unique_file_name = texture_paths.get(texture_path)
-    if not unique_file_name:
-        return None
 
     # If the texture exists, add the texture to the material.
     payload_dir = pathlib.Path(data.content[Tokens.Contents].GetRootLayer().identifier).parent
@@ -184,78 +183,6 @@ def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[path
     local_texture_path = local_texture_dir / unique_file_name
     relative_texture_path = local_texture_path.relative_to(payload_dir)
     return Sdf.AssetPath(f"./{relative_texture_path.as_posix()}")
-
-
-def _add_diffuse_texture_to_preview_material(
-    material_prim: UsdShade.Material, texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData
-):
-    """
-    Add the diffuse texture to the preview material.
-
-    Args:
-        material_prim: The preview material prim.
-        texture_path: The path to the texture.
-        texture_paths: A dictionary of texture paths and unique names.
-        data: The conversion data.
-    """
-    # Get the asset path for the texture.
-    asset_path = _get_texture_asset_path(texture_path, texture_paths, data)
-    if asset_path:
-        usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, asset_path)
-
-
-def _add_normal_texture_to_preview_material(
-    material_prim: UsdShade.Material, texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData
-):
-    """
-    Add the normal texture to the preview material.
-
-    Args:
-        material_prim: The preview material prim.
-        texture_path: The path to the texture.
-        texture_paths: A dictionary of texture paths and unique names.
-        data: The conversion data.
-    """
-    # Get the asset path for the texture.
-    asset_path = _get_texture_asset_path(texture_path, texture_paths, data)
-    if asset_path:
-        usdex.core.addNormalTextureToPreviewMaterial(material_prim, asset_path)
-
-
-def _add_roughness_texture_to_preview_material(
-    material_prim: UsdShade.Material, texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData
-):
-    """
-    Add the roughness texture to the preview material.
-
-    Args:
-        material_prim: The preview material prim.
-        texture_path: The path to the texture.
-        texture_paths: A dictionary of texture paths and unique names.
-        data: The conversion data.
-    """
-    # Get the asset path for the texture.
-    asset_path = _get_texture_asset_path(texture_path, texture_paths, data)
-    if asset_path:
-        usdex.core.addRoughnessTextureToPreviewMaterial(material_prim, asset_path)
-
-
-def _add_metallic_texture_to_preview_material(
-    material_prim: UsdShade.Material, texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData
-):
-    """
-    Add the metallic texture to the preview material.
-
-    Args:
-        material_prim: The preview material prim.
-        texture_path: The path to the texture.
-        texture_paths: A dictionary of texture paths and unique names.
-        data: The conversion data.
-    """
-    # Get the asset path for the texture.
-    asset_path = _get_texture_asset_path(texture_path, texture_paths, data)
-    if asset_path:
-        usdex.core.addMetallicTextureToPreviewMaterial(material_prim, asset_path)
 
 
 def store_mesh_material_reference(mesh_file_path: pathlib.Path, mesh_safe_name: str, material_name: str, data: ConversionData):

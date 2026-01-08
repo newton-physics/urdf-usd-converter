@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
+import re
 import shutil
 
+import omni.asset_validator
 import usdex.test
 from pxr import Gf, Tf, Usd, UsdGeom, UsdShade
 
@@ -218,6 +220,22 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(obj_prim.IsA(UsdGeom.Mesh))
         self.check_material_binding(obj_prim, color_texture_material)
 
+    @staticmethod
+    def allowed_issue_predicates() -> list[omni.asset_validator.IssuePredicates]:
+        """
+        Avoid errors about texture files not being found when calling self.assertIsValidUsd.
+        """
+
+        def check_unresolvable_external_dependency_issue(issue):
+            if re.match(".*Found unresolvable external dependency.*", issue.message):
+                return True
+
+        def check_cannot_be_resolved_issue(issue):
+            if re.match(".*Dependent Reference .* cannot be resolved.*", issue.message):
+                return True
+
+        return [check_unresolvable_external_dependency_issue, check_cannot_be_resolved_issue]
+
     def test_material_texture_name_duplication_missing_texture(self):
         input_path = "tests/data/material_texture_name_duplication.urdf"
         output_dir = self.tmpDir()
@@ -236,7 +254,14 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
         stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
-        self.assertIsValidUsd(stage)
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Failed to resolve reference.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            self.assertIsValidUsd(stage, issuePredicates=self.allowed_issue_predicates())
 
         # Check texture.
         output_texture_path = pathlib.Path(output_dir) / "Payload" / "Textures" / "grid.png"

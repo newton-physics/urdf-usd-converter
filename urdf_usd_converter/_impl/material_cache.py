@@ -94,7 +94,7 @@ class MaterialCache:
             A dictionary of texture paths and unique names.
         """
         # Get the texture paths from the materials.
-        existing_texture_paths: list[pathlib.Path] = []
+        texture_paths_list: list[pathlib.Path] = []
         for material_data in self.material_data_list:
             texture_paths = [
                 material_data.diffuse_texture_path,
@@ -103,14 +103,13 @@ class MaterialCache:
                 material_data.metallic_texture_path,
             ]
             for texture_path in texture_paths:
-                if texture_path and texture_path not in existing_texture_paths:
-                    if texture_path.exists():
-                        existing_texture_paths.append(texture_path)
-                    else:
+                if texture_path and texture_path not in texture_paths_list:
+                    texture_paths_list.append(texture_path)
+                    if not texture_path.exists():
                         Tf.Warn(f"Texture file not found: {texture_path}")
 
         # Create a list of texture filenames.
-        names = [texture_path.name for texture_path in existing_texture_paths]
+        names = [texture_path.name for texture_path in texture_paths_list]
 
         # Rename the list of image filenames to unique names.
         unique_file_names = []
@@ -126,7 +125,7 @@ class MaterialCache:
                 unique_name = f"{stem}_{name_counts[name]}{suffix}"
                 unique_file_names.append(unique_name)
 
-        texture_paths = dict(zip(existing_texture_paths, unique_file_names))
+        texture_paths = dict(zip(texture_paths_list, unique_file_names))
 
         return texture_paths
 
