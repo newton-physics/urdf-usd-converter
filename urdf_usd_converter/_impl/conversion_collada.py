@@ -187,7 +187,12 @@ class ConversionCollada:
         return prim
 
     def _traverse_scene(
-        self, prim: Usd.Prim, parent_node: collada.scene.Node | None, node: collada.scene.Node, matrix: Gf.Matrix4d, data: ConversionData
+        self,
+        prim: Usd.Prim,
+        parent_node: collada.scene.Node | None,
+        node: collada.scene.Node,
+        matrix: Gf.Matrix4d,
+        data: ConversionData,
     ):
         """
         Traverse the scene hierarchy, and upon reaching the geometry,

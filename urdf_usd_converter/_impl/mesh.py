@@ -61,7 +61,8 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     elif input_path.suffix.lower() == ".obj":
         convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
-        convert_dae(prim, input_path, data)
+        conversion_collada = ConversionCollada(input_path)
+        conversion_collada.convert(prim, data)
     elif not input_path.is_dir():
         Tf.Warn(f"Unsupported mesh format: {input_path}")
     else:
@@ -219,10 +220,4 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
 
-    return prim
-
-
-def convert_dae(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> UsdGeom.Mesh:
-    conversion_collada = ConversionCollada(input_path)
-    conversion_collada.convert(prim, data)
     return prim

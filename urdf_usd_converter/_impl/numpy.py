@@ -15,7 +15,7 @@ def convert_vec2f_array(source: np.ndarray) -> Vt.Vec2fArray:
                  representing N elements each with M/2 2D vectors.
 
     Returns:
-        Vt.Vec32fArray: A USD array of 2D vectors.
+        Vt.Vec2fArray: A USD array of 2D vectors.
 
     Raises:
         AssertionError: If the second dimension of the input array is not divisible by 2.
