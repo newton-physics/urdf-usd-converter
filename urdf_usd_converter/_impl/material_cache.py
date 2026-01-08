@@ -220,6 +220,10 @@ class MaterialCache:
             material_data.roughness_texture_path = (mesh_file_path.parent / material.roughness_texname) if material.roughness_texname else None
             material_data.metallic_texture_path = (mesh_file_path.parent / material.metallic_texname) if material.metallic_texname else None
 
+            # If the normal texture is not specified, use the bump texture.
+            if material_data.normal_texture_path is None:
+                material_data.normal_texture_path = (mesh_file_path.parent / material.bump_texname) if material.bump_texname else None
+
             material_data_list.append(material_data)
 
         return material_data_list
