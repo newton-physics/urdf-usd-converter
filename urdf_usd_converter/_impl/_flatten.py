@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 import shutil
@@ -11,7 +11,7 @@ from .data import Tokens
 from .utils import get_authoring_metadata
 
 
-def export_flattened(asset_stage: Usd.Stage, output_dir: str, asset_dir: str, asset_stem: str, asset_format: str, comment: str):
+def export_flattened(asset_stage: Usd.Stage, output_dir: str, asset_dir: str, asset_stem: str, asset_format: str, comment: str) -> str:
     output_path = pathlib.Path(output_dir)
     layer: Sdf.Layer = asset_stage.Flatten()
     asset_identifier = f"{output_path.absolute().as_posix()}/{asset_stem}.{asset_format}"
@@ -40,3 +40,4 @@ def export_flattened(asset_stage: Usd.Stage, output_dir: str, asset_dir: str, as
         Tf.Status(f"Copied textures from {temp_textures_dir} to {output_textures_dir}")
 
     shutil.rmtree(asset_dir, ignore_errors=True)
+    return asset_identifier

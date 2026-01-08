@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 import shutil
@@ -169,3 +169,16 @@ class TestConverter(ConverterTestCase):
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
             converter.convert(input_path, output_dir)
+
+    def test_asset_identifer(self):
+        model = pathlib.Path("tests/data/prismatic_joints.urdf")
+        model_name = model.stem
+        output_dir = pathlib.Path(self.tmpDir()) / model_name
+        usdc_path = output_dir / f"{model_name}.usdc"
+
+        asset_identifier = urdf_usd_converter.Converter(layer_structure=False).convert(model, output_dir)
+        self.assertTrue(usdc_path.exists())
+
+        # check that the asset identifier returned from convert() is the same as the usdc path
+        flattened_usdc_path = pathlib.Path(asset_identifier.path).absolute().as_posix()
+        self.assertEqual(flattened_usdc_path, usdc_path.absolute().as_posix())
