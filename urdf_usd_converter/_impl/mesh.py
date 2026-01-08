@@ -9,7 +9,7 @@ import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, Vt
 
 from .data import ConversionData, Tokens
-from .material import convert_obj_materials
+from .material import store_mesh_material_reference
 from .numpy import convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
 
@@ -99,7 +99,6 @@ def _convert_single_obj(
     prim: Usd.Prim,
     input_path: pathlib.Path,
     reader: tinyobjloader.ObjReader,
-    materials_prims: dict[str, Usd.Prim],
     data: ConversionData,
 ) -> UsdGeom.Mesh:
     """
@@ -160,10 +159,10 @@ def _convert_single_obj(
     if not usd_mesh:
         Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
 
-    # If the mesh has a material, bind the material.
-    if material_name and material_name in materials_prims:
-        material_prim = materials_prims[material_name]
-        usdex.core.bindMaterial(usd_mesh.GetPrim(), material_prim)
+    # If the mesh has a material, stores the material name for the mesh.
+    # Material binding is done on the Geometry layer, so no binding is done at this stage.
+    if material_name:
+        store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), material_name, data)
 
     return usd_mesh
 
@@ -174,20 +173,13 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         Tf.Warn(f'Invalid input_path: "{input_path}" could not be parsed. {reader.Error()}')
         return None
 
-    # Convert the materials from the OBJ file to USD.
-    materials_prims = convert_obj_materials(prim, input_path, reader, data)
-
     shapes = reader.GetShapes()
     if len(shapes) == 0:
         Tf.Warn(f'Invalid input_path: "{input_path}" contains no meshes')
         return None
     elif len(shapes) == 1:
-        # If it has a material, a Materials scope and mesh will be created within the prim's Xform.
-        if len(materials_prims) > 0:
-            prim = usdex.core.defineXform(prim, prim.GetName()).GetPrim()
-
         # If there is only one shape, convert the single shape.
-        return _convert_single_obj(prim, input_path, reader, materials_prims, data)
+        return _convert_single_obj(prim, input_path, reader, data)
 
     attrib = reader.GetAttrib()
     materials = reader.GetMaterials()
@@ -259,10 +251,10 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
             return None
 
-        # If the mesh has a material, bind the material.
-        if material and material.name in materials_prims:
-            material_prim = materials_prims[material.name]
-            usdex.core.bindMaterial(usd_mesh.GetPrim(), material_prim)
+        # If the mesh has a material, stores the material name for the mesh.
+        # Material binding is done on the Geometry layer, so no binding is done at this stage.
+        if material and material.name:
+            store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), material.name, data)
 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)

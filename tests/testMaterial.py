@@ -321,8 +321,8 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(two_boxes_prim.IsA(UsdGeom.Xform))
         self.assertTrue(two_boxes_prim.HasAuthoredReferences())
 
-        # Check the material in the geometry.
-        material_scope_prim = two_boxes_prim.GetChild("Materials")
+        # Check the materials.
+        material_scope_prim = default_prim.GetChild("Materials")
         self.assertTrue(material_scope_prim.IsValid())
 
         green_material_prim = material_scope_prim.GetChild("green_mat")
@@ -395,11 +395,11 @@ class TestMaterial(ConverterTestCase):
 
         box_with_texture_prim = link_obj_prim.GetChild("box_with_texture")
         self.assertTrue(box_with_texture_prim.IsValid())
-        self.assertTrue(box_with_texture_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_with_texture_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_with_texture_prim.HasAuthoredReferences())
 
-        # Check the material in the geometry.
-        material_scope_prim = box_with_texture_prim.GetChild("Materials")
+        # Check the materials.
+        material_scope_prim = default_prim.GetChild("Materials")
         self.assertTrue(material_scope_prim.IsValid())
 
         texture_material_prim = material_scope_prim.GetChild("texture_mat")
@@ -421,10 +421,7 @@ class TestMaterial(ConverterTestCase):
         metallic_texture_path = self.get_material_texture_path(texture_material, "metallic")
         self.assertEqual(metallic_texture_path, pathlib.Path("./Textures/metallic.png"))
 
-        mesh_prim = box_with_texture_prim.GetChild("box_with_texture")
-        self.assertTrue(mesh_prim.IsValid())
-        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
-        self.check_material_binding(mesh_prim, texture_material)
+        self.check_material_binding(box_with_texture_prim, texture_material)
 
     def test_material_mesh_override(self):
         input_path = "tests/data/material_mesh_override.urdf"
@@ -469,12 +466,4 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(two_boxes_prim.HasAuthoredReferences())
 
         # Check that the material bind is overwritten with blue_material.
-        mesh_prim = two_boxes_prim.GetChild("Cube_Red")
-        self.assertTrue(mesh_prim.IsValid())
-        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
-        self.check_material_binding(mesh_prim, blue_material)
-
-        mesh_prim = two_boxes_prim.GetChild("Cube_Green")
-        self.assertTrue(mesh_prim.IsValid())
-        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
-        self.check_material_binding(mesh_prim, blue_material)
+        self.check_material_binding(two_boxes_prim, blue_material)

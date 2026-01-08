@@ -4,7 +4,7 @@ import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
-from .material import bind_material
+from .material import bind_material, bind_mesh_material
 from .urdf_parser.elements import (
     ElementBox,
     ElementCollision,
@@ -46,8 +46,12 @@ def convert_geometry(parent: Usd.Prim, name: str, safe_name: str, geometry: Elem
         apply_physics_collision(prim.GetPrim(), data)
 
     # If the visual has a material, bind the material.
-    if isinstance(geometry, ElementVisual) and geometry.material and geometry.material.name:
-        bind_material(prim.GetPrim(), geometry.material.name, data)
+    # If the Visual element does not have a material, bind a material per mesh.
+    if isinstance(geometry, ElementVisual):
+        if geometry.material and geometry.material.name:
+            bind_material(prim.GetPrim(), None, geometry.material.name, data)
+        elif isinstance(geometry.geometry.shape, ElementMesh):
+            bind_mesh_material(prim.GetPrim(), geometry.geometry.shape.filename, data)
 
     return prim
 
