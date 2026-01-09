@@ -313,9 +313,9 @@ class TestMesh(ConverterTestCase):
         self.assertTrue(mesh.GetFaceVertexCountsAttr().HasAuthoredValue())
         self.assertTrue(mesh.GetFaceVertexIndicesAttr().HasAuthoredValue())
 
-        material_001_prim = box_two_materials_prim.GetChild("Material_001")
+        material_001_prim = box_two_materials_prim.GetChild("GeomSubset_001")
         self.assertTrue(material_001_prim.IsValid())
         self.assertTrue(material_001_prim.IsA(UsdGeom.Subset))
-        material_002_prim = box_two_materials_prim.GetChild("Material_002")
+        material_002_prim = box_two_materials_prim.GetChild("GeomSubset_002")
         self.assertTrue(material_002_prim.IsValid())
         self.assertTrue(material_002_prim.IsA(UsdGeom.Subset))

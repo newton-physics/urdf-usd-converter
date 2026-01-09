@@ -74,6 +74,7 @@ class ConversionCollada:
 
             # The pycollada library always treats Triangles as TriangleSets.
             if primitive_type not in ["TriangleSet", "Triangles", "Polylist", "Polygons"]:
+                Tf.Warn(f'Unsupported primitive type: "{self.collada.filename}" {primitive_type} for geometry: {geometry.name}')
                 continue
 
             # Determine if this is a triangle-based or polygon-based primitive once
@@ -122,7 +123,7 @@ class ConversionCollada:
                 all_uv_indices.extend(uv_indices)
                 current_uv_offset += len(uv_data)
 
-        if all_face_vertex_counts is not None and all_face_vertex_indices is not None and all_vertices is not None:
+        if len(all_face_vertex_counts) > 0 and len(all_face_vertex_indices) > 0 and all_vertices is not None:
             # create a normal primvar data for the geometry.
             normals = None
             if all_normals and all_normal_indices and len(all_normal_indices) == len(all_face_vertex_indices):
@@ -163,7 +164,7 @@ class ConversionCollada:
             if len(face_offsets) > 1:
                 subset_offset = 0
                 for i, face_offset in enumerate(face_offsets):
-                    subset_name = f"Material_{(i+1):03d}"
+                    subset_name = f"GeomSubset_{(i+1):03d}"
 
                     # Create a list of face indices from face_offsets.
                     face_indices = list(range(subset_offset, subset_offset + face_offset))
