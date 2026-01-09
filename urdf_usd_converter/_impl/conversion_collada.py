@@ -74,7 +74,7 @@ class ConversionCollada:
 
             # The pycollada library always treats Triangles as TriangleSets.
             if primitive_type not in ["TriangleSet", "Triangles", "Polylist", "Polygons"]:
-                Tf.Warn(f'Unsupported primitive type: "{self.collada.filename}" {primitive_type} for geometry: {geometry.name}')
+                Tf.Warn(f'Unsupported primitive type: {primitive_type} for geometry: {geometry.name} in file: "{self.collada.filename}"')
                 continue
 
             # Determine if this is a triangle-based or polygon-based primitive once
