@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<robot name="dae_box_with_line">
+  <link name="link1">
+    <visual>
+      <geometry>
+        <!-- This mesh contains a line(LineSet) primitive. -->
+        <mesh filename="assets/box_with_line.dae"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

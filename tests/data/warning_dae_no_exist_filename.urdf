@@ -1,0 +1,11 @@
+<robot name="warning_dae_no_exist_filename">
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <!-- This is a deliberate mistake.  -->
+        <!-- The mesh filename does not exist. -->
+        <mesh filename="assets/no_exist.dae"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

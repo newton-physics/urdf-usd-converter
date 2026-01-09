@@ -154,6 +154,22 @@ class TestConverter(ConverterTestCase):
         # Check material texture.
         # TODO: Here we need to make sure that the reference to the usd file is correct after the texture is loaded.
 
+    def test_load_warning_dae_no_exist_filename(self):
+        # A non-existent dae file is specified.
+
+        input_path = "tests/data/warning_dae_no_exist_filename.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "warning_dae_no_exist_filename")
+
+        converter = urdf_usd_converter.Converter()
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No such file or directory:.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            converter.convert(input_path, output_dir)
+
     def test_asset_identifer(self):
         model = pathlib.Path("tests/data/prismatic_joints.urdf")
         model_name = model.stem

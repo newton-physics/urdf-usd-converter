@@ -71,7 +71,7 @@ def set_transform(prim: UsdGeom.Xformable, element: ElementJoint | ElementVisual
         orientation = float3_to_quatf(element.origin.get_with_default("rpy"))
 
     local_transform: Gf.Transform = Gf.Transform(translation=position, rotation=Gf.Rotation(orientation))
-    final_transform: Gf.Transform = multiply_transforms_preserve_scale(local_transform, current_transform)
+    final_transform: Gf.Transform = multiply_transforms_preserve_scale(current_transform, local_transform)
 
     # extract the translation, orientation, and scale so we can set them as components
     pos = final_transform.GetTranslation()
