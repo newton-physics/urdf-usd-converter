@@ -105,8 +105,6 @@ class ConversionCollada:
                     # Flatten 2D array more efficiently
                     if isinstance(normal_indices, np.ndarray):
                         normal_indices = normal_indices.ravel().tolist()
-                    else:
-                        normal_indices = [j for sublist in normal_indices for j in sublist]
                 else:  # Polylist or Polygons
                     normal_indices = normal_indices.tolist() if hasattr(normal_indices, "tolist") else [int(j) for j in normal_indices]
 

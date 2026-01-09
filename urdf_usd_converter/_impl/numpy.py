@@ -65,15 +65,13 @@ def convert_face_indices_array(source: np.ndarray) -> tuple[list[int], list[int]
         The first list is the face vertex counts, the second list is the face vertex indices.
     """
     # Use numpy operations for better performance
+    face_vertex_counts = []
+    face_vertex_indices = []
     if isinstance(source, np.ndarray) and source.ndim == 2:
         # All rows have the same length in a 2D array
         face_vertex_counts = [source.shape[1]] * len(source)
         # Flatten using numpy's ravel() which is faster than nested loops
         face_vertex_indices = source.ravel().astype(int).tolist()
-    else:
-        # Handle jagged arrays (list of arrays with different lengths)
-        face_vertex_counts = [len(sublist) for sublist in source]
-        face_vertex_indices = [int(index) for sublist in source for index in sublist]
 
     return face_vertex_counts, face_vertex_indices
 
