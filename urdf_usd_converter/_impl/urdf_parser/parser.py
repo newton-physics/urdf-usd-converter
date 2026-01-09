@@ -576,7 +576,7 @@ class URDFParser:
         """
         # Global material names are unique, so they are stored as is.
         for material in self.root_element.materials:
-            color = material.color.get_with_default("rgba") if material.color else (0.0, 0.0, 0.0, 0.0)
+            color = material.color.get_with_default("rgba") if material.color else (1.0, 1.0, 1.0, 1.0)
             texture = material.texture.get_with_default("filename") if material.texture else None
             self.materials.append((material.name, color, texture))
 

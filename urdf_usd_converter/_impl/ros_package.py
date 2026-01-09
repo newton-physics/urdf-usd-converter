@@ -22,6 +22,9 @@ def resolve_ros_package_paths(uri: str, data: ConversionData) -> pathlib.Path:
     Returns:
         The resolved path.
     """
+    if uri in data.resolved_file_paths:
+        return data.resolved_file_paths[uri]
+
     if "://" in uri and not uri.startswith("package://"):
         protocol = uri.partition("://")[0]
         Tf.Warn(f"'{protocol}' is not supported: {uri}")
@@ -45,7 +48,8 @@ def resolve_ros_package_paths(uri: str, data: ConversionData) -> pathlib.Path:
     urdf_dir = data.urdf_parser.input_file.parent
 
     # Convert the path to a relative path based on the urdf file.
-    return resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
+    data.resolved_file_paths[uri] = resolved_path if resolved_path.is_absolute() else urdf_dir / resolved_path
+    return data.resolved_file_paths[uri]
 
 
 def search_ros_packages(urdf_parser: URDFParser) -> dict[str]:
