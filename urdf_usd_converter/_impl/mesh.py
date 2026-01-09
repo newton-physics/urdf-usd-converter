@@ -9,7 +9,7 @@ import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, Vt
 
 from .data import ConversionData, Tokens
-from .material import store_mesh_material_reference
+from .material import store_mesh_material_reference, store_obj_material_data
 from .numpy import convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
 
@@ -172,6 +172,9 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
     if not reader.ParseFromFile(str(input_path)):
         Tf.Warn(f'Invalid input_path: "{input_path}" could not be parsed. {reader.Error()}')
         return None
+
+    # Store the material data from the OBJ file.
+    store_obj_material_data(input_path, reader, data)
 
     shapes = reader.GetShapes()
     if len(shapes) == 0:

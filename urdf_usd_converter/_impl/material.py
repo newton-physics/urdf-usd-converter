@@ -3,11 +3,13 @@
 import pathlib
 import shutil
 
+import tinyobjloader
 import usdex.core
 from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdShade
 
 from .data import ConversionData, Tokens
 from .material_cache import MaterialCache
+from .material_data import MaterialData
 from .ros_package import resolve_ros_package_paths
 
 __all__ = [
@@ -15,13 +17,14 @@ __all__ = [
     "bind_mesh_material",
     "convert_materials",
     "store_mesh_material_reference",
+    "store_obj_material_data",
 ]
 
 
 def convert_materials(data: ConversionData):
     # Acquire the global material data for URDF and the material data for obj/dae files.
     material_cache = MaterialCache(data)
-    if not len(material_cache.material_data_list):
+    if not len(data.material_data_list):
         return
 
     # Copy the textures to the payload directory.
@@ -36,8 +39,8 @@ def convert_materials(data: ConversionData):
     material_cache.store_safe_names(data)
 
     # Convert the material data to USD.
-    for material_data in material_cache.material_data_list:
-        material_data.material = _convert_material(
+    for material_data in data.material_data_list:
+        material_prim = _convert_material(
             materials_scope,
             material_data.safe_name,
             material_data.diffuse_color,
@@ -51,19 +54,9 @@ def convert_materials(data: ConversionData):
             material_cache.texture_paths,
             data,
         )
-        data.references[Tokens.Materials][material_data.safe_name] = material_data.material
+        data.references[Tokens.Materials][material_data.safe_name] = material_prim
         if material_data.name != material_data.safe_name:
-            usdex.core.setDisplayName(material_data.material.GetPrim(), material_data.name)
-
-        # Store the material path.
-        # This information is referenced when binding materials.
-        data.material_names.append(
-            {
-                "mesh_file_path": material_data.mesh_file_path,
-                "name": material_data.name,
-                "safe_name": material_data.safe_name,
-            }
-        )
+            usdex.core.setDisplayName(material_prim.GetPrim(), material_data.name)
 
     robot_name = data.urdf_parser.get_robot_name()
     usdex.core.saveStage(data.libraries[Tokens.Materials], comment=f"Material Library for {robot_name}. {data.comment}")
@@ -185,6 +178,40 @@ def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[path
     return Sdf.AssetPath(f"./{relative_texture_path.as_posix()}")
 
 
+def store_obj_material_data(mesh_file_path: pathlib.Path, reader: tinyobjloader.ObjReader, data: ConversionData):
+    """
+    Store the material data from the OBJ file.
+    This is used to temporarily cache material parameters when loading an OBJ mesh.
+
+    Args:
+        mesh_file_path: The path to the mesh file.
+        reader: The tinyobjloader reader.
+        data: The conversion data.
+    """
+    materials = reader.GetMaterials()
+    for material in materials:
+        material_data = MaterialData()
+        material_data.mesh_file_path = mesh_file_path
+        material_data.name = material.name
+        material_data.diffuse_color = Gf.Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2])
+        material_data.opacity = material.dissolve
+
+        # The following is the extended specification of obj.
+        material_data.roughness = material.roughness if material.roughness else 0.5
+        material_data.metallic = material.metallic if material.metallic else 0.0
+
+        material_data.diffuse_texture_path = (mesh_file_path.parent / material.diffuse_texname) if material.diffuse_texname else None
+        material_data.normal_texture_path = (mesh_file_path.parent / material.normal_texname) if material.normal_texname else None
+        material_data.roughness_texture_path = (mesh_file_path.parent / material.roughness_texname) if material.roughness_texname else None
+        material_data.metallic_texture_path = (mesh_file_path.parent / material.metallic_texname) if material.metallic_texname else None
+
+        # If the normal texture is not specified, use the bump texture.
+        if material_data.normal_texture_path is None:
+            material_data.normal_texture_path = (mesh_file_path.parent / material.bump_texname) if material.bump_texname else None
+
+        data.material_data_list.append(material_data)
+
+
 def store_mesh_material_reference(mesh_file_path: pathlib.Path, mesh_safe_name: str, material_name: str, data: ConversionData):
     """
     Store the per-mesh material reference.
@@ -212,9 +239,9 @@ def _get_material_by_name(mesh_file_path: pathlib.Path | None, material_name: st
     Returns:
         The material if found, otherwise None.
     """
-    for material_ref in data.material_names:
-        if material_ref["name"] == material_name and material_ref["mesh_file_path"] == mesh_file_path:
-            return data.references[Tokens.Materials][material_ref["safe_name"]]
+    for material_data in data.material_data_list:
+        if material_data.name == material_name and material_data.mesh_file_path == mesh_file_path:
+            return data.references[Tokens.Materials][material_data.safe_name]
     return None
 
 

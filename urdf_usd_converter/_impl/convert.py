@@ -90,7 +90,7 @@ class Converter:
             mesh_cache=MeshCache(),
             ros_packages=ros_packages,
             resolved_file_paths={},
-            material_names=[],
+            material_data_list=[],
             mesh_material_references={},
         )
 
@@ -123,12 +123,14 @@ class Converter:
         # setup the root layer of the payload
         data.content[Tokens.Contents] = usdex.core.createAssetPayload(asset_stage)
 
+        # author the mesh library.
+        # Here, the material data referenced by each mesh is retrieved and stored in data.material_data_list.
+        convert_meshes(data)
+
         # Convert the materials.
         # Here, all materials referenced by the URDF's global materials and meshes are scanned and stored.
         convert_materials(data)
 
-        # author the mesh library
-        convert_meshes(data)
         # setup a content layer for referenced meshes
         data.content[Tokens.Geometry] = usdex.core.addAssetContent(data.content[Tokens.Contents], Tokens.Geometry, format="usda")
 

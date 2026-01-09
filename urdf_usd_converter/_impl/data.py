@@ -7,6 +7,7 @@ import usdex.core
 from pxr import Usd
 
 from .link_hierarchy import LinkHierarchy
+from .material_data import MaterialData
 from .mesh_cache import MeshCache
 from .urdf_parser.parser import URDFParser
 
@@ -37,5 +38,5 @@ class ConversionData:
     mesh_cache: MeshCache
     ros_packages: list[dict[str, str]]
     resolved_file_paths: dict[str, pathlib.Path]  # [mesh_file_name, resolved_file_path]
-    material_names: list[dict[pathlib.Path, str, str]]  # [mesh_file_path, name, safe_name]
+    material_data_list: list[MaterialData]  # Store all material parameters.
     mesh_material_references: dict[pathlib.Path, dict[str, str]]  # [mesh_file_path, [mesh_safe_name, material_name]]
