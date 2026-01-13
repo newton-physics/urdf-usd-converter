@@ -86,10 +86,8 @@ def _convert_mesh(
             face_vertex_counts, face_vertex_indices = convert_face_indices_array(primitive.vertex_index)
         else:  # Polylist or Polygons
             # Use numpy for faster conversion
-            face_vertex_counts = primitive.vcounts.tolist() if hasattr(primitive.vcounts, "tolist") else [int(i) for i in primitive.vcounts]
-            face_vertex_indices = (
-                primitive.vertex_index.tolist() if hasattr(primitive.vertex_index, "tolist") else [int(i) for i in primitive.vertex_index]
-            )
+            face_vertex_counts = primitive.vcounts.tolist()
+            face_vertex_indices = primitive.vertex_index.tolist()
         all_face_vertex_counts.extend(face_vertex_counts)
         all_face_vertex_indices.extend(face_vertex_indices)
 
@@ -107,7 +105,7 @@ def _convert_mesh(
                 if isinstance(normal_indices, np.ndarray):
                     normal_indices = normal_indices.ravel().tolist()
             else:  # Polylist or Polygons
-                normal_indices = normal_indices.tolist() if hasattr(normal_indices, "tolist") else [int(j) for j in normal_indices]
+                normal_indices = normal_indices.tolist()
 
             normal_indices = (np.array(normal_indices, dtype=np.int32) + current_normal_offset).tolist()
             all_normal_indices.extend(normal_indices)
