@@ -1,10 +1,8 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
-import re
 import shutil
 
-import omni.asset_validator
 import usdex.test
 from pxr import Gf, Tf, Usd, UsdGeom, UsdShade
 
@@ -220,22 +218,6 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(obj_prim.IsA(UsdGeom.Mesh))
         self.check_material_binding(obj_prim, color_texture_material)
 
-    @staticmethod
-    def allowed_issue_predicates() -> list[omni.asset_validator.IssuePredicates]:
-        """
-        Avoid errors about texture files not being found when calling self.assertIsValidUsd.
-        """
-
-        def check_unresolvable_external_dependency_issue(issue):
-            if re.match(".*Found unresolvable external dependency.*", issue.message):
-                return True
-
-        def check_cannot_be_resolved_issue(issue):
-            if re.match(".*Dependent Reference .* cannot be resolved.*", issue.message):
-                return True
-
-        return [check_unresolvable_external_dependency_issue, check_cannot_be_resolved_issue]
-
     def test_material_texture_name_duplication_missing_texture(self):
         input_path = "tests/data/material_texture_name_duplication.urdf"
         output_dir = self.tmpDir()
@@ -254,14 +236,7 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
         stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Failed to resolve reference.*"),
-            ],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
-            self.assertIsValidUsd(stage, issuePredicates=self.allowed_issue_predicates())
+        self.assertIsValidUsd(stage)
 
         # Check texture.
         output_texture_path = pathlib.Path(output_dir) / "Payload" / "Textures" / "grid.png"
@@ -346,6 +321,10 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(two_boxes_prim.IsA(UsdGeom.Xform))
         self.assertTrue(two_boxes_prim.HasAuthoredReferences())
 
+        link_obj_specular_workflow_prim = link_obj_prim.GetChild("link_obj_specular_workflow")
+        self.assertTrue(link_obj_specular_workflow_prim.IsValid())
+        self.assertTrue(link_obj_specular_workflow_prim.IsA(UsdGeom.Xform))
+
         # Check the materials.
         material_scope_prim = default_prim.GetChild("Materials")
         self.assertTrue(material_scope_prim.IsValid())
@@ -361,12 +340,16 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
         opacity = self.get_material_opacity(green_material)
         self.assertEqual(opacity, 1.0)
+        specular_workflow = self.get_material_specular_workflow(green_material)
+        self.assertFalse(specular_workflow)
 
         red_material_prim = material_scope_prim.GetChild("red_mat")
         self.assertTrue(red_material_prim.IsValid())
         self.assertTrue(red_material_prim.IsA(UsdShade.Material))
         red_material = UsdShade.Material(red_material_prim)
         self.assertTrue(red_material)
+        specular_workflow = self.get_material_specular_workflow(red_material)
+        self.assertFalse(specular_workflow)
 
         diffuse_color = self.get_material_diffuse_color(red_material)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
@@ -378,6 +361,18 @@ class TestMaterial(ConverterTestCase):
         metallic = self.get_material_metallic(red_material)
         self.assertAlmostEqual(metallic, 0.05, places=6)
 
+        box_specular_workflow_prim = material_scope_prim.GetChild("specular_workflow_mat")
+        self.assertTrue(box_specular_workflow_prim.IsValid())
+        self.assertTrue(box_specular_workflow_prim.IsA(UsdShade.Material))
+        box_specular_workflow_material = UsdShade.Material(box_specular_workflow_prim)
+        self.assertTrue(box_specular_workflow_material)
+
+        specular_workflow = self.get_material_specular_workflow(box_specular_workflow_material)
+        self.assertTrue(specular_workflow)
+        specular_color = self.get_material_specular_color(box_specular_workflow_material)
+        specular_color = usdex.core.linearToSrgb(specular_color)
+        self.assertTrue(Gf.IsClose(specular_color, Gf.Vec3f(0.5, 0.2, 0.1), 1e-6))
+
         mesh_prim = two_boxes_prim.GetChild("Cube_Green")
         self.assertTrue(mesh_prim.IsValid())
         self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
@@ -387,6 +382,12 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(mesh_prim.IsValid())
         self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
         self.check_material_binding(mesh_prim, red_material)
+
+        box_specular_workflow_prim = link_obj_specular_workflow_prim.GetChild("box_specular_workflow")
+        self.assertTrue(box_specular_workflow_prim.IsValid())
+        self.assertTrue(box_specular_workflow_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_specular_workflow_prim.HasAuthoredReferences())
+        self.check_material_binding(box_specular_workflow_prim, box_specular_workflow_material)
 
     def test_material_mesh_texture(self):
         input_path = "tests/data/material_mesh_texture.urdf"
@@ -423,6 +424,24 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(box_with_texture_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_with_texture_prim.HasAuthoredReferences())
 
+        link_obj_opacity_prim = link_obj_prim.GetChild("link_obj_opacity")
+        self.assertTrue(link_obj_opacity_prim.IsValid())
+        self.assertTrue(link_obj_opacity_prim.IsA(UsdGeom.Xform))
+
+        box_with_texture_opacity_prim = link_obj_opacity_prim.GetChild("box_with_texture_opacity")
+        self.assertTrue(box_with_texture_opacity_prim.IsValid())
+        self.assertTrue(box_with_texture_opacity_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_with_texture_opacity_prim.HasAuthoredReferences())
+
+        link_obj_specular_workflow_with_texture_prim = link_obj_opacity_prim.GetChild("link_obj_specular_workflow_with_texture")
+        self.assertTrue(link_obj_specular_workflow_with_texture_prim.IsValid())
+        self.assertTrue(link_obj_specular_workflow_with_texture_prim.IsA(UsdGeom.Xform))
+
+        box_specular_workflow_with_texture_prim = link_obj_specular_workflow_with_texture_prim.GetChild("box_specular_workflow_with_texture")
+        self.assertTrue(box_specular_workflow_with_texture_prim.IsValid())
+        self.assertTrue(box_specular_workflow_with_texture_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_specular_workflow_with_texture_prim.HasAuthoredReferences())
+
         # Check the materials.
         material_scope_prim = default_prim.GetChild("Materials")
         self.assertTrue(material_scope_prim.IsValid())
@@ -446,7 +465,34 @@ class TestMaterial(ConverterTestCase):
         metallic_texture_path = self.get_material_texture_path(texture_material, "metallic")
         self.assertEqual(metallic_texture_path, pathlib.Path("./Textures/metallic.png"))
 
+        texture_opacity_material_prim = material_scope_prim.GetChild("texture_opacity_mat")
+        self.assertTrue(texture_opacity_material_prim.IsValid())
+        self.assertTrue(texture_opacity_material_prim.IsA(UsdShade.Material))
+        texture_opacity_material = UsdShade.Material(texture_opacity_material_prim)
+        self.assertTrue(texture_opacity_material)
+
+        diffuse_color = self.get_material_diffuse_color(texture_opacity_material)
+        self.assertIsNone(diffuse_color)
+        opacity_texture_path = self.get_material_texture_path(texture_opacity_material, "opacity")
+        self.assertEqual(opacity_texture_path, pathlib.Path("./Textures/opacity.png"))
+
+        texture_specular_workflow_material_prim = material_scope_prim.GetChild("specular_workflow_with_texture_mat")
+        self.assertTrue(texture_specular_workflow_material_prim.IsValid())
+        self.assertTrue(texture_specular_workflow_material_prim.IsA(UsdShade.Material))
+        texture_specular_workflow_material = UsdShade.Material(texture_specular_workflow_material_prim)
+        self.assertTrue(texture_specular_workflow_material)
+
+        diffuse_color = self.get_material_diffuse_color(texture_specular_workflow_material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.4, 0.4, 0.4), 1e-6))
+        specular_workflow = self.get_material_specular_workflow(texture_specular_workflow_material)
+        self.assertTrue(specular_workflow)
+        specular_texture_path = self.get_material_texture_path(texture_specular_workflow_material, "specularColor")
+        self.assertEqual(specular_texture_path, pathlib.Path("./Textures/specular.png"))
+
         self.check_material_binding(box_with_texture_prim, texture_material)
+        self.check_material_binding(box_with_texture_opacity_prim, texture_opacity_material)
+        self.check_material_binding(box_specular_workflow_with_texture_prim, texture_specular_workflow_material)
 
     def test_material_mesh_override(self):
         input_path = "tests/data/material_mesh_override.urdf"

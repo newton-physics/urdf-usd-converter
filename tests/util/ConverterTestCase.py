@@ -29,6 +29,14 @@ class ConverterTestCase(usdex.test.TestCase):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return shader.GetInput("diffuseColor").Get()
 
+    def get_material_specular_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
+        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
+        return shader.GetInput("specularColor").Get()
+
+    def get_material_specular_workflow(self, material: UsdShade.Material) -> bool:
+        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
+        return shader.GetInput("useSpecularWorkflow").Get() == 1
+
     def get_material_opacity(self, material: UsdShade.Material) -> float:
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return shader.GetInput("opacity").Get()

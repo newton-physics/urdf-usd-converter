@@ -5,7 +5,7 @@ import shutil
 
 import tinyobjloader
 import usdex.core
-from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdShade
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdShade, UsdUtils
 
 from .data import ConversionData, Tokens
 from .material_cache import MaterialCache
@@ -44,13 +44,16 @@ def convert_materials(data: ConversionData):
             materials_scope,
             material_data.safe_name,
             material_data.diffuse_color,
+            material_data.specular_color,
             material_data.opacity,
             material_data.roughness,
             material_data.metallic,
             material_data.diffuse_texture_path,
+            material_data.specular_texture_path,
             material_data.normal_texture_path,
             material_data.roughness_texture_path,
             material_data.metallic_texture_path,
+            material_data.opacity_texture_path,
             material_cache.texture_paths,
             data,
         )
@@ -95,13 +98,16 @@ def _convert_material(
     parent: Usd.Prim,
     safe_name: str,
     diffuse_color: Gf.Vec3f,
+    specular_color: Gf.Vec3f,
     opacity: float,
     roughness: float,
     metallic: float,
     diffuse_texture_path: pathlib.Path | None,
+    specular_texture_path: pathlib.Path | None,
     normal_texture_path: pathlib.Path | None,
     roughness_texture_path: pathlib.Path | None,
     metallic_texture_path: pathlib.Path | None,
+    opacity_texture_path: pathlib.Path | None,
     texture_paths: dict[pathlib.Path, str],
     data: ConversionData,
 ) -> UsdShade.Material:
@@ -113,13 +119,16 @@ def _convert_material(
         parent: The parent prim.
         safe_name: The safe name of the material. This is a unique name that does not overlap with other material names.
         diffuse_color: The diffuse color of the material.
+        specular_color: The specular color of the material.
         opacity: The opacity of the material.
         roughness: The roughness of the material.
         metallic: The metallic of the material.
         diffuse_texture_path: The path to the diffuse texture.
+        specular_texture_path: The path to the specular texture.
         normal_texture_path: The path to the normal texture.
         roughness_texture_path: The path to the roughness texture.
         metallic_texture_path: The path to the metallic texture.
+        opacity_texture_path: The path to the opacity texture.
         texture_paths: A dictionary of texture paths and unique names.
         data: The conversion data.
 
@@ -127,6 +136,7 @@ def _convert_material(
         The material prim.
     """
     diffuse_color = usdex.core.sRgbToLinear(diffuse_color)
+    specular_color = usdex.core.sRgbToLinear(specular_color)
 
     # Build kwargs for material properties
     material_kwargs = {
@@ -153,7 +163,82 @@ def _convert_material(
     if metallic_texture_path:
         usdex.core.addMetallicTextureToPreviewMaterial(material_prim, _get_texture_asset_path(metallic_texture_path, texture_paths, data))
 
+    if opacity_texture_path:
+        usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(opacity_texture_path, texture_paths, data))
+
+    # If the specular color is not black or the specular texture exists, use the specular workflow.
+    if specular_color != [0, 0, 0] or specular_texture_path:
+        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+        shader.CreateInput("useSpecularWorkflow", Sdf.ValueTypeNames.Int).Set(1)
+        shader.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f).Set(specular_color)
+        if specular_texture_path:
+            _add_specular_texture_to_preview_material(material_prim, _get_texture_asset_path(specular_texture_path, texture_paths, data))
+
     return material_prim
+
+
+def _add_specular_texture_to_preview_material(material_prim: UsdShade.Material, specular_texture_path: Sdf.AssetPath):
+    """
+    Add the specular texture to the preview material.
+
+    Args:
+        material_prim: The material prim.
+        specular_texture_path: The path to the specular texture.
+    """
+    surface: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+
+    specular_color = Gf.Vec3f(0.0, 0.0, 0.0)
+    specular_color_input = surface.GetInput("specularColor")
+    if specular_color_input:
+        value_attrs = specular_color_input.GetValueProducingAttributes()
+        if value_attrs and len(value_attrs) > 0:
+            specular_color = value_attrs[0].Get()
+            specular_color_input.GetAttr().Clear()
+    else:
+        specular_color_input = surface.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f)
+    fallback = Gf.Vec4f(specular_color[0], specular_color[1], specular_color[2], 1.0)
+
+    # Acquire the texture reader.
+    texture_reader: UsdShade.Shader = _acquire_texture_reader(
+        material_prim, "SpecularTexture", specular_texture_path, usdex.core.ColorSpace.eAuto, fallback
+    )
+
+    # Connect the PreviewSurface shader "roughness" to the roughness tex shader output
+    specular_color_input.ConnectToSource(texture_reader.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
+
+
+def _acquire_texture_reader(
+    material_prim: UsdShade.Material,
+    shader_name: str,
+    texture_path: pathlib.Path,
+    color_space: usdex.core.ColorSpace,
+    fallback: Gf.Vec4f,
+) -> UsdShade.Shader:
+    """
+    Acquire the texture reader.
+
+    Args:
+        material_prim: The material prim.
+        shader_name: The name of the shader.
+        texture_path: The path to the texture.
+        color_space: The color space of the texture.
+        fallback: The fallback value for the texture.
+
+    Returns:
+        The texture reader.
+    """
+    shader_path = material_prim.GetPath().AppendChild(shader_name)
+    tex_shader = UsdShade.Shader.Define(material_prim.GetPrim().GetStage(), shader_path)
+    tex_shader.SetShaderId("UsdUVTexture")
+    tex_shader.CreateInput("fallback", Sdf.ValueTypeNames.Float4).Set(fallback)
+    tex_shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(texture_path)
+    tex_shader.CreateInput("sourceColorSpace", Sdf.ValueTypeNames.Token).Set(usdex.core.getColorSpaceToken(color_space))
+    st_input = tex_shader.CreateInput("st", Sdf.ValueTypeNames.Float2)
+    connected = usdex.core.connectPrimvarShader(st_input, UsdUtils.GetPrimaryUVSetName())
+    if not connected:
+        return UsdShade.Shader()
+
+    return tex_shader
 
 
 def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData) -> Sdf.AssetPath:
@@ -174,8 +259,11 @@ def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[path
     payload_dir = pathlib.Path(data.content[Tokens.Contents].GetRootLayer().identifier).parent
     local_texture_dir = payload_dir / Tokens.Textures
     local_texture_path = local_texture_dir / unique_file_name
-    relative_texture_path = local_texture_path.relative_to(payload_dir)
-    return Sdf.AssetPath(f"./{relative_texture_path.as_posix()}")
+    if local_texture_path.exists():
+        relative_texture_path = local_texture_path.relative_to(payload_dir)
+        return Sdf.AssetPath(f"./{relative_texture_path.as_posix()}")
+    else:
+        return Sdf.AssetPath("")
 
 
 def store_obj_material_data(mesh_file_path: pathlib.Path, reader: tinyobjloader.ObjReader, data: ConversionData):
@@ -194,6 +282,7 @@ def store_obj_material_data(mesh_file_path: pathlib.Path, reader: tinyobjloader.
         material_data.mesh_file_path = mesh_file_path
         material_data.name = material.name
         material_data.diffuse_color = Gf.Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2])
+        material_data.specular_color = Gf.Vec3f(material.specular[0], material.specular[1], material.specular[2])
         material_data.opacity = material.dissolve
 
         # The following is the extended specification of obj.
@@ -201,9 +290,11 @@ def store_obj_material_data(mesh_file_path: pathlib.Path, reader: tinyobjloader.
         material_data.metallic = material.metallic if material.metallic else 0.0
 
         material_data.diffuse_texture_path = (mesh_file_path.parent / material.diffuse_texname) if material.diffuse_texname else None
+        material_data.specular_texture_path = (mesh_file_path.parent / material.specular_texname) if material.specular_texname else None
         material_data.normal_texture_path = (mesh_file_path.parent / material.normal_texname) if material.normal_texname else None
         material_data.roughness_texture_path = (mesh_file_path.parent / material.roughness_texname) if material.roughness_texname else None
         material_data.metallic_texture_path = (mesh_file_path.parent / material.metallic_texname) if material.metallic_texname else None
+        material_data.opacity_texture_path = (mesh_file_path.parent / material.alpha_texname) if material.alpha_texname else None
 
         # If the normal texture is not specified, use the bump texture.
         if material_data.normal_texture_path is None:

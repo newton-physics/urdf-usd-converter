@@ -14,10 +14,34 @@
       </geometry>
     </visual>
   </link>
+  <link name="link_obj_opacity">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_with_texture_opacity.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_obj_specular_workflow_with_texture">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_specular_workflow_with_texture.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
 
   <joint name="joint_box_obj" type="fixed">
     <origin rpy="0 0 0" xyz="1 0 0"/>
     <parent link="link_box"/>
     <child link="link_obj"/>
+  </joint>
+  <joint name="joint_box_obj_opacity" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj"/>
+    <child link="link_obj_opacity"/>
+  </joint>
+  <joint name="joint_box_obj_specular_workflow_with_texture" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj_opacity"/>
+    <child link="link_obj_specular_workflow_with_texture"/>
   </joint>
 </robot>

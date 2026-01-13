@@ -15,10 +15,22 @@
       </geometry>
     </visual>
   </link>
+  <link name="link_obj_specular_workflow">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_specular_workflow.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
 
   <joint name="joint_box_obj" type="fixed">
     <origin rpy="0 0 0" xyz="1 0 0"/>
     <parent link="link_box"/>
     <child link="link_obj"/>
+  </joint>
+  <joint name="joint_box_obj_specular_workflow" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj"/>
+    <child link="link_obj_specular_workflow"/>
   </joint>
 </robot>

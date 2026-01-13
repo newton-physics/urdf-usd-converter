@@ -25,10 +25,14 @@ class MaterialData:
 
         # The material properties.
         self.diffuse_color: Gf.Vec3f = Gf.Vec3f(1.0, 1.0, 1.0)
+        self.specular_color: Gf.Vec3f = Gf.Vec3f(0.0, 0.0, 0.0)
         self.opacity: float = 1.0
         self.roughness: float = 0.5
         self.metallic: float = 0.0
+
         self.diffuse_texture_path: pathlib.Path | None = None
+        self.specular_texture_path: pathlib.Path | None = None
         self.normal_texture_path: pathlib.Path | None = None
         self.roughness_texture_path: pathlib.Path | None = None
         self.metallic_texture_path: pathlib.Path | None = None
+        self.opacity_texture_path: pathlib.Path | None = None

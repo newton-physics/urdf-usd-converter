@@ -68,9 +68,11 @@ class MaterialCache:
         for material_data in data.material_data_list:
             texture_paths = [
                 material_data.diffuse_texture_path,
+                material_data.specular_texture_path,
                 material_data.normal_texture_path,
                 material_data.roughness_texture_path,
                 material_data.metallic_texture_path,
+                material_data.opacity_texture_path,
             ]
             for texture_path in texture_paths:
                 if texture_path and texture_path not in texture_paths_list:
