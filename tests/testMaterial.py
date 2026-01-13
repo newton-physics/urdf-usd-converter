@@ -456,6 +456,8 @@ class TestMaterial(ConverterTestCase):
         self.assertIsNone(diffuse_color)
         opacity = self.get_material_opacity(texture_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
+        ior = self.get_material_ior(texture_material)
+        self.assertAlmostEqual(ior, 1.45, places=6)
         diffuse_color_texture_path = self.get_material_texture_path(texture_material, "diffuseColor")
         self.assertEqual(diffuse_color_texture_path, pathlib.Path("./Textures/grid.png"))
         normal_texture_path = self.get_material_texture_path(texture_material, "normal")
@@ -473,6 +475,8 @@ class TestMaterial(ConverterTestCase):
 
         diffuse_color = self.get_material_diffuse_color(texture_opacity_material)
         self.assertIsNone(diffuse_color)
+        ior = self.get_material_ior(texture_opacity_material)
+        self.assertAlmostEqual(ior, 1.0, places=6)
         opacity_texture_path = self.get_material_texture_path(texture_opacity_material, "opacity")
         self.assertEqual(opacity_texture_path, pathlib.Path("./Textures/opacity.png"))
 
@@ -482,6 +486,8 @@ class TestMaterial(ConverterTestCase):
         texture_specular_workflow_material = UsdShade.Material(texture_specular_workflow_material_prim)
         self.assertTrue(texture_specular_workflow_material)
 
+        ior = self.get_material_ior(texture_specular_workflow_material)
+        self.assertAlmostEqual(ior, 1.45, places=6)
         diffuse_color = self.get_material_diffuse_color(texture_specular_workflow_material)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.4, 0.4, 0.4), 1e-6))

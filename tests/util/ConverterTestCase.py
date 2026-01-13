@@ -49,6 +49,10 @@ class ConverterTestCase(usdex.test.TestCase):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return shader.GetInput("metallic").Get()
 
+    def get_material_ior(self, material: UsdShade.Material) -> float:
+        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
+        return shader.GetInput("ior").Get()
+
     def get_material_texture_path(self, material: UsdShade.Material, texture_type: str = "diffuseColor") -> pathlib.Path:
         """
         Get the texture path for the given texture type.

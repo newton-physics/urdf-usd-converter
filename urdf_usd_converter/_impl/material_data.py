@@ -29,6 +29,7 @@ class MaterialData:
         self.opacity: float = 1.0
         self.roughness: float = 0.5
         self.metallic: float = 0.0
+        self.ior: float = 0.0
 
         self.diffuse_texture_path: pathlib.Path | None = None
         self.specular_texture_path: pathlib.Path | None = None

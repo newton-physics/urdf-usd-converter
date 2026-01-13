@@ -48,6 +48,7 @@ def convert_materials(data: ConversionData):
             material_data.opacity,
             material_data.roughness,
             material_data.metallic,
+            material_data.ior,
             material_data.diffuse_texture_path,
             material_data.specular_texture_path,
             material_data.normal_texture_path,
@@ -102,6 +103,7 @@ def _convert_material(
     opacity: float,
     roughness: float,
     metallic: float,
+    ior: float,
     diffuse_texture_path: pathlib.Path | None,
     specular_texture_path: pathlib.Path | None,
     normal_texture_path: pathlib.Path | None,
@@ -123,6 +125,7 @@ def _convert_material(
         opacity: The opacity of the material.
         roughness: The roughness of the material.
         metallic: The metallic of the material.
+        ior: The ior of the material.
         diffuse_texture_path: The path to the diffuse texture.
         specular_texture_path: The path to the specular texture.
         normal_texture_path: The path to the normal texture.
@@ -151,6 +154,10 @@ def _convert_material(
     if not material_prim:
         Tf.RaiseRuntimeError(f'Failed to convert material "{safe_name}"')
 
+    surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+    if ior != 0.0:
+        surface_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(ior)
+
     if diffuse_texture_path:
         usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, _get_texture_asset_path(diffuse_texture_path, texture_paths, data))
 
@@ -168,9 +175,8 @@ def _convert_material(
 
     # If the specular color is not black or the specular texture exists, use the specular workflow.
     if specular_color != [0, 0, 0] or specular_texture_path:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
-        shader.CreateInput("useSpecularWorkflow", Sdf.ValueTypeNames.Int).Set(1)
-        shader.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f).Set(specular_color)
+        surface_shader.CreateInput("useSpecularWorkflow", Sdf.ValueTypeNames.Int).Set(1)
+        surface_shader.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f).Set(specular_color)
         if specular_texture_path:
             _add_specular_texture_to_preview_material(material_prim, _get_texture_asset_path(specular_texture_path, texture_paths, data))
 
@@ -284,6 +290,7 @@ def store_obj_material_data(mesh_file_path: pathlib.Path, reader: tinyobjloader.
         material_data.diffuse_color = Gf.Vec3f(material.diffuse[0], material.diffuse[1], material.diffuse[2])
         material_data.specular_color = Gf.Vec3f(material.specular[0], material.specular[1], material.specular[2])
         material_data.opacity = material.dissolve
+        material_data.ior = material.ior if material.ior else 0.0
 
         # The following is the extended specification of obj.
         material_data.roughness = material.roughness if material.roughness else 0.5
