@@ -335,6 +335,8 @@ class TestMaterial(ConverterTestCase):
         green_material = UsdShade.Material(green_material_prim)
         self.assertTrue(green_material)
 
+        ior = self.get_material_ior(green_material)
+        self.assertAlmostEqual(ior, 1.5, places=6)
         diffuse_color = self.get_material_diffuse_color(green_material)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
@@ -351,6 +353,8 @@ class TestMaterial(ConverterTestCase):
         specular_workflow = self.get_material_specular_workflow(red_material)
         self.assertFalse(specular_workflow)
 
+        ior = self.get_material_ior(red_material)
+        self.assertAlmostEqual(ior, 1.45, places=6)
         diffuse_color = self.get_material_diffuse_color(red_material)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
@@ -367,6 +371,8 @@ class TestMaterial(ConverterTestCase):
         box_specular_workflow_material = UsdShade.Material(box_specular_workflow_prim)
         self.assertTrue(box_specular_workflow_material)
 
+        ior = self.get_material_ior(box_specular_workflow_material)
+        self.assertAlmostEqual(ior, 1.45, places=6)
         specular_workflow = self.get_material_specular_workflow(box_specular_workflow_material)
         self.assertTrue(specular_workflow)
         specular_color = self.get_material_specular_color(box_specular_workflow_material)
