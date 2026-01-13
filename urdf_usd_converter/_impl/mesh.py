@@ -8,7 +8,7 @@ import tinyobjloader
 import usdex.core
 from pxr import Tf, Usd, UsdGeom, Vt
 
-from .conversion_collada import ConversionCollada
+from .conversion_collada import convert_collada
 from .data import ConversionData, Tokens
 from .numpy import convert_vec2f_array, convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
@@ -61,8 +61,7 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     elif input_path.suffix.lower() == ".obj":
         convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
-        conversion_collada = ConversionCollada(input_path)
-        conversion_collada.convert(prim, data)
+        convert_collada(prim, input_path, data)
     elif not input_path.is_dir():
         Tf.Warn(f"Unsupported mesh format: {input_path}")
     else:
