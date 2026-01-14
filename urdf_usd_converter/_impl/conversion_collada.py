@@ -68,7 +68,8 @@ def _convert_mesh(
     current_uv_offset = 0
 
     # The list of vertex coordinates is shared among the primitives.
-    all_vertices = convert_vec3f_array(geometry.primitives[0].vertex) if hasattr(geometry.primitives[0], "vertex") else None
+    all_vertices = geometry.primitives[0].vertex if hasattr(geometry.primitives[0], "vertex") else None
+    unique_vertex_indices = []
 
     for primitive in geometry.primitives:
         primitive_type = type(primitive).__name__
@@ -90,6 +91,9 @@ def _convert_mesh(
             face_vertex_indices = primitive.vertex_index.tolist()
         all_face_vertex_counts.extend(face_vertex_counts)
         all_face_vertex_indices.extend(face_vertex_indices)
+
+        # Remove duplicates and add used vertex indices.
+        unique_vertex_indices.extend(np.unique(face_vertex_indices))
 
         face_offsets.append(len(face_vertex_counts))
 
@@ -121,6 +125,13 @@ def _convert_mesh(
             current_uv_offset += len(uv_data)
 
     if len(all_face_vertex_counts) > 0 and len(all_face_vertex_indices) > 0 and all_vertices is not None:
+        # Remove unused vertices from all_vertices and update the vertex list all_face_vertex_indices.
+        unique_vertex_indices = np.unique(unique_vertex_indices)
+
+        vertices_array = np.array(all_vertices, dtype=np.float32).reshape(-1, 3)
+        all_vertices = convert_vec3f_array(vertices_array[unique_vertex_indices])
+        all_face_vertex_indices = np.searchsorted(unique_vertex_indices, all_face_vertex_indices).tolist()
+
         # create a normal primvar data for the geometry.
         normals = None
         if all_normals and all_normal_indices and len(all_normal_indices) == len(all_face_vertex_indices):
@@ -210,7 +221,9 @@ def _traverse_scene(
         name = parent_node.name if parent_node else node.geometry.name
 
         # Converts geometry to usd meshes.
-        _convert_mesh(_collada, prim, name, node.geometry, matrix, data)
+        # If the geometry has no primitives, skip the conversion.
+        if len(node.geometry.primitives) > 0:
+            _convert_mesh(_collada, prim, name, node.geometry, matrix, data)
 
     if hasattr(node, "children") and node.children:
         for child in node.children:
