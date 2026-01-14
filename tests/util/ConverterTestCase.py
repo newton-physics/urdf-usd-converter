@@ -25,33 +25,39 @@ class ConverterTestCase(usdex.test.TestCase):
         bound_material = material_binding.GetDirectBindingRel().GetTargets()[0]
         self.assertEqual(bound_material, material.GetPrim().GetPath())
 
-    def get_material_diffuse_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
+    def _get_input_value(self, shader: UsdShade.Shader, input_name: str):
+        value_attrs = UsdShade.Utils.GetValueProducingAttributes(shader.GetInput(input_name))
+
+        # If no value is set, returns None.
+        if not value_attrs or len(value_attrs) == 0:
+            return None
+
+        return value_attrs[0].Get()
+
+    def _get_material_input_value(self, material: UsdShade.Material, input_name: str):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("diffuseColor").Get()
+        return self._get_input_value(shader, input_name)
+
+    def get_material_diffuse_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
+        return self._get_material_input_value(material, "diffuseColor")
 
     def get_material_specular_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("specularColor").Get()
+        return self._get_material_input_value(material, "specularColor")
 
     def get_material_specular_workflow(self, material: UsdShade.Material) -> bool:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("useSpecularWorkflow").Get() == 1
+        return self._get_material_input_value(material, "useSpecularWorkflow") == 1
 
     def get_material_opacity(self, material: UsdShade.Material) -> float:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("opacity").Get()
+        return self._get_material_input_value(material, "opacity")
 
     def get_material_roughness(self, material: UsdShade.Material) -> float:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("roughness").Get()
+        return self._get_material_input_value(material, "roughness")
 
     def get_material_metallic(self, material: UsdShade.Material) -> float:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("metallic").Get()
+        return self._get_material_input_value(material, "metallic")
 
     def get_material_ior(self, material: UsdShade.Material) -> float:
-        shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
-        return shader.GetInput("ior").Get()
+        return self._get_material_input_value(material, "ior")
 
     def get_material_texture_path(self, material: UsdShade.Material, texture_type: str = "diffuseColor") -> pathlib.Path:
         """
@@ -69,9 +75,9 @@ class ConverterTestCase(usdex.test.TestCase):
         self.assertTrue(texture_input.HasConnectedSource())
 
         connected_source = texture_input.GetConnectedSource()
-        texture_prim = connected_source[0].GetPrim()
-        texture_file_attr = texture_prim.GetAttribute("inputs:file")
-        return pathlib.Path(texture_file_attr.Get().path)
+        texture_shader = UsdShade.Shader(connected_source[0].GetPrim())
+        texture_file_value = self._get_input_value(texture_shader, "file")
+        return pathlib.Path(texture_file_value.path)
 
     def get_material_diffuse_color_texture_fallback(self, material: UsdShade.Material) -> Gf.Vec4f | None:
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
@@ -80,5 +86,5 @@ class ConverterTestCase(usdex.test.TestCase):
             source = diffuse_color_input.GetConnectedSource()
             if len(source) > 0 and isinstance(source[0], UsdShade.ConnectableAPI) and source[0].GetPrim().IsA(UsdShade.Shader):
                 diffuse_texture_shader = UsdShade.Shader(source[0].GetPrim())
-                return diffuse_texture_shader.GetInput("fallback").Get()
+                return self._get_input_value(diffuse_texture_shader, "fallback")
         return None

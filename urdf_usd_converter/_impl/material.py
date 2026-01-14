@@ -180,6 +180,12 @@ def _convert_material(
         if specular_texture_path:
             _add_specular_texture_to_preview_material(material_prim, _get_texture_asset_path(specular_texture_path, texture_paths, data))
 
+    result = usdex.core.addPreviewMaterialInterface(material_prim)
+    if not result:
+        Tf.RaiseRuntimeError(f'Failed to add material instance to material prim "{material_prim.GetPath()}"')
+
+    material_prim.GetPrim().SetInstanceable(True)
+
     return material_prim
 
 
@@ -209,7 +215,7 @@ def _add_specular_texture_to_preview_material(material_prim: UsdShade.Material, 
         material_prim, "SpecularTexture", specular_texture_path, usdex.core.ColorSpace.eAuto, fallback
     )
 
-    # Connect the PreviewSurface shader "roughness" to the roughness tex shader output
+    # Connect the PreviewSurface shader "specularColor" to the specular texture shader output
     specular_color_input.ConnectToSource(texture_reader.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
 
 
