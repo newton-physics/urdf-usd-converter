@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<robot name="material_mesh_color">
+  <link name="link_box">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_obj">
+    <visual>
+      <geometry>
+        <!-- This obj file has two materials: green_mat and red_mat. -->
+        <mesh filename="assets/two_boxes.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_obj_specular_workflow">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_specular_workflow.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_box_obj" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box"/>
+    <child link="link_obj"/>
+  </joint>
+  <joint name="joint_box_obj_specular_workflow" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj"/>
+    <child link="link_obj_specular_workflow"/>
+  </joint>
+</robot>

@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot name="material_mesh_override">
+  <material name="blue">
+    <color rgba="0 0 1 1"/>
+  </material>
+  <link name="link_box">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_obj">
+    <visual>
+      <geometry>
+        <!-- This obj file has two materials: green_mat and red_mat. -->
+        <mesh filename="assets/two_boxes.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+      <!-- Override the material with blue. -->
+      <material name="blue"/>
+    </visual>
+  </link>
+
+  <joint name="joint_box_obj" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box"/>
+    <child link="link_obj"/>
+  </joint>
+</robot>
