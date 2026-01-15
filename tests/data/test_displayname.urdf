@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <!-- Using characters other than alphanumeric characters and '_' -->
 <robot name="test_displayname">
+  <material name="material:red">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+  </material>
   <link name="link-box">
     <visual>
       <geometry>
@@ -21,6 +24,7 @@
         <!-- Contains "Cube:Red" and "Cube:Green" as meshes. -->
         <mesh filename="assets/name_test.obj" scale="0.5 0.5 0.5"/>
       </geometry>
+      <material name="material:red"/>
     </visual>
   </link>
   <link name="link-mesh_dae">

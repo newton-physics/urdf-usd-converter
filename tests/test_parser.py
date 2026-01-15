@@ -299,7 +299,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(materials[0].name, "red")
         self.assertEqual(materials[1].name, "green")
         self.assertEqual(materials[2].name, "blue")
-        self.assertEqual(materials[3].name, "black")
+        self.assertEqual(materials[3].name, "default")
         self.assertEqual(materials[4].name, "texture")
 
         # Find materials by name.
@@ -324,10 +324,10 @@ class TestURDFParser(ConverterTestCase):
         self.assertIsNone(texture_material.color)
         self.assertEqual(texture_material.texture.get_with_default("filename"), "assets/grid.png")
 
-        black_material = self.parser.find_material_by_name("black")
-        self.assertTrue(black_material)
-        self.assertEqual(black_material.name, "black")
-        self.assertEqual(black_material.color.get_with_default("rgba"), (0.0, 0.0, 0.0, 0.0))
+        default_material = self.parser.find_material_by_name("default")
+        self.assertTrue(default_material)
+        self.assertEqual(default_material.name, "default")
+        self.assertEqual(default_material.color.get_with_default("rgba"), (1.0, 1.0, 1.0, 1.0))
 
         # Get non-existent material.
         non_existent_material = self.parser.find_material_by_name("non_existent_material")
@@ -530,13 +530,13 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(material[2], None)
 
         material = materials[3]
-        self.assertEqual(material[0], "black")
-        self.assertEqual(material[1], (0.0, 0.0, 0.0, 0.0))
+        self.assertEqual(material[0], "default")
+        self.assertEqual(material[1], (1.0, 1.0, 1.0, 1.0))
         self.assertEqual(material[2], None)
 
         material = materials[4]
         self.assertEqual(material[0], "texture")
-        self.assertEqual(material[1], (0.0, 0.0, 0.0, 0.0))
+        self.assertEqual(material[1], (1.0, 1.0, 1.0, 1.0))
         self.assertEqual(material[2], "assets/grid.png")
 
         material = materials[5]

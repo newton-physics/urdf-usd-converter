@@ -4,7 +4,8 @@ import pathlib
 import shutil
 from unittest.mock import patch
 
-from pxr import Usd, UsdGeom
+import usdex.test
+from pxr import Tf, Usd, UsdGeom, UsdShade
 
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.cli import run
@@ -20,7 +21,16 @@ class TestROSPackagesCli(ConverterTestCase):
         input_path = "tests/data/ros_packages.urdf"
         output_dir = self.tmpDir()
 
-        with patch("sys.argv", ["urdf_usd_converter", input_path, output_dir]):
+        with (
+            patch("sys.argv", ["urdf_usd_converter", input_path, output_dir]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                ],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
             self.assertEqual(run(), 0, f"Failed to convert {input_path}")
 
         # Check the USD file after converting ros_packages.urdf.
@@ -50,17 +60,26 @@ class TestROSPackagesCli(ConverterTestCase):
         self.assertTrue(pathlib.Path(temp_stl_file_path).exists())
         self.assertTrue(pathlib.Path(temp_texture_file_path).exists())
 
-        with patch(
-            "sys.argv",
-            [
-                "urdf_usd_converter",
-                input_path,
-                output_dir,
-                "--package",
-                "test_package=" + test_package_dir,
-                "--package",
-                "test_texture_package=" + test_texture_package_dir,
-            ],
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "urdf_usd_converter",
+                    input_path,
+                    output_dir,
+                    "--package",
+                    "test_package=" + test_package_dir,
+                    "--package",
+                    "test_texture_package=" + test_texture_package_dir,
+                ],
+            ),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                ],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
         ):
             self.assertEqual(run(), 0, f"Failed to convert {input_path}")
 
@@ -99,13 +118,22 @@ class TestROSPackagesCli(ConverterTestCase):
         shutil.copy("tests/data/assets/box.stl", mesh_dir)
         shutil.copy("tests/data/assets/grid.png", texture_dir)
 
-        with patch(
-            "sys.argv",
-            [
-                "urdf_usd_converter",
-                str(input_path),
-                str(output_dir),
-            ],
+        with (
+            patch(
+                "sys.argv",
+                [
+                    "urdf_usd_converter",
+                    str(input_path),
+                    str(output_dir),
+                ],
+            ),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                ],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
         ):
             self.assertEqual(run(), 0, f"Failed to convert {input_path}")
 
@@ -141,4 +169,21 @@ class TestROSPackagesCli(ConverterTestCase):
         self.assertTrue(stl_mesh_prim.HasAuthoredReferences())
 
         # Check material texture.
-        # TODO: Here we need to make sure that the reference to the usd file is correct after the texture is loaded.
+        material_scope_prim = default_prim.GetChild("Materials")
+        self.assertTrue(material_scope_prim.IsValid())
+        self.assertTrue(material_scope_prim.IsA(UsdGeom.Scope))
+
+        texture_material_prim = material_scope_prim.GetChild("texture_material")
+        self.assertTrue(texture_material_prim.IsValid())
+        self.assertTrue(texture_material_prim.IsA(UsdShade.Material))
+
+        texture_material = UsdShade.Material(texture_material_prim)
+        self.assertTrue(texture_material)
+        self.assertTrue(texture_material.GetPrim().HasAuthoredReferences())
+
+        texture_path = self.get_material_texture_path(texture_material, "diffuseColor")
+        self.assertEqual(texture_path, pathlib.Path("./Textures/grid.png"))
+        diffuse_color = self.get_material_diffuse_color(texture_material)
+        self.assertEqual(diffuse_color, None)
+        opacity = self.get_material_opacity(texture_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)

@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<robot name="material_color">
+  <material name="red">
+    <color rgba="1 0 0 1"/>
+  </material>
+  <material name="green">
+    <color rgba="0 1 0 1"/>
+  </material>
+  <material name="opacity_half">
+    <color rgba="0.2 0.5 1 0.5"/>
+  </material>
+
+  <link name="link_box_red">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+  </link>
+  <link name="link_box_green">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+  <link name="link_box_opacity_half">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="opacity_half"/>
+    </visual>
+  </link>
+
+  <joint name="joint_root" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box_red"/>
+    <child link="link_box_green"/>
+  </joint>
+  <joint name="joint_box_green_opacity_half" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_box_green"/>
+    <child link="link_box_opacity_half"/>
+  </joint>
+</robot>

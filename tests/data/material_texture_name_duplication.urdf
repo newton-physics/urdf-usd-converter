@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<robot name="material_texture_name_duplication">
+  <material name="texture_material">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+    <texture filename="assets/grid.png"/>
+  </material>
+  <material name="texture_material_2">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+    <texture filename="assets/textures/grid.png"/>
+  </material>
+
+  <link name="link_obj">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+  <link name="link_obj2">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.obj" scale="0.5 0.5 0.5"/>
+      </geometry>
+      <material name="texture_material_2"/>
+    </visual>
+  </link>
+
+  <joint name="joint_obj" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj"/>
+    <child link="link_obj2"/>
+  </joint>
+</robot>

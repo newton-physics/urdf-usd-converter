@@ -9,7 +9,7 @@
   <material name="blue">
     <color rgba="0.0 0.0 1.0 1"/>
   </material>
-  <material name="black">
+  <material name="default">
     <color />  <!-- To test the default value, no attribute is provided here. -->
   </material>
   <material name="texture">

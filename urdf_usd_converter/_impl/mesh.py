@@ -10,6 +10,7 @@ from pxr import Tf, Usd, UsdGeom, Vt
 
 from .conversion_collada import convert_collada
 from .data import ConversionData, Tokens
+from .material import store_mesh_material_reference, store_obj_material_data
 from .numpy import convert_vec2f_array, convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
 
@@ -94,13 +95,37 @@ def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
     return usd_mesh
 
 
-def _convert_single_obj(prim: Usd.Prim, input_path: pathlib.Path, reader: tinyobjloader.ObjReader) -> UsdGeom.Mesh:
+def _convert_single_obj(
+    prim: Usd.Prim,
+    input_path: pathlib.Path,
+    reader: tinyobjloader.ObjReader,
+    data: ConversionData,
+) -> UsdGeom.Mesh:
     """
     Convert a single OBJ mesh to a USD mesh.
+
+    Args:
+        prim: The prim to convert the mesh to.
+        input_path: The path to the OBJ file.
+        reader: The tinyobjloader reader.
+        materials_prims: The dictionary of material names and their prims.
+        data: The conversion data.
+
+    Returns:
+        The USD mesh.
     """
     shapes = reader.GetShapes()
     attrib = reader.GetAttrib()
+    materials = reader.GetMaterials()
+
+    # This method only deals with a single mesh, so it only considers the first mesh.
     obj_mesh = shapes[0].mesh
+
+    # Material references are identified by the ID assigned to each face of the mesh.
+    # This will be a common id for each mesh, so we'll take the first one.
+    material_id = obj_mesh.material_ids[0]
+
+    material_name = materials[material_id].name if material_id >= 0 else None
 
     vertices = attrib.vertices
     face_vertex_counts = obj_mesh.num_face_vertices
@@ -133,6 +158,12 @@ def _convert_single_obj(prim: Usd.Prim, input_path: pathlib.Path, reader: tinyob
     )
     if not usd_mesh:
         Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
+
+    # If the mesh has a material, stores the material name for the mesh.
+    # Material binding is done on the Geometry layer, so no binding is done at this stage.
+    if material_name:
+        store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), material_name, data)
+
     return usd_mesh
 
 
@@ -142,14 +173,19 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         Tf.Warn(f'Invalid input_path: "{input_path}" could not be parsed. {reader.Error()}')
         return None
 
+    # Store the material data from the OBJ file.
+    store_obj_material_data(input_path, reader, data)
+
     shapes = reader.GetShapes()
     if len(shapes) == 0:
         Tf.Warn(f'Invalid input_path: "{input_path}" contains no meshes')
         return None
     elif len(shapes) == 1:
-        return _convert_single_obj(prim, input_path, reader)
+        # If there is only one shape, convert the single shape.
+        return _convert_single_obj(prim, input_path, reader, data)
 
     attrib = reader.GetAttrib()
+    materials = reader.GetMaterials()
 
     names = []
     for shape in shapes:
@@ -160,6 +196,8 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
     for shape, name, safe_name in zip(shapes, names, safe_names):
         obj_mesh = shape.mesh
         face_vertex_counts = obj_mesh.num_face_vertices
+        material_ids = obj_mesh.material_ids[0]
+        material = materials[material_ids] if material_ids >= 0 else None
 
         # Get indices directly as arrays
         vertex_indices_in_shape = np.array(obj_mesh.vertex_indices(), dtype=np.int32)
@@ -215,6 +253,11 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         if not usd_mesh:
             Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
             return None
+
+        # If the mesh has a material, stores the material name for the mesh.
+        # Material binding is done on the Geometry layer, so no binding is done at this stage.
+        if material and material.name:
+            store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), material.name, data)
 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
