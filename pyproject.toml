@@ -10,6 +10,7 @@ dependencies = [
     "usd-exchange>=2.2.0rc2", # locked to USD 25.05
     "numpy-stl>=3.2",
     "tinyobjloader>=2.0.0rc13",
+    "pycollada>=0.9.2",
 ]
 
 [project.urls]

@@ -37,6 +37,21 @@ class MeshCache:
     def get_mesh_names(self) -> dict:
         return self.mesh_names
 
+    def get_name_from_safe_name(self, safe_name: str) -> str:
+        """
+        Get the name using the safe_name.
+
+        Args:
+            safe_name: The safe_name of the mesh.
+
+        Returns:
+            The name if found, otherwise None.
+        """
+        for data in self.mesh_names.values():
+            if data["safe_name"] == safe_name:
+                return data["name"]
+        return None
+
     def get_safe_name(self, filename: str) -> str:
         """
         Get the safe_name using the filename obtained from the URDF.

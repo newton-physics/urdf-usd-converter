@@ -6,11 +6,12 @@ import numpy as np
 import stl
 import tinyobjloader
 import usdex.core
-from pxr import Gf, Tf, Usd, UsdGeom, Vt
+from pxr import Tf, Usd, UsdGeom, Vt
 
+from .conversion_collada import convert_collada
 from .data import ConversionData, Tokens
 from .material import store_mesh_material_reference, store_obj_material_data
-from .numpy import convert_vec3f_array
+from .numpy import convert_vec2f_array, convert_vec3f_array
 from .ros_package import resolve_ros_package_paths
 
 __all__ = ["convert_meshes"]
@@ -61,8 +62,7 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     elif input_path.suffix.lower() == ".obj":
         convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
-        # TODO: Implement DAE conversion.
-        Tf.Warn(f"The dae format is not yet supported: {input_path}")
+        convert_collada(prim, input_path, data)
     elif not input_path.is_dir():
         Tf.Warn(f"Unsupported mesh format: {input_path}")
     else:
@@ -131,20 +131,20 @@ def _convert_single_obj(
     face_vertex_counts = obj_mesh.num_face_vertices
     face_vertex_indices = obj_mesh.vertex_indices()
 
-    points = [Gf.Vec3f(vertices[i], vertices[i + 1], vertices[i + 2]) for i in range(0, len(vertices), 3)]
+    points = convert_vec3f_array(np.asarray(vertices, dtype=np.float32).reshape(-1, 3))
 
     normals = None
     source_normals = attrib.normals
     if len(source_normals) > 0:
-        normals_data = [Gf.Vec3f(source_normals[i], source_normals[i + 1], source_normals[i + 2]) for i in range(0, len(source_normals), 3)]
-        normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec3fArray(normals_data), Vt.IntArray(obj_mesh.normal_indices()))
+        normals_data = convert_vec3f_array(np.asarray(source_normals, dtype=np.float32).reshape(-1, 3))
+        normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, normals_data, Vt.IntArray(obj_mesh.normal_indices()))
         normals.index()  # re-index the normals to remove duplicates
 
     uvs = None
     source_uvs = attrib.texcoords
     if len(source_uvs) > 0:
-        uv_data = [Gf.Vec2f(source_uvs[i], source_uvs[i + 1]) for i in range(0, len(source_uvs), 2)]
-        uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec2fArray(uv_data), Vt.IntArray(obj_mesh.texcoord_indices()))
+        uv_data = convert_vec2f_array(np.asarray(source_uvs, dtype=np.float32).reshape(-1, 2))
+        uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, Vt.IntArray(obj_mesh.texcoord_indices()))
         uvs.index()  # re-index the uvs to remove duplicates
 
     usd_mesh = usdex.core.definePolyMesh(
@@ -152,7 +152,7 @@ def _convert_single_obj(
         prim.GetName(),
         faceVertexCounts=Vt.IntArray(face_vertex_counts),
         faceVertexIndices=Vt.IntArray(face_vertex_indices),
-        points=Vt.Vec3fArray(points),
+        points=points,
         normals=normals,
         uvs=uvs,
     )
@@ -208,7 +208,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         # Extract vertices: reshape attrib.vertices and use NumPy indexing
         vertices_array = np.array(attrib.vertices, dtype=np.float32).reshape(-1, 3)
         points_array = vertices_array[unique_vertex_indices]
-        points = [Gf.Vec3f(float(p[0]), float(p[1]), float(p[2])) for p in points_array]
+        points = convert_vec3f_array(np.asarray(points_array, dtype=np.float32).reshape(-1, 3))
 
         # Remap indices using NumPy searchsorted
         face_vertex_indices = np.searchsorted(unique_vertex_indices, vertex_indices_in_shape).tolist()
@@ -221,10 +221,10 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
             normals_array = np.array(attrib.normals, dtype=np.float32).reshape(-1, 3)
             normals_data_array = normals_array[unique_normal_indices]
-            normals_data = [Gf.Vec3f(float(n[0]), float(n[1]), float(n[2])) for n in normals_data_array]
+            normals_data = convert_vec3f_array(np.asarray(normals_data_array, dtype=np.float32).reshape(-1, 3))
 
             remapped_normal_indices = np.searchsorted(unique_normal_indices, normal_indices_in_shape).tolist()
-            normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec3fArray(normals_data), Vt.IntArray(remapped_normal_indices))
+            normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, normals_data, Vt.IntArray(remapped_normal_indices))
             normals.index()  # re-index the normals to remove duplicates
 
         # Process UV coordinates
@@ -235,10 +235,10 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
             texcoords_array = np.array(attrib.texcoords, dtype=np.float32).reshape(-1, 2)
             uv_data_array = texcoords_array[unique_texcoord_indices]
-            uv_data = [Gf.Vec2f(float(uv[0]), float(uv[1])) for uv in uv_data_array]
+            uv_data = convert_vec2f_array(np.asarray(uv_data_array, dtype=np.float32).reshape(-1, 2))
 
             remapped_texcoord_indices = np.searchsorted(unique_texcoord_indices, texcoord_indices_in_shape).tolist()
-            uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, Vt.Vec2fArray(uv_data), Vt.IntArray(remapped_texcoord_indices))
+            uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, Vt.IntArray(remapped_texcoord_indices))
             uvs.index()  # re-index the uvs to remove duplicates
 
         usd_mesh = usdex.core.definePolyMesh(
@@ -246,7 +246,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             safe_name,
             faceVertexCounts=Vt.IntArray(face_vertex_counts),
             faceVertexIndices=Vt.IntArray(face_vertex_indices),
-            points=Vt.Vec3fArray(points),
+            points=points,
             normals=normals,
             uvs=uvs,
         )

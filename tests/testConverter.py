@@ -179,6 +179,22 @@ class TestConverter(ConverterTestCase):
         opacity = self.get_material_opacity(texture_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
+    def test_load_warning_dae_no_exist_filename(self):
+        # A non-existent dae file is specified.
+
+        input_path = "tests/data/warning_dae_no_exist_filename.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "warning_dae_no_exist_filename")
+
+        converter = urdf_usd_converter.Converter()
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No such file or directory:.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            converter.convert(input_path, output_dir)
+
     def test_asset_identifer(self):
         model = pathlib.Path("tests/data/prismatic_joints.urdf")
         model_name = model.stem
