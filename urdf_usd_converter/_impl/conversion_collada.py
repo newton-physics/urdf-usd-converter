@@ -147,7 +147,12 @@ def _convert_mesh(
         # If only one geometry exists within the dae, only one mesh will be placed.
         if len(_collada.geometries) == 1:
             _prim = prim.GetParent()
+
+            # _safe_name corresponds to a unique dae file name.
             _safe_name = prim.GetName()
+
+            # Get the name from the safe_name. This corresponds to the dae filename.
+            name = data.mesh_cache.get_name_from_safe_name(_safe_name)
         else:
             _prim = prim
             _safe_name = data.name_cache.getPrimName(prim, name)
@@ -217,13 +222,11 @@ def _traverse_scene(
         matrix = np.matmul(node_matrix, matrix)
 
     # Geometry Node.
-    if isinstance(node, collada.scene.GeometryNode):
-        name = parent_node.name if parent_node else node.geometry.name
-
+    if isinstance(node, collada.scene.GeometryNode) and len(node.geometry.primitives) > 0:
         # Converts geometry to usd meshes.
         # If the geometry has no primitives, skip the conversion.
-        if len(node.geometry.primitives) > 0:
-            _convert_mesh(_collada, prim, name, node.geometry, matrix, data)
+        # The name of the mesh to be created will be the geometry name in DAE.
+        _convert_mesh(_collada, prim, node.geometry.name, node.geometry, matrix, data)
 
     if hasattr(node, "children") and node.children:
         for child in node.children:

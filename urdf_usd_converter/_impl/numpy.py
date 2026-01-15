@@ -24,7 +24,7 @@ def convert_vec2f_array(source: np.ndarray) -> Vt.Vec2fArray:
     assert element_size % 2 == 0
 
     # Reshape to (total_vectors, 2) and create Vec2f objects in batch
-    reshaped = source.reshape(-1, 2).astype(np.float32)
+    reshaped = source.reshape(-1, 2).astype(np.float32) if element_size != 2 else source
     result = [Gf.Vec2f(float(v[0]), float(v[1])) for v in reshaped]
     return Vt.Vec2fArray(result)
 
@@ -46,8 +46,11 @@ def convert_vec3f_array(source: np.ndarray) -> Vt.Vec3fArray:
     num_elements, element_size = source.shape
     assert element_size % 3 == 0
 
+    # In the case of STL, element_size=9, and it holds the three vertices of a triangle as a one-dimensional array.
+    # Therefore, we need to reshape the array to (total_vectors, 3) before creating the Vec3f objects.
+
     # Reshape to (total_vectors, 3) and create Vec3f objects in batch
-    reshaped = source.reshape(-1, 3).astype(np.float32)
+    reshaped = source.reshape(-1, 3).astype(np.float32) if element_size != 3 else source
     result = [Gf.Vec3f(float(v[0]), float(v[1]), float(v[2])) for v in reshaped]
     return Vt.Vec3fArray(result)
 

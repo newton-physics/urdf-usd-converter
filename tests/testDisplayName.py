@@ -76,15 +76,15 @@ class TestDisplayName(ConverterTestCase):
         self.assertTrue(mesh_dae_prim.IsValid())
         self.assertTrue(mesh_dae_prim.IsA(UsdGeom.Xform))
 
-        mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__CubeRed_YE")
+        mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__Cube001_VB")
         self.assertTrue(mesh_dae_mesh_prim.IsValid())
         self.assertTrue(mesh_dae_mesh_prim.IsA(UsdGeom.Mesh))
-        self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube:Red")
+        self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube.001")
 
-        mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__CubeGreen_vH")
+        mesh_dae_mesh_prim = mesh_dae_prim.GetChild("tn__Cube002_VB")
         self.assertTrue(mesh_dae_mesh_prim.IsValid())
         self.assertTrue(mesh_dae_mesh_prim.IsA(UsdGeom.Mesh))
-        self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube:Green")
+        self.assertEqual(usdex.core.getDisplayName(mesh_dae_mesh_prim), "Cube.002")
 
         # Check for physics.
         physics_scope_prim = default_prim.GetChild("Physics")
