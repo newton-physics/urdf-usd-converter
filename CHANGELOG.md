@@ -1,1 +1,85 @@
-# 0.1.0dev0
+# 0.1.0a1
+
+## Features
+
+- **USD Asset Structure**
+  - Output Assets are completely standalone with no dependencies on the source URDF, OBJ, DAE, or STL files
+  - Atomic Component structure with Asset Interface layer and payloaded contents
+  - Separate geometry, material, and physics content layers for easy asset-reuse across domains
+  - Library-based asset references for meshes and materials to avoid heavy data duplication
+  - Explicit USD stage metadata with units (meters, kilograms) and up-axis (Z)
+- **Link Conversion**
+  - URDF links are converted as `UsdGeom.Xform` prims with `UsdPhysics.RigidBodyAPI` applied
+  - The root link has `UsdPhysics.ArticulationRootAPI` applied to indicate the root of the kinematic tree
+  - Links are nested in USD, reflecting the kinematic hierarchy of the source URDF rather than the XML file structure
+  - Complete mass properties including explicit inertia & center of mass via `UsdPhysics.MassAPI`
+- **Joint Conversion**
+  - Revolute joints as `UsdPhysics.RevoluteJoint` with angular limits
+  - Continuous joints as `UsdPhysics.RevoluteJoint` without limits
+  - Prismatic joints as `UsdPhysics.PrismaticJoint` with linear limits
+  - Fixed joints as `UsdPhysics.FixedJoint`
+  - Planar joints as `UsdPhysics.Joint` with the appropriate `UsdPhysics.LimitAPI` applied to constrain the locked DOFs
+  - Floating joints (bodies are free by default in USD)
+  - All joints have automatic joint frame alignment between Body0 and Body1, accounting for URDF joint axis, position, and orientation.
+  - Joint limits for velocity & effort have no equivalent in `UsdPhysics`, but are authored as custom attributes `urdf:limit:velocity` and `urdf:limit:effort` respectively.
+- **Geometry Conversion**
+  - All visual and collision geometry is converted to USD
+    - Visuals are set with `default` UsdPurpose and colliders with `guide` UsdPurpose
+  - `UsdPhysics.CollisionAPI` is applied to colliders
+  - Meshes as `UsdGeom.Mesh`
+    - Automatic mesh library generation with reference-based asset structure, to avoid duplicate topology
+    - STL files converted to USD using `numpy-stl` and `usd-exchange` with normal processing
+    - OBJ files converted using `tinyobjloader` and `usd-exchange` with UV coordinates and normal mapping
+    - DAE files converted using `pycollada` and `usd-exchange` with UV coordinates, normal mapping, and `UsdGeom.Subset` support
+    - OBJ and DAE files specifying multiple meshes convert as a list of meshes under a common parent prim
+    - `UsdPhysics.MeshCollisionAPI` is applied to mesh colliders with convex hull specified as the approximation preference
+  - Spheres as `UsdGeom.Sphere`
+  - Boxes as `UsdGeom.Cube` with scale transforms
+  - Cylinders as `UsdGeom.Cylinder`
+- **Visual Material and Texture Conversion**
+  - All materials are converted to `UsdShade.Material` graphs using `UsdPreviewSurface` shaders, and encapsulated as instanceable material interfaces
+  - PNG texture support with automatic texture copying and path resolution
+  - URDF materials convert rgba as diffuse color and opacity, with support for diffuse textures
+  - OBJ embedded materials (MTL files) convert diffuse color, specular color, dissolve (opacity), roughness (not shininess), metallic, and ior
+    - diffuse, specular, normal/bump, roughness, metallic, and opacity textures are all supported
+- **Prim Naming**
+  - If URDF/DAE/OBJ names are not valid USD specifiers they are automatically transcoded & made unique & valid
+  - Display name metadata preserves the original source names on the USD Prims
+- **Command Line Interface**
+  - Input is an URDF file and default output is a USD Layer as a structured Atomic Component with an Asset Interface USDA layer
+    - All heavy data is compressed binary data (via USDC layers) while lightweight data is plain text for legibility
+  - Optional comment string embedded into all authored USD Layers
+  - Optional Stage flattening for single-file output
+  - Optionally skip the `UsdPhysics.Scene` (this may be desirable for multi-asset setups)
+  - Error handling with graceful failures
+  - Enable verbose output for debugging (exposes any traceback info)
+- **Python API**
+  - Full programmatic access via `urdf_usd_converter.Converter` class with configurable parameters for all CLI flags
+  - Enables interactive editing of the USD Layers after conversion
+
+# Known Limitations
+
+## USD Data Conversion
+
+- **Joint Conversion**
+  - Calibration has no equivalent in `UsdPhysics` and is omitted
+  - Dynamics has no equivalent in `UsdPhysics` and is omitted
+  - Safety Controller has no equivalent in `UsdPhysics` and is omitted
+  - Mimic has no equivalent in `UsdPhysics` and is omitted
+- **Geometry Conversion**
+  - No other file formats beyond OBJ/DAE/STL are supported
+  - For DAE files, only "TriangleSet", "Triangles", "Polylist", and "Polygons" are supported
+  - For OBJ files, only objects with faces are supported (i.e. no points, lines, or free-form curves/surfaces)
+- **Visual Material and Texture Conversion**
+  - DAE embedded materials are not implemented
+  - Projection shaders for basic geometry primitives (box, cylinder, sphere) are not implemented
+  - More accurate PBR materials (e.g. OpenPBR via UsdMtlx) are not implemented
+- **Other Elements**
+  - Transmission conversion is not implemented
+  - Gazebo conversion is not implemented
+  - Conversion of other out-of-spec URDF extensions are not implemented
+
+## Using the USD Asset in other USD Ecosystem applications
+
+- The USD Asset contains nested rigid bodies within articulations.
+  - Support for nested bodies in UsdPhysics is fairly new (as of USD 25.11), and some existing applications may not support this style of nesting.
