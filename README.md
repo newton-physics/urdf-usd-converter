@@ -10,7 +10,7 @@ Key Features:
 - Converts an input URDF file into an OpenUSD Layer
 - Supports data conversion of visual geometry & materials, as well as the links, collision geometry, and joints necessary for kinematic simulation.
 - Available as a python module or command line interface (CLI).
-- Creates a standalone, self-contained artifact with no connection to the source URDF, OBJ, or STL data.
+- Creates a standalone, self-contained artifact with no connection to the source URDF, OBJ, DAE, or STL data.
   - Structured as an [Atomic Component](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html#atomic-model-structure-flowerpot)
   - Suitable for visualization & rendering in any OpenUSD Ecosystem application.
   - Suitable for import & simulation in [Newton](https://github.com/newton-physics/newton).
@@ -26,6 +26,7 @@ The output asset structure is based on NVIDIA's [Principles of Scalable Asset St
 The implementation also leverages the following dependencies:
 - NVIDIA's [OpenUSD Exchange SDK](https://docs.omniverse.nvidia.com/usd/code-docs/usd-exchange-sdk/latest/index.html) to author consistent & correct USD data.
 - Pixar's OpenUSD python modules & native libraries (vendored via the `usd-exchange` wheel).
+- [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader), [pycollada](https://github.com/pycollada/pycollada), and [numpy-stl](https://numpy-stl.readthedocs.io) for parsing any mesh data referenced by the input URDF datasets.
 
 # Get Started
 
@@ -64,7 +65,9 @@ We recommend starting with [usdview](https://docs.omniverse.nvidia.com/usd/lates
 
 However, you cannot start simulating in usdview, as there is no native simulation engine in this application.
 
-To simulate this asset directly, the best application is ...
+To simulate this asset in Newton, call [newton.ModelBuilder.add_usd()](https://newton-physics.github.io/newton/api/_generated/newton.ModelBuilder.html#newton.ModelBuilder.add_usd) to parse the asset and add it to your Newton model.
+
+Simulating in other UsdPhysics enabled products (e.g. NVIDIA Omniverse, Unreal Engine, etc) may provided mixed results. The rigid bodies are structured hierarchically, which maximal coordinate solvers often do not support. In order to see faithful simulation in these applications, the USD asset will need to be modified to suit the expectations of each target runtime.
 
 # Contribution Guidelines
 
