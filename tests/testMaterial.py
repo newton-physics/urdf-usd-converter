@@ -534,10 +534,37 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(blue_material.GetPrim().HasAuthoredReferences())
 
         diffuse_color = self.get_material_diffuse_color(blue_material)
-        self.assertEqual(diffuse_color, Gf.Vec3f(0, 0, 1))
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 0, 1), 1e-6))
         opacity = self.get_material_opacity(blue_material)
-        self.assertEqual(opacity, 1.0)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
 
+        red_material_prim = material_scope_prim.GetChild("red_mat")
+        self.assertTrue(red_material_prim.IsValid())
+        self.assertTrue(red_material_prim.IsA(UsdShade.Material))
+
+        red_material = UsdShade.Material(red_material_prim)
+        self.assertTrue(red_material)
+        self.assertTrue(red_material.GetPrim().HasAuthoredReferences())
+
+        diffuse_color = self.get_material_diffuse_color(red_material)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
+        opacity = self.get_material_opacity(red_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        green_material_prim = material_scope_prim.GetChild("green_mat")
+        self.assertTrue(green_material_prim.IsValid())
+        self.assertTrue(green_material_prim.IsA(UsdShade.Material))
+
+        green_material = UsdShade.Material(green_material_prim)
+        self.assertTrue(green_material)
+        self.assertTrue(green_material.GetPrim().HasAuthoredReferences())
+
+        diffuse_color = self.get_material_diffuse_color(green_material)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        opacity = self.get_material_opacity(green_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        # Check material bindings.
         default_prim = stage.GetDefaultPrim()
         geometry_scope_prim = default_prim.GetChild("Geometry")
         self.assertTrue(geometry_scope_prim.IsValid())
@@ -550,3 +577,15 @@ class TestMaterial(ConverterTestCase):
 
         # Check that the material bind is overwritten with blue_material.
         self.check_material_binding(two_boxes_prim, blue_material)
+
+        # Check that the material bind is overwritten with red_material.
+        cube_red_prim = two_boxes_prim.GetChild("Cube_Red")
+        self.assertTrue(cube_red_prim.IsValid())
+        self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_red_prim, red_material)
+
+        # Check that the material bind is overwritten with green_material.
+        cube_green_prim = two_boxes_prim.GetChild("Cube_Green")
+        self.assertTrue(cube_green_prim.IsValid())
+        self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_green_prim, green_material)

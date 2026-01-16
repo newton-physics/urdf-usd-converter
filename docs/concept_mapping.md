@@ -594,7 +594,8 @@ Mapping the material & shader concepts of these reference formats is outside the
 
 Whether supporting a partial or a full material conversion, they should be converted to appropriate `UsdShadeMaterial` and `UsdShadeShader` prims, stored alongside the native URDF materials in a library, and bound to the UsdGeom prims using an applied `MaterialBindingAPI`.
 
-If there are also direct URDF materials assigned to the same geometry, the native URDF assignments should take precedence (see [material](#material) for guidance).
+If embedded materials are assigned to meshes or their subsets, they will be used.  
+When overriding with URDF materials on these meshes, the URDF materials will be bound to the STL, OBJ, or DAE meshes or subsets that do not have materials assigned (see [material](#material) for guidance).  
 
 In USD, the subset concept maps to `UsdGeomSubset` Prims, which should be children of the `UsdGeomMesh` (see [mesh](#element-mesh)). Each `UsdGeomSubset` can have a `MaterialBindingAPI` applied to it, targeting a different `UsdShadeMaterial`. There is some runtime cost associated with Subsets, so if only one material is applied to the entire mesh, it is preferable to avoid Subset prims & recommended to use a material binding to the mesh itself.
 
