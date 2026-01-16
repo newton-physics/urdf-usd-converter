@@ -39,4 +39,4 @@ class ConversionData:
     ros_packages: list[dict[str, str]]
     resolved_file_paths: dict[str, pathlib.Path]  # [mesh_file_name, resolved_file_path]
     material_data_list: list[MaterialData]  # Store all material parameters.
-    mesh_material_references: dict[pathlib.Path, dict[str, str]]  # [mesh_file_path, [mesh_safe_name, material_name]]
+    mesh_material_references: dict[pathlib.Path, dict[str, list[str]]]  # [mesh_file_path, [mesh_safe_name, material_name_list]]
