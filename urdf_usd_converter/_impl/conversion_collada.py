@@ -5,9 +5,10 @@ import pathlib
 import collada
 import numpy as np
 import usdex.core
-from pxr import Gf, Tf, Usd, UsdGeom, Vt
+from pxr import Gf, Tf, Usd, UsdGeom, UsdShade, Vt
 
 from .data import ConversionData
+from .material import store_dae_material_data, store_mesh_material_reference
 from .numpy import convert_face_indices_array, convert_matrix4d, convert_vec2f_array, convert_vec3f_array
 
 __all__ = ["convert_collada"]
@@ -16,6 +17,9 @@ __all__ = ["convert_collada"]
 def convert_collada(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> Usd.Prim | None:
     try:
         _collada = collada.Collada(str(input_path))
+
+        # Store the material data from the DAE file.
+        store_dae_material_data(input_path, _collada, data)
 
         for scene in _collada.scenes:
             for node in scene.nodes:
@@ -64,6 +68,7 @@ def _convert_mesh(
     all_uvs: Vt.Vec2fArray | None = None
     all_uv_indices: list[int] = []
     face_offsets: list[int] = []
+    face_material_names: list[str] = []
     current_normal_offset = 0
     current_uv_offset = 0
 
@@ -96,6 +101,12 @@ def _convert_mesh(
         unique_vertex_indices.extend(np.unique(face_vertex_indices))
 
         face_offsets.append(len(face_vertex_counts))
+
+        # Get the material name and store it temporarily.
+        # For primitives, the material ID is retrieved.
+        # The material name that matches the material ID is retrieved from the material list in _collada.materials.
+        material_name = next((material.name for material in _collada.materials if material.id == primitive.material), None)
+        face_material_names.append(material_name)
 
         # normals.
         if hasattr(primitive, "normal") and len(primitive.normal) > 0:
@@ -185,10 +196,15 @@ def _convert_mesh(
                 geom_subset = UsdGeom.Subset.Define(stage, usd_mesh.GetPath().AppendChild(subset_name))
                 if geom_subset:
                     geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
-
-                    # TODO: Apply material binding to the subset.
-
+                    geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
                 subset_offset += face_offset
+
+        # Stores the material names referenced by geometry. Each primitive can have its own material.
+        # These will be allocated per single mesh or GeomSubset in USD.
+        # Material binding is done on the Geometry layer, so no binding is done at this stage.
+        if len(face_material_names) > 0:
+            dae_file_path = pathlib.Path(_collada.filename)
+            store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_names, data)
 
         # Convert the matrix to a Gf.Matrix4d.
         usd_matrix = convert_matrix4d(matrix)
