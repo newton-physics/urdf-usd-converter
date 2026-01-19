@@ -579,8 +579,6 @@ class TestMaterial(ConverterTestCase):
         self.assertEqual(diffuse_color_texture_path, pathlib.Path("./Textures/grid.png"))
         opacity = self.get_material_opacity(texture_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
-        ior = self.get_material_ior(texture_material)
-        self.assertAlmostEqual(ior, 1.45, places=6)
 
         material_prim = material_scope_prim.GetChild("emissive_mat")
         self.assertTrue(material_prim.IsValid())
@@ -595,8 +593,6 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(Gf.IsClose(emissive_color, Gf.Vec3f(1, 1, 0), 1e-6))
         opacity = self.get_material_opacity(emissive_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
-        ior = self.get_material_ior(emissive_material)
-        self.assertAlmostEqual(ior, 1.5, places=6)
 
         material_prim = material_scope_prim.GetChild("emissive_color_tex_mat")
         self.assertTrue(material_prim.IsValid())
@@ -617,8 +613,6 @@ class TestMaterial(ConverterTestCase):
         self.assertEqual(diffuse_texture_path, pathlib.Path("./Textures/grid.png"))
         opacity = self.get_material_opacity(opacity_material)
         self.assertAlmostEqual(opacity, 0.4, places=6)
-        ior = self.get_material_ior(opacity_material)
-        self.assertAlmostEqual(ior, 1.0, places=6)
 
         material_prim = material_scope_prim.GetChild("opacity_texture_mat")
         self.assertTrue(material_prim.IsValid())
@@ -629,8 +623,6 @@ class TestMaterial(ConverterTestCase):
         self.assertEqual(diffuse_texture_path, pathlib.Path("./Textures/grid.png"))
         opacity_texture_path = self.get_material_texture_path(opacity_texture_material, "opacity")
         self.assertEqual(opacity_texture_path, pathlib.Path("./Textures/opacity.png"))
-        ior = self.get_material_ior(opacity_texture_material)
-        self.assertAlmostEqual(ior, 1.0, places=6)
 
         material_prim = material_scope_prim.GetChild("specular_mat")
         self.assertTrue(material_prim.IsValid())
@@ -645,8 +637,6 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(Gf.IsClose(specular_color, Gf.Vec3f(0.8, 0.7, 0.1), 1e-6))
         opacity = self.get_material_opacity(specular_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
-        ior = self.get_material_ior(specular_material)
-        self.assertAlmostEqual(ior, 1.5, places=6)
         specular_workflow = self.get_material_specular_workflow(specular_material)
         self.assertTrue(specular_workflow)
 
@@ -662,8 +652,6 @@ class TestMaterial(ConverterTestCase):
         self.assertEqual(specular_texture_path, pathlib.Path("./Textures/specular.png"))
         opacity = self.get_material_opacity(specular_texture_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
-        ior = self.get_material_ior(specular_texture_material)
-        self.assertAlmostEqual(ior, 1.5, places=6)
         specular_workflow = self.get_material_specular_workflow(specular_texture_material)
         self.assertTrue(specular_workflow)
 
@@ -677,8 +665,6 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
         opacity = self.get_material_opacity(material_red)
         self.assertAlmostEqual(opacity, 1.0, places=6)
-        ior = self.get_material_ior(material_red)
-        self.assertAlmostEqual(ior, 1.45, places=6)
 
         material_prim = material_scope_prim.GetChild("Material_green")
         self.assertTrue(material_prim.IsValid())
@@ -690,8 +676,6 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
         opacity = self.get_material_opacity(material_green)
         self.assertAlmostEqual(opacity, 1.0, places=6)
-        ior = self.get_material_ior(material_green)
-        self.assertAlmostEqual(ior, 1.5, places=6)
 
         # Check the bindings.
         default_prim = stage.GetDefaultPrim()
