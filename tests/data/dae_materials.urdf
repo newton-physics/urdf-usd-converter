@@ -14,10 +14,22 @@
       </geometry>
     </visual>
   </link>
+  <link name="link_transparent">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_transparent_material.dae"/>
+      </geometry>
+    </visual>
+  </link>
 
   <joint name="joint_link" type="fixed">
     <origin rpy="0 0 0" xyz="2 0 0"/>
     <parent link="link1"/>
     <child link="link2"/>
+  </joint>
+  <joint name="joint_link_transparent" type="fixed">
+    <origin rpy="0 0 0" xyz="2 0 0"/>
+    <parent link="link2"/>
+    <child link="link_transparent"/>
   </joint>
 </robot>

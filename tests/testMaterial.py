@@ -677,12 +677,24 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(material_green)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
+        material_prim = material_scope_prim.GetChild("transparent_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        material_transparent = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_transparent)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.1, 0.8, 0.1), 1e-6))
+        opacity = self.get_material_opacity(material_transparent)
+        self.assertAlmostEqual(opacity, 0.8, places=6)
+
         # Check the bindings.
         default_prim = stage.GetDefaultPrim()
         geometry_scope_prim = default_prim.GetChild("Geometry")
         self.assertTrue(geometry_scope_prim.IsValid())
         self.assertTrue(geometry_scope_prim.IsA(UsdGeom.Scope))
-        box_materials_prim = geometry_scope_prim.GetChild("link1").GetChild("box_materials")
+        link1_prim = geometry_scope_prim.GetChild("link1")
+        box_materials_prim = link1_prim.GetChild("box_materials")
         self.assertTrue(box_materials_prim.IsValid())
         self.assertTrue(box_materials_prim.IsA(UsdGeom.Xform))
         self.assertTrue(box_materials_prim.HasAuthoredReferences())
@@ -723,7 +735,8 @@ class TestMaterial(ConverterTestCase):
         self.check_material_binding(cube_006_prim, specular_texture_material)
 
         # Check material binding to GeomSubset.
-        box_materials_prim = geometry_scope_prim.GetChild("link1").GetChild("link2").GetChild("box_two_materials")
+        link2_prim = link1_prim.GetChild("link2")
+        box_materials_prim = link2_prim.GetChild("box_two_materials")
         self.assertTrue(box_materials_prim.IsValid())
         self.assertTrue(box_materials_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_materials_prim.HasAuthoredReferences())
@@ -737,3 +750,10 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(subset_002_prim.IsValid())
         self.assertTrue(subset_002_prim.IsA(UsdGeom.Subset))
         self.check_material_binding(subset_002_prim, material_green)
+
+        link_transparent_prim = link2_prim.GetChild("link_transparent")
+        box_transparent_prim = link_transparent_prim.GetChild("box_transparent_material")
+        self.assertTrue(box_transparent_prim.IsValid())
+        self.assertTrue(box_transparent_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_transparent_prim.HasAuthoredReferences())
+        self.check_material_binding(box_transparent_prim, material_transparent)

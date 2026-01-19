@@ -193,8 +193,6 @@ def _add_color_texture_to_preview_material(material_prim: UsdShade.Material, inp
         if value_attrs and len(value_attrs) > 0:
             color = value_attrs[0].Get()
             color_input.GetAttr().Clear()
-    else:
-        color_input = surface.CreateInput(input_name, Sdf.ValueTypeNames.Color3f)
     fallback = Gf.Vec4f(color[0], color[1], color[2], 1.0)
 
     # Acquire the texture reader.
@@ -354,31 +352,29 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         _process_dae_effect_color_property(material.effect, "transparent", mesh_file_path, material_data, "opacity_texture_path", "opacity_color")
 
         # OPAQUE mode ("A_ONE", "RGB_ZERO", None).
-        opaque_mode = None
-        if hasattr(material.effect, "transparent_opaque"):
-            opaque_mode = material.effect.transparent_opaque
-        elif hasattr(material.effect, "opaque_mode"):
-            opaque_mode = material.effect.opaque_mode
+        opaque_mode = material.effect.opaque_mode if hasattr(material.effect, "opaque_mode") else None
 
-        # If transparency is stored in 'opacity', the opaque_mode will reverse the meaning.
+        # Translucency is achieved by multiplying "transparency" and "transparent".
         material_data.opacity = 1.0
         if (
-            hasattr(material.effect, "transparency")
+            opaque_mode is not None
+            and hasattr(material.effect, "transparency")
             and material.effect.transparency is not None
             and not isinstance(material.effect.transparency, collada.material.Map)
         ):
-            transparency = material.effect.transparency
-            material_data.opacity = 1.0 - transparency if opaque_mode == "RGB_ZERO" else transparency
+            material_data.opacity = material.effect.transparency if opaque_mode == "A_ONE" else 1.0 - material.effect.transparency
 
-        # "transparent" has RGBA, and the Alpha value goes into transparent[3].
+        # A_ONE: "transparent" has RGBA, and the Alpha value goes into transparent[3].
+        # RGB_ZERO: "Transparent" has RGB values, and the average of these RGB values is used.
         if (
-            material_data.opacity == 1.0
+            opaque_mode is not None
             and hasattr(material.effect, "transparent")
             and material.effect.transparent is not None
             and not isinstance(material.effect.transparent, collada.material.Map)
         ):
             transparent = material.effect.transparent
-            material_data.opacity = 1.0 - transparent[3] if opaque_mode == "RGB_ZERO" else transparent[3]
+            transparent = transparent[3] if opaque_mode == "A_ONE" else 1.0 - (transparent[0] + transparent[1] + transparent[2]) / 3.0
+            material_data.opacity *= transparent
 
         data.material_data_list.append(material_data)
 
