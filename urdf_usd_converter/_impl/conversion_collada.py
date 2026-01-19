@@ -196,6 +196,7 @@ def _convert_mesh(
                 geom_subset = UsdGeom.Subset.Define(stage, usd_mesh.GetPath().AppendChild(subset_name))
                 if geom_subset:
                     geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
+                    geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
                     geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
                 subset_offset += face_offset
 

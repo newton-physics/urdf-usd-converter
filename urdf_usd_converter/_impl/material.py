@@ -332,30 +332,6 @@ def _process_dae_effect_color_property(
             setattr(material_data, color_attr_name, color)
 
 
-def _get_dae_effect_ior_property(
-    material_effect: collada.material.Effect,
-) -> float:
-    """
-    Get the IOR property of the DAE effect.
-
-    Args:
-        material_effect: The material effect.
-
-    Returns:
-        The IOR value.
-    """
-    if hasattr(material_effect, "xmlnode") and material_effect.xmlnode is not None:
-        # Get the namespace (default COLLADA namespace)
-        namespaces = {"collada": "http://www.collada.org/2005/11/COLLADASchema"}
-
-        # Search for index_of_refraction using XPath
-        ior_elements = material_effect.xmlnode.findall(".//collada:index_of_refraction/collada:float", namespaces)
-        if ior_elements:
-            ior_value = float(ior_elements[0].text)
-            return ior_value
-    return 0.0
-
-
 def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Collada, data: ConversionData):
     """
     Store the material data from the DAE file.
@@ -376,9 +352,6 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         _process_dae_effect_color_property(material.effect, "specular", mesh_file_path, material_data, "specular_texture_path", "specular_color")
         _process_dae_effect_color_property(material.effect, "emission", mesh_file_path, material_data, "emissive_texture_path", "emissive_color")
         _process_dae_effect_color_property(material.effect, "transparent", mesh_file_path, material_data, "opacity_texture_path", "opacity_color")
-
-        # Process the IOR property.
-        material_data.ior = _get_dae_effect_ior_property(material.effect)
 
         # OPAQUE mode ("A_ONE", "RGB_ZERO", None).
         opaque_mode = None
