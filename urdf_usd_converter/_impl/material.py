@@ -532,7 +532,9 @@ def _get_material_name_from_prim(prim: Usd.Prim, resolved_file_path: pathlib.Pat
             # When the parent prim has a reference, the material_dict contains only one element.
             # When referencing, the prim_name may not match the name stored in 'data.mesh_material_references'.
             # Therefore, the first material name list is used.
-            material_name_list = next(iter(material_dict.values())) if parent_prim.HasAuthoredReferences() else material_dict.get(parent_prim_name, None)
+            material_name_list = (
+                next(iter(material_dict.values())) if parent_prim.HasAuthoredReferences() else material_dict.get(parent_prim_name, None)
+            )
 
             if material_name_list and len(all_children_names) == len(material_name_list):
                 index = all_children_names.index(prim_name)
