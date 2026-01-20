@@ -202,7 +202,7 @@ def _convert_mesh(
 
         # Stores the material names referenced by geometry. Each primitive can have its own material.
         # These will be allocated per single mesh or GeomSubset in USD.
-        # Material binding is done on the Geometry layer, so no binding is done at this stage.
+        # Material binding is done on the Material layer, so no binding is done at this stage.
         if len(face_material_names) > 0:
             dae_file_path = pathlib.Path(_collada.filename)
             store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_names, data)
