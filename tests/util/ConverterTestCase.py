@@ -41,6 +41,9 @@ class ConverterTestCase(usdex.test.TestCase):
     def get_material_diffuse_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
         return self._get_material_input_value(material, "diffuseColor")
 
+    def get_material_emissive_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
+        return self._get_material_input_value(material, "emissiveColor")
+
     def get_material_specular_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
         return self._get_material_input_value(material, "specularColor")
 
