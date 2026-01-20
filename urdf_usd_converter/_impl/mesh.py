@@ -134,16 +134,14 @@ def _convert_single_obj(
     points = convert_vec3f_array(np.asarray(vertices, dtype=np.float32).reshape(-1, 3))
 
     normals = None
-    source_normals = attrib.normals
-    if len(source_normals) > 0:
-        normals_data = convert_vec3f_array(np.asarray(source_normals, dtype=np.float32).reshape(-1, 3))
+    if len(attrib.normals) > 0:
+        normals_data = convert_vec3f_array(np.asarray(attrib.normals, dtype=np.float32).reshape(-1, 3))
         normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, normals_data, Vt.IntArray(obj_mesh.normal_indices()))
         normals.index()  # re-index the normals to remove duplicates
 
     uvs = None
-    source_uvs = attrib.texcoords
-    if len(source_uvs) > 0:
-        uv_data = convert_vec2f_array(np.asarray(source_uvs, dtype=np.float32).reshape(-1, 2))
+    if len(attrib.texcoords) > 0:
+        uv_data = convert_vec2f_array(np.asarray(attrib.texcoords, dtype=np.float32).reshape(-1, 2))
         uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, Vt.IntArray(obj_mesh.texcoord_indices()))
         uvs.index()  # re-index the uvs to remove duplicates
 
@@ -195,7 +193,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
     for shape, name, safe_name in zip(shapes, names, safe_names):
         obj_mesh = shape.mesh
-        face_vertex_counts = obj_mesh.num_face_vertices
+        face_vertex_counts = Vt.IntArray(obj_mesh.num_face_vertices)
         material_ids = obj_mesh.material_ids[0]
         material = materials[material_ids] if material_ids >= 0 else None
 
@@ -211,7 +209,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         points = convert_vec3f_array(np.asarray(points_array, dtype=np.float32).reshape(-1, 3))
 
         # Remap indices using NumPy searchsorted
-        face_vertex_indices = np.searchsorted(unique_vertex_indices, vertex_indices_in_shape).tolist()
+        face_vertex_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_vertex_indices, vertex_indices_in_shape))
 
         # Process normals
         normals = None
@@ -223,8 +221,8 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             normals_data_array = normals_array[unique_normal_indices]
             normals_data = convert_vec3f_array(np.asarray(normals_data_array, dtype=np.float32).reshape(-1, 3))
 
-            remapped_normal_indices = np.searchsorted(unique_normal_indices, normal_indices_in_shape).tolist()
-            normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, normals_data, Vt.IntArray(remapped_normal_indices))
+            remapped_normal_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_normal_indices, normal_indices_in_shape))
+            normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, normals_data, remapped_normal_indices)
             normals.index()  # re-index the normals to remove duplicates
 
         # Process UV coordinates
@@ -237,15 +235,15 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             uv_data_array = texcoords_array[unique_texcoord_indices]
             uv_data = convert_vec2f_array(np.asarray(uv_data_array, dtype=np.float32).reshape(-1, 2))
 
-            remapped_texcoord_indices = np.searchsorted(unique_texcoord_indices, texcoord_indices_in_shape).tolist()
-            uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, Vt.IntArray(remapped_texcoord_indices))
+            remapped_texcoord_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_texcoord_indices, texcoord_indices_in_shape))
+            uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, remapped_texcoord_indices)
             uvs.index()  # re-index the uvs to remove duplicates
 
         usd_mesh = usdex.core.definePolyMesh(
             prim,
             safe_name,
-            faceVertexCounts=Vt.IntArray(face_vertex_counts),
-            faceVertexIndices=Vt.IntArray(face_vertex_indices),
+            faceVertexCounts=face_vertex_counts,
+            faceVertexIndices=face_vertex_indices,
             points=points,
             normals=normals,
             uvs=uvs,

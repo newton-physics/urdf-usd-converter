@@ -58,11 +58,11 @@ def _convert_mesh(
     matrix = _multiply_root_matrix(_collada, matrix)
 
     all_face_vertex_counts: list[int] = []
-    all_face_vertex_indices: list[int] = []
+    all_face_vertex_indices_list: list[np.ndarray] = []
     all_normals: Vt.Vec3fArray | None = None
-    all_normal_indices: list[int] = []
+    all_normal_indices_list: list[np.ndarray] = []
     all_uvs: Vt.Vec2fArray | None = None
-    all_uv_indices: list[int] = []
+    all_uv_indices_list: list[np.ndarray] = []
     face_offsets: list[int] = []
     current_normal_offset = 0
     current_uv_offset = 0
@@ -85,15 +85,16 @@ def _convert_mesh(
         # vertex indices.
         if is_triangle_type:
             face_vertex_counts, face_vertex_indices = convert_face_indices_array(primitive.vertex_index)
+            face_vertex_indices_array = np.array(face_vertex_indices, dtype=np.int32)
         else:  # Polylist or Polygons
             # Use numpy for faster conversion
             face_vertex_counts = primitive.vcounts.tolist()
-            face_vertex_indices = primitive.vertex_index.tolist()
+            face_vertex_indices_array = primitive.vertex_index
         all_face_vertex_counts.extend(face_vertex_counts)
-        all_face_vertex_indices.extend(face_vertex_indices)
+        all_face_vertex_indices_list.append(face_vertex_indices_array)
 
         # Remove duplicates and add used vertex indices.
-        unique_vertex_indices.extend(np.unique(face_vertex_indices))
+        unique_vertex_indices.extend(np.unique(face_vertex_indices_array))
 
         face_offsets.append(len(face_vertex_counts))
 
@@ -107,41 +108,46 @@ def _convert_mesh(
             if is_triangle_type:
                 # Flatten 2D array more efficiently
                 if isinstance(normal_indices, np.ndarray):
-                    normal_indices = normal_indices.ravel().tolist()
+                    normal_indices = normal_indices.ravel()
             else:  # Polylist or Polygons
-                normal_indices = normal_indices.tolist()
+                pass  # normal_indices is already a numpy array
 
-            normal_indices = (np.array(normal_indices, dtype=np.int32) + current_normal_offset).tolist()
-            all_normal_indices.extend(normal_indices)
+            normal_indices_array = np.array(normal_indices, dtype=np.int32) + current_normal_offset
+            all_normal_indices_list.append(normal_indices_array)
             current_normal_offset += len(primitive_normals)
 
         # uvs.
         if hasattr(primitive, "texcoordset") and len(primitive.texcoordset) > 0:
             uv_data = convert_vec2f_array(primitive.texcoordset[0])
             all_uvs = uv_data if all_uvs is None else Vt.Vec2fArray(list(all_uvs) + list(uv_data))
-            uv_indices = primitive.texcoord_index if hasattr(primitive, "texcoord_index") else list(range(len(uv_data)))
-            uv_indices = (np.array(uv_indices, dtype=np.int32) + current_uv_offset).tolist()
-            all_uv_indices.extend(uv_indices)
+            uv_indices = primitive.texcoord_index if hasattr(primitive, "texcoord_index") else np.arange(len(uv_data), dtype=np.int32)
+            uv_indices_array = np.array(uv_indices, dtype=np.int32) + current_uv_offset
+            all_uv_indices_list.append(uv_indices_array)
             current_uv_offset += len(uv_data)
+
+    # Concatenate all numpy arrays into single arrays
+    all_face_vertex_indices = np.concatenate(all_face_vertex_indices_list) if all_face_vertex_indices_list else np.array([], dtype=np.int32)
+    all_normal_indices = np.concatenate(all_normal_indices_list) if all_normal_indices_list else np.array([], dtype=np.int32)
+    all_uv_indices = np.concatenate(all_uv_indices_list) if all_uv_indices_list else np.array([], dtype=np.int32)
 
     if len(all_face_vertex_counts) > 0 and len(all_face_vertex_indices) > 0 and all_vertices is not None:
         # Remove unused vertices from all_vertices and update the vertex list all_face_vertex_indices.
         unique_vertex_indices = np.unique(unique_vertex_indices)
 
         vertices_array = np.array(all_vertices, dtype=np.float32).reshape(-1, 3)
-        all_vertices = convert_vec3f_array(vertices_array[unique_vertex_indices])
-        all_face_vertex_indices = np.searchsorted(unique_vertex_indices, all_face_vertex_indices).tolist()
+        all_vertices = Vt.Vec3fArray.FromNumpy(convert_vec3f_array(vertices_array[unique_vertex_indices]))
+        all_face_vertex_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_vertex_indices, all_face_vertex_indices))
 
         # create a normal primvar data for the geometry.
         normals = None
-        if all_normals and all_normal_indices and len(all_normal_indices) == len(all_face_vertex_indices):
-            normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, all_normals, Vt.IntArray(all_normal_indices))
+        if all_normals and len(all_normal_indices) > 0 and len(all_normal_indices) == len(all_face_vertex_indices):
+            normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, all_normals, Vt.IntArray.FromNumpy(all_normal_indices))
             normals.index()  # re-index the normals to remove duplicates
 
         # create a uv primvar data for the geometry.
         uvs = None
-        if all_uvs and all_uv_indices and len(all_uv_indices) == len(all_face_vertex_indices):
-            uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, all_uvs, Vt.IntArray(all_uv_indices))
+        if all_uvs and len(all_uv_indices) > 0 and len(all_uv_indices) == len(all_face_vertex_indices):
+            uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, all_uvs, Vt.IntArray.FromNumpy(all_uv_indices))
             uvs.index()  # re-index the uvs to remove duplicates
 
         # If only one geometry exists within the dae, only one mesh will be placed.
@@ -161,8 +167,8 @@ def _convert_mesh(
             _prim,
             _safe_name,
             faceVertexCounts=Vt.IntArray(all_face_vertex_counts),
-            faceVertexIndices=Vt.IntArray(all_face_vertex_indices),
-            points=Vt.Vec3fArray(all_vertices),
+            faceVertexIndices=all_face_vertex_indices,
+            points=all_vertices,
             normals=normals,
             uvs=uvs,
         )
