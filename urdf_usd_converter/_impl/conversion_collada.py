@@ -146,7 +146,7 @@ def _convert_mesh(
         unique_vertex_indices = np.unique(unique_vertex_indices)
 
         vertices_array = np.array(all_vertices, dtype=np.float32).reshape(-1, 3)
-        all_vertices = Vt.Vec3fArray.FromNumpy(convert_vec3f_array(vertices_array[unique_vertex_indices]))
+        all_vertices = convert_vec3f_array(vertices_array[unique_vertex_indices])
         all_face_vertex_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_vertex_indices, all_face_vertex_indices))
 
         # create a normal primvar data for the geometry.

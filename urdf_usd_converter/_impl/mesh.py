@@ -219,7 +219,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
             normals_array = np.array(attrib.normals, dtype=np.float32).reshape(-1, 3)
             normals_data_array = normals_array[unique_normal_indices]
-            normals_data = convert_vec3f_array(np.asarray(normals_data_array, dtype=np.float32).reshape(-1, 3))
+            normals_data = convert_vec3f_array(normals_data_array)
 
             remapped_normal_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_normal_indices, normal_indices_in_shape))
             normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, normals_data, remapped_normal_indices)
@@ -233,7 +233,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
             texcoords_array = np.array(attrib.texcoords, dtype=np.float32).reshape(-1, 2)
             uv_data_array = texcoords_array[unique_texcoord_indices]
-            uv_data = convert_vec2f_array(np.asarray(uv_data_array, dtype=np.float32).reshape(-1, 2))
+            uv_data = convert_vec2f_array(uv_data_array)
 
             remapped_texcoord_indices = Vt.IntArray.FromNumpy(np.searchsorted(unique_texcoord_indices, texcoord_indices_in_shape))
             uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, uv_data, remapped_texcoord_indices)
