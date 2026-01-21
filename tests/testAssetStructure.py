@@ -298,8 +298,7 @@ class TestAssetStructure(ConverterTestCase):
     def test_physics_layer(self):
         input_path = "tests/data/revolute_joints.urdf"
         robot_name = pathlib.Path(input_path).stem
-        asset: Sdf.AssetPath = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
-        parent_path = pathlib.Path(asset.path).parent
+        urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
 
         # kg per unit is authored in the physics layer
         physics_layer_path = pathlib.Path(self.tmpDir()) / "Payload" / "Physics.usda"
