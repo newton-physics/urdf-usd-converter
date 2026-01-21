@@ -3,6 +3,7 @@
 import pathlib
 import shutil
 
+import collada
 import tinyobjloader
 import usdex.core
 from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdShade, UsdUtils
@@ -16,6 +17,7 @@ __all__ = [
     "bind_material",
     "bind_mesh_material",
     "convert_materials",
+    "store_dae_material_data",
     "store_mesh_material_reference",
     "store_obj_material_data",
 ]
@@ -43,18 +45,7 @@ def convert_materials(data: ConversionData):
         material_prim = _convert_material(
             materials_scope,
             material_data.safe_name,
-            material_data.diffuse_color,
-            material_data.specular_color,
-            material_data.opacity,
-            material_data.roughness,
-            material_data.metallic,
-            material_data.ior,
-            material_data.diffuse_texture_path,
-            material_data.specular_texture_path,
-            material_data.normal_texture_path,
-            material_data.roughness_texture_path,
-            material_data.metallic_texture_path,
-            material_data.opacity_texture_path,
+            material_data,
             material_cache.texture_paths,
             data,
         )
@@ -98,18 +89,7 @@ def _copy_textures(material_cache: MaterialCache, data: ConversionData):
 def _convert_material(
     parent: Usd.Prim,
     safe_name: str,
-    diffuse_color: Gf.Vec3f,
-    specular_color: Gf.Vec3f,
-    opacity: float,
-    roughness: float,
-    metallic: float,
-    ior: float,
-    diffuse_texture_path: pathlib.Path | None,
-    specular_texture_path: pathlib.Path | None,
-    normal_texture_path: pathlib.Path | None,
-    roughness_texture_path: pathlib.Path | None,
-    metallic_texture_path: pathlib.Path | None,
-    opacity_texture_path: pathlib.Path | None,
+    material_data: MaterialData,
     texture_paths: dict[pathlib.Path, str],
     data: ConversionData,
 ) -> UsdShade.Material:
@@ -120,33 +100,23 @@ def _convert_material(
     Args:
         parent: The parent prim.
         safe_name: The safe name of the material. This is a unique name that does not overlap with other material names.
-        diffuse_color: The diffuse color of the material.
-        specular_color: The specular color of the material.
-        opacity: The opacity of the material.
-        roughness: The roughness of the material.
-        metallic: The metallic of the material.
-        ior: The ior of the material.
-        diffuse_texture_path: The path to the diffuse texture.
-        specular_texture_path: The path to the specular texture.
-        normal_texture_path: The path to the normal texture.
-        roughness_texture_path: The path to the roughness texture.
-        metallic_texture_path: The path to the metallic texture.
-        opacity_texture_path: The path to the opacity texture.
+        material_data: The material data. Various material parameters, texture paths, and other settings are stored here.
         texture_paths: A dictionary of texture paths and unique names.
         data: The conversion data.
 
     Returns:
         The material prim.
     """
-    diffuse_color = usdex.core.sRgbToLinear(diffuse_color)
-    specular_color = usdex.core.sRgbToLinear(specular_color)
+    diffuse_color = usdex.core.sRgbToLinear(material_data.diffuse_color)
+    specular_color = usdex.core.sRgbToLinear(material_data.specular_color)
+    emissive_color = usdex.core.sRgbToLinear(material_data.emissive_color)
 
     # Build kwargs for material properties
     material_kwargs = {
         "color": diffuse_color,
-        "opacity": opacity,
-        "roughness": roughness,
-        "metallic": metallic,
+        "opacity": material_data.opacity,
+        "roughness": material_data.roughness,
+        "metallic": material_data.metallic,
     }
 
     # Define the material.
@@ -155,31 +125,46 @@ def _convert_material(
         Tf.RaiseRuntimeError(f'Failed to convert material "{safe_name}"')
 
     surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
-    if ior != 0.0:
-        surface_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(ior)
+    if material_data.ior != 0.0:
+        surface_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(material_data.ior)
 
-    if diffuse_texture_path:
-        usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, _get_texture_asset_path(diffuse_texture_path, texture_paths, data))
+    if material_data.diffuse_texture_path:
+        usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.diffuse_texture_path, texture_paths, data))
 
-    if normal_texture_path:
-        usdex.core.addNormalTextureToPreviewMaterial(material_prim, _get_texture_asset_path(normal_texture_path, texture_paths, data))
+    if material_data.normal_texture_path:
+        usdex.core.addNormalTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.normal_texture_path, texture_paths, data))
 
-    if roughness_texture_path:
-        usdex.core.addRoughnessTextureToPreviewMaterial(material_prim, _get_texture_asset_path(roughness_texture_path, texture_paths, data))
+    if material_data.roughness_texture_path:
+        usdex.core.addRoughnessTextureToPreviewMaterial(
+            material_prim, _get_texture_asset_path(material_data.roughness_texture_path, texture_paths, data)
+        )
 
-    if metallic_texture_path:
-        usdex.core.addMetallicTextureToPreviewMaterial(material_prim, _get_texture_asset_path(metallic_texture_path, texture_paths, data))
+    if material_data.metallic_texture_path:
+        usdex.core.addMetallicTextureToPreviewMaterial(
+            material_prim, _get_texture_asset_path(material_data.metallic_texture_path, texture_paths, data)
+        )
 
-    if opacity_texture_path:
-        usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(opacity_texture_path, texture_paths, data))
+    if material_data.opacity_texture_path:
+        usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data))
 
     # If the specular color is not black or the specular texture exists, use the specular workflow.
-    if specular_color != [0, 0, 0] or specular_texture_path:
+    if specular_color != [0, 0, 0] or material_data.specular_texture_path:
         surface_shader.CreateInput("useSpecularWorkflow", Sdf.ValueTypeNames.Int).Set(1)
         surface_shader.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f).Set(specular_color)
-        if specular_texture_path:
-            _add_specular_texture_to_preview_material(material_prim, _get_texture_asset_path(specular_texture_path, texture_paths, data))
+        if material_data.specular_texture_path:
+            _add_color_texture_to_preview_material(
+                material_prim, "specularColor", "SpecularTexture", _get_texture_asset_path(material_data.specular_texture_path, texture_paths, data)
+            )
 
+    # Add the emissive color to the preview material.
+    if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
+        surface_shader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Color3f).Set(emissive_color)
+        if material_data.emissive_texture_path:
+            _add_color_texture_to_preview_material(
+                material_prim, "emissiveColor", "EmissiveTexture", _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data)
+            )
+
+    # Add the material interface.
     result = usdex.core.addPreviewMaterialInterface(material_prim)
     if not result:
         Tf.RaiseRuntimeError(f'Failed to add material instance to material prim "{material_prim.GetPath()}"')
@@ -189,34 +174,32 @@ def _convert_material(
     return material_prim
 
 
-def _add_specular_texture_to_preview_material(material_prim: UsdShade.Material, specular_texture_path: Sdf.AssetPath):
+def _add_color_texture_to_preview_material(material_prim: UsdShade.Material, input_name: str, shader_name: str, texture_path: Sdf.AssetPath):
     """
-    Add the specular texture to the preview material.
+    Add the color texture(e.g., specular, emissive) to the preview material.
 
     Args:
         material_prim: The material prim.
-        specular_texture_path: The path to the specular texture.
+        input_name: The name of the input (e.g., "specularColor", "emissiveColor").
+        shader_name: The name of the shader (e.g., "SpecularTexture", "EmissiveTexture").
+        texture_path: The path to the texture.
     """
     surface: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
 
-    specular_color = Gf.Vec3f(0.0, 0.0, 0.0)
-    specular_color_input = surface.GetInput("specularColor")
-    if specular_color_input:
-        value_attrs = specular_color_input.GetValueProducingAttributes()
+    color = Gf.Vec3f(0.0, 0.0, 0.0)
+    color_input = surface.GetInput(input_name)
+    if color_input:
+        value_attrs = color_input.GetValueProducingAttributes()
         if value_attrs and len(value_attrs) > 0:
-            specular_color = value_attrs[0].Get()
-            specular_color_input.GetAttr().Clear()
-    else:
-        specular_color_input = surface.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f)
-    fallback = Gf.Vec4f(specular_color[0], specular_color[1], specular_color[2], 1.0)
+            color = value_attrs[0].Get()
+            color_input.GetAttr().Clear()
+    fallback = Gf.Vec4f(color[0], color[1], color[2], 1.0)
 
     # Acquire the texture reader.
-    texture_reader: UsdShade.Shader = _acquire_texture_reader(
-        material_prim, "SpecularTexture", specular_texture_path, usdex.core.ColorSpace.eAuto, fallback
-    )
+    texture_reader: UsdShade.Shader = _acquire_texture_reader(material_prim, shader_name, texture_path, usdex.core.ColorSpace.eAuto, fallback)
 
-    # Connect the PreviewSurface shader "specularColor" to the specular texture shader output
-    specular_color_input.ConnectToSource(texture_reader.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
+    # Connect the PreviewSurface shader "input_name" to the color texture shader output
+    color_input.ConnectToSource(texture_reader.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
 
 
 def _acquire_texture_reader(
@@ -316,19 +299,100 @@ def store_obj_material_data(mesh_file_path: pathlib.Path, reader: tinyobjloader.
         data.material_data_list.append(material_data)
 
 
-def store_mesh_material_reference(mesh_file_path: pathlib.Path, mesh_safe_name: str, material_name: str, data: ConversionData):
+def _process_dae_effect_color_property(
+    material_effect: collada.material.Effect,
+    property_name: str,
+    mesh_file_path: pathlib.Path,
+    material_data: MaterialData,
+    texture_attr_name: str,
+    color_attr_name: str,
+):
+    """
+    Process a single DAE effect color property (diffuse, specular, emission).
+    'texture_attr_name' and 'color_attr_name' are the property names in the MaterialData class.
+
+    Args:
+        material_effect: The material effect.
+        property_name: The name of the material efect property (e.g., 'diffuse', 'specular', 'emission').
+        mesh_file_path: The path to the mesh file.
+        material_data: The material data to update.
+        texture_attr_name: The attribute name for the texture path (e.g., 'diffuse_texture_path').
+        color_attr_name: The attribute name for the color (e.g., 'diffuse_color').
+    """
+    if hasattr(material_effect, property_name):
+        effect_element = getattr(material_effect, property_name)
+        if isinstance(effect_element, collada.material.Map):
+            image = effect_element.sampler.surface.image
+            texture_path = (mesh_file_path.parent / image.path) if image.path else None
+            setattr(material_data, texture_attr_name, texture_path)
+        elif effect_element:
+            color = Gf.Vec3f(effect_element[0], effect_element[1], effect_element[2])
+            setattr(material_data, color_attr_name, color)
+
+
+def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Collada, data: ConversionData):
+    """
+    Store the material data from the DAE file.
+    This is used to temporarily cache material parameters when loading a DAE file.
+
+    Args:
+        mesh_file_path: The path to the mesh file.
+        _collada: The DAE file.
+        data: The conversion data.
+    """
+    for material in _collada.materials:
+        material_data = MaterialData()
+        material_data.mesh_file_path = mesh_file_path
+        material_data.name = material.name
+
+        # Process the color properties.
+        _process_dae_effect_color_property(material.effect, "diffuse", mesh_file_path, material_data, "diffuse_texture_path", "diffuse_color")
+        _process_dae_effect_color_property(material.effect, "specular", mesh_file_path, material_data, "specular_texture_path", "specular_color")
+        _process_dae_effect_color_property(material.effect, "emission", mesh_file_path, material_data, "emissive_texture_path", "emissive_color")
+        _process_dae_effect_color_property(material.effect, "transparent", mesh_file_path, material_data, "opacity_texture_path", "opacity_color")
+
+        # OPAQUE mode ("A_ONE", "RGB_ZERO", None).
+        opaque_mode = material.effect.opaque_mode if hasattr(material.effect, "opaque_mode") else None
+
+        # Translucency is achieved by multiplying "transparency" and "transparent".
+        material_data.opacity = 1.0
+        if (
+            opaque_mode is not None
+            and hasattr(material.effect, "transparency")
+            and material.effect.transparency is not None
+            and not isinstance(material.effect.transparency, collada.material.Map)
+        ):
+            material_data.opacity = material.effect.transparency if opaque_mode == "A_ONE" else 1.0 - material.effect.transparency
+
+        # A_ONE: "transparent" has RGBA, and the Alpha value goes into transparent[3].
+        # RGB_ZERO: "Transparent" has RGB values, and the average of these RGB values is used.
+        if (
+            opaque_mode is not None
+            and hasattr(material.effect, "transparent")
+            and material.effect.transparent is not None
+            and not isinstance(material.effect.transparent, collada.material.Map)
+        ):
+            transparent = material.effect.transparent
+            transparent = transparent[3] if opaque_mode == "A_ONE" else 1.0 - (transparent[0] + transparent[1] + transparent[2]) / 3.0
+            material_data.opacity *= transparent
+
+        data.material_data_list.append(material_data)
+
+
+def store_mesh_material_reference(mesh_file_path: pathlib.Path, mesh_safe_name: str, material_name_list: list[str], data: ConversionData):
     """
     Store the per-mesh material reference.
+    When a single mesh has a GeomSubset, such as dae, it stores multiple materials.
 
     Args:
         mesh_file_path: The path to the source file.
         mesh_safe_name: The safe name of the mesh.
-        material_name: The name of the material.
+        material_name_list: The list of material names.
         data: The conversion data.
     """
     if mesh_file_path not in data.mesh_material_references:
         data.mesh_material_references[mesh_file_path] = {}
-    data.mesh_material_references[mesh_file_path][mesh_safe_name] = material_name
+    data.mesh_material_references[mesh_file_path][mesh_safe_name] = material_name_list
 
 
 def _get_material_by_name(mesh_file_path: pathlib.Path | None, material_name: str, data: ConversionData) -> UsdShade.Material:
@@ -388,6 +452,67 @@ def bind_material(geom_prim: Usd.Prim, mesh_file_path: pathlib.Path | None, mate
     usdex.core.bindMaterial(geom_over, material_prim)
 
 
+def _get_material_name_from_prim(prim: Usd.Prim, resolved_file_path: pathlib.Path, data: ConversionData) -> str | None:
+    """
+    Get the material name from the prim.
+
+    From 'data.mesh_material_references',
+    retrieve the corresponding material name using resolved_file_path and prim name as keys.
+
+    If prim is defined by reference and is of type Mesh,
+    the prim name may differ from the prim name specified in the Geometry library.
+    In that case, it becomes a single mesh, and no child prims exist except for GeomSubset.
+    In this case, the prim name is not used in the material search.
+    instead, the single material name associated with the prim is retrieved.
+
+    Args:
+        prim: The prim.
+        resolved_file_path: The resolved file path.
+        data: The conversion data.
+
+    Returns:
+        The material name if found, otherwise None.
+    """
+    # Get the material dictionary from the mesh file path.
+    material_dict = data.mesh_material_references.get(resolved_file_path, None)
+    if not material_dict:
+        return None
+
+    prim_name = prim.GetName()
+    if prim.IsA(UsdGeom.Mesh):
+        # If there are no child prims, it is a single mesh with no GeomSubset.
+        if prim.HasAuthoredReferences() and len(prim.GetAllChildrenNames()) == 0:
+            # Get the first material name list.
+            # In this case, a prim reference exists, and it refers to the single mesh itself.
+            # When referencing, the prim_name may not match the name stored in 'data.mesh_material_references',
+            # so a single unique material is used.
+            material_name_list = next(iter(material_dict.values()))
+            return material_name_list[0]
+        else:
+            if prim_name in material_dict:
+                return material_dict[prim_name][0]
+
+    elif prim.IsA(UsdGeom.Subset):
+        parent_prim = prim.GetParent()
+        if parent_prim.IsA(UsdGeom.Mesh):
+            parent_prim_name = parent_prim.GetName()
+            all_children_names = parent_prim.GetAllChildrenNames()
+
+            # When the parent prim has a reference, the material_dict contains only one element.
+            # When referencing, the prim_name may not match the name stored in 'data.mesh_material_references'.
+            # Therefore, the first material name list is used.
+            material_name_list = (
+                next(iter(material_dict.values())) if parent_prim.HasAuthoredReferences() else material_dict.get(parent_prim_name, None)
+            )
+
+            if material_name_list and len(all_children_names) == len(material_name_list):
+                index = all_children_names.index(prim_name)
+                if index < len(material_name_list):
+                    return material_name_list[index]
+
+    return None
+
+
 def bind_mesh_material(geom_prim: Usd.Prim, mesh_file_name: str, data: ConversionData):
     """
     Bind the material to the meshes in the geometry.
@@ -401,8 +526,7 @@ def bind_mesh_material(geom_prim: Usd.Prim, mesh_file_name: str, data: Conversio
     """
     resolved_file_path = resolve_ros_package_paths(mesh_file_name, data)
     for prim in Usd.PrimRange(geom_prim):
-        if prim.IsA(UsdGeom.Mesh):
-            mesh_name = prim.GetName()
-            if resolved_file_path in data.mesh_material_references and mesh_name in data.mesh_material_references[resolved_file_path]:
-                material_name = data.mesh_material_references[resolved_file_path][mesh_name]
+        if prim.IsA(UsdGeom.Mesh) or prim.IsA(UsdGeom.Subset):
+            material_name = _get_material_name_from_prim(prim, resolved_file_path, data)
+            if material_name:
                 bind_material(prim, resolved_file_path, material_name, data)

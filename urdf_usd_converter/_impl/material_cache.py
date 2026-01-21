@@ -73,6 +73,7 @@ class MaterialCache:
                 material_data.roughness_texture_path,
                 material_data.metallic_texture_path,
                 material_data.opacity_texture_path,
+                material_data.emissive_texture_path,
             ]
             for texture_path in texture_paths:
                 if texture_path and texture_path not in texture_paths_list:

@@ -160,7 +160,7 @@ def _convert_single_obj(
     # If the mesh has a material, stores the material name for the mesh.
     # Material binding is done on the Geometry layer, so no binding is done at this stage.
     if material_name:
-        store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), material_name, data)
+        store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), [material_name], data)
 
     return usd_mesh
 
@@ -255,7 +255,7 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         # If the mesh has a material, stores the material name for the mesh.
         # Material binding is done on the Geometry layer, so no binding is done at this stage.
         if material and material.name:
-            store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), material.name, data)
+            store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), [material.name], data)
 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)
