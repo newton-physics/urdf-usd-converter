@@ -479,9 +479,9 @@ def _get_material_name_from_prim(prim: Usd.Prim, resolved_file_path: pathlib.Pat
         return None
 
     prim_name = prim.GetName()
-    if prim.IsA(UsdGeom.Mesh):
+    if prim.IsA(UsdGeom.Mesh) and len(prim.GetAllChildrenNames()) == 0:
         # If there are no child prims, it is a single mesh with no GeomSubset.
-        if prim.HasAuthoredReferences() and len(prim.GetAllChildrenNames()) == 0:
+        if prim.HasAuthoredReferences():
             # Get the first material name list.
             # In this case, a prim reference exists, and it refers to the single mesh itself.
             # When referencing, the prim_name may not match the name stored in 'data.mesh_material_references',
