@@ -63,8 +63,10 @@ def _convert_mesh(
 
     all_face_vertex_counts: list[int] = []
     all_face_vertex_indices_list: list[np.ndarray] = []
+    all_normals_list: list[np.ndarray] = []
     all_normals: Vt.Vec3fArray | None = None
     all_normal_indices_list: list[np.ndarray] = []
+    all_uvs_list: list[np.ndarray] = []
     all_uvs: Vt.Vec2fArray | None = None
     all_uv_indices_list: list[np.ndarray] = []
     face_offsets: list[int] = []
@@ -111,8 +113,8 @@ def _convert_mesh(
 
         # normals.
         if hasattr(primitive, "normal") and len(primitive.normal) > 0:
-            primitive_normals = convert_vec3f_array(primitive.normal)
-            all_normals = primitive_normals if all_normals is None else Vt.Vec3fArray(list(all_normals) + list(primitive_normals))
+            primitive_normals = np.array(primitive.normal, dtype=np.float32).reshape(-1, 3)
+            all_normals_list.append(primitive_normals)
             normal_indices = primitive.normal_index
 
             # Optimize flattening operation using numpy when possible
@@ -129,8 +131,8 @@ def _convert_mesh(
 
         # uvs.
         if hasattr(primitive, "texcoordset") and len(primitive.texcoordset) > 0:
-            uv_data = convert_vec2f_array(primitive.texcoordset[0])
-            all_uvs = uv_data if all_uvs is None else Vt.Vec2fArray(list(all_uvs) + list(uv_data))
+            uv_data = np.array(primitive.texcoordset[0], dtype=np.float32).reshape(-1, 2)
+            all_uvs_list.append(uv_data)
             uv_indices = primitive.texcoord_index if hasattr(primitive, "texcoord_index") else np.arange(len(uv_data), dtype=np.int32)
             uv_indices_array = np.array(uv_indices, dtype=np.int32) + current_uv_offset
             all_uv_indices_list.append(uv_indices_array)
@@ -151,12 +153,14 @@ def _convert_mesh(
 
         # create a normal primvar data for the geometry.
         normals = None
+        all_normals = convert_vec3f_array(np.concatenate(all_normals_list)) if len(all_normals_list) > 0 else None
         if all_normals and len(all_normal_indices) > 0 and len(all_normal_indices) == len(all_face_vertex_indices):
             normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.faceVarying, all_normals, Vt.IntArray.FromNumpy(all_normal_indices))
             normals.index()  # re-index the normals to remove duplicates
 
         # create a uv primvar data for the geometry.
         uvs = None
+        all_uvs = convert_vec2f_array(np.concatenate(all_uvs_list)) if len(all_uvs_list) > 0 else None
         if all_uvs and len(all_uv_indices) > 0 and len(all_uv_indices) == len(all_face_vertex_indices):
             uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.faceVarying, all_uvs, Vt.IntArray.FromNumpy(all_uv_indices))
             uvs.index()  # re-index the uvs to remove duplicates
