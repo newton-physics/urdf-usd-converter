@@ -589,3 +589,210 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(cube_green_prim.IsValid())
         self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
         self.check_material_binding(cube_green_prim, green_material)
+
+    def test_dae_materials(self):
+        input_path = "tests/data/dae_materials.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+
+        # Check the materials.
+        material_scope_prim = default_prim.GetChild("Materials")
+        self.assertTrue(material_scope_prim.IsValid())
+
+        material_prim = material_scope_prim.GetChild("texture_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        texture_material = UsdShade.Material(material_prim)
+
+        diffuse_color_texture_path = self.get_material_texture_path(texture_material, "diffuseColor")
+        self.assertEqual(diffuse_color_texture_path, pathlib.Path("./Textures/grid.png"))
+        opacity = self.get_material_opacity(texture_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_prim = material_scope_prim.GetChild("emissive_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        emissive_material = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(emissive_material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 0, 0), 1e-6))
+        emissive_color = self.get_material_emissive_color(emissive_material)
+        emissive_color = usdex.core.linearToSrgb(emissive_color)
+        self.assertTrue(Gf.IsClose(emissive_color, Gf.Vec3f(1, 1, 0), 1e-6))
+        opacity = self.get_material_opacity(emissive_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_prim = material_scope_prim.GetChild("emissive_color_tex_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        emissive_color_tex_material = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(emissive_color_tex_material)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 0, 0), 1e-6))
+        emissive_color_texture_path = self.get_material_texture_path(emissive_color_tex_material, "emissiveColor")
+        self.assertEqual(emissive_color_texture_path, pathlib.Path("./Textures/emissive.png"))
+
+        material_prim = material_scope_prim.GetChild("opacity_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        opacity_material = UsdShade.Material(material_prim)
+
+        diffuse_texture_path = self.get_material_texture_path(opacity_material, "diffuseColor")
+        self.assertEqual(diffuse_texture_path, pathlib.Path("./Textures/grid.png"))
+        opacity = self.get_material_opacity(opacity_material)
+        self.assertAlmostEqual(opacity, 0.4, places=6)
+
+        material_prim = material_scope_prim.GetChild("opacity_texture_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        opacity_texture_material = UsdShade.Material(material_prim)
+
+        diffuse_texture_path = self.get_material_texture_path(opacity_texture_material, "diffuseColor")
+        self.assertEqual(diffuse_texture_path, pathlib.Path("./Textures/grid.png"))
+        opacity_texture_path = self.get_material_texture_path(opacity_texture_material, "opacity")
+        self.assertEqual(opacity_texture_path, pathlib.Path("./Textures/opacity.png"))
+
+        material_prim = material_scope_prim.GetChild("specular_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        specular_material = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(specular_material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.2, 0.2, 0.2), 1e-6))
+        specular_color = self.get_material_specular_color(specular_material)
+        specular_color = usdex.core.linearToSrgb(specular_color)
+        self.assertTrue(Gf.IsClose(specular_color, Gf.Vec3f(0.8, 0.7, 0.1), 1e-6))
+        opacity = self.get_material_opacity(specular_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+        specular_workflow = self.get_material_specular_workflow(specular_material)
+        self.assertTrue(specular_workflow)
+
+        material_prim = material_scope_prim.GetChild("specular_texture_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        specular_texture_material = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(specular_texture_material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.2, 0.2, 0.2), 1e-6))
+        specular_texture_path = self.get_material_texture_path(specular_texture_material, "specularColor")
+        self.assertEqual(specular_texture_path, pathlib.Path("./Textures/specular.png"))
+        opacity = self.get_material_opacity(specular_texture_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+        specular_workflow = self.get_material_specular_workflow(specular_texture_material)
+        self.assertTrue(specular_workflow)
+
+        material_prim = material_scope_prim.GetChild("Material_red")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        material_red = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_red)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
+        opacity = self.get_material_opacity(material_red)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_prim = material_scope_prim.GetChild("Material_green")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        material_green = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_green)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        opacity = self.get_material_opacity(material_green)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_prim = material_scope_prim.GetChild("transparent_mat")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        material_transparent = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_transparent)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.1, 0.8, 0.1), 1e-6))
+        opacity = self.get_material_opacity(material_transparent)
+        self.assertAlmostEqual(opacity, 0.8, places=6)
+
+        # Check the bindings.
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope_prim = default_prim.GetChild("Geometry")
+        self.assertTrue(geometry_scope_prim.IsValid())
+        self.assertTrue(geometry_scope_prim.IsA(UsdGeom.Scope))
+        link1_prim = geometry_scope_prim.GetChild("link1")
+        box_materials_prim = link1_prim.GetChild("box_materials")
+        self.assertTrue(box_materials_prim.IsValid())
+        self.assertTrue(box_materials_prim.IsA(UsdGeom.Xform))
+        self.assertTrue(box_materials_prim.HasAuthoredReferences())
+
+        cube_prim = box_materials_prim.GetChild("Cube")
+        self.assertTrue(cube_prim.IsValid())
+        self.assertTrue(cube_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_prim, texture_material)
+
+        cube_002_prim = box_materials_prim.GetChild("tn__Cube002_VB")
+        self.assertTrue(cube_002_prim.IsValid())
+        self.assertTrue(cube_002_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_002_prim, emissive_material)
+
+        cube_003_prim = box_materials_prim.GetChild("tn__Cube003_VB")
+        self.assertTrue(cube_003_prim.IsValid())
+        self.assertTrue(cube_003_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_003_prim, emissive_color_tex_material)
+
+        cube_004_prim = box_materials_prim.GetChild("tn__Cube004_VB")
+        self.assertTrue(cube_004_prim.IsValid())
+        self.assertTrue(cube_004_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_004_prim, opacity_material)
+
+        cube_005_prim = box_materials_prim.GetChild("tn__Cube005_VB")
+        self.assertTrue(cube_005_prim.IsValid())
+        self.assertTrue(cube_005_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_005_prim, opacity_texture_material)
+
+        cube_001_prim = box_materials_prim.GetChild("tn__Cube001_VB")
+        self.assertTrue(cube_001_prim.IsValid())
+        self.assertTrue(cube_001_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_001_prim, specular_material)
+
+        cube_006_prim = box_materials_prim.GetChild("tn__Cube006_VB")
+        self.assertTrue(cube_006_prim.IsValid())
+        self.assertTrue(cube_006_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_006_prim, specular_texture_material)
+
+        # Check material binding to GeomSubset.
+        link2_prim = link1_prim.GetChild("link2")
+        box_materials_prim = link2_prim.GetChild("box_two_materials")
+        self.assertTrue(box_materials_prim.IsValid())
+        self.assertTrue(box_materials_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_materials_prim.HasAuthoredReferences())
+
+        subset_001_prim = box_materials_prim.GetChild("GeomSubset_001")
+        self.assertTrue(subset_001_prim.IsValid())
+        self.assertTrue(subset_001_prim.IsA(UsdGeom.Subset))
+        self.check_material_binding(subset_001_prim, material_red)
+
+        subset_002_prim = box_materials_prim.GetChild("GeomSubset_002")
+        self.assertTrue(subset_002_prim.IsValid())
+        self.assertTrue(subset_002_prim.IsA(UsdGeom.Subset))
+        self.check_material_binding(subset_002_prim, material_green)
+
+        link_transparent_prim = link2_prim.GetChild("link_transparent")
+        box_transparent_prim = link_transparent_prim.GetChild("box_transparent_material")
+        self.assertTrue(box_transparent_prim.IsValid())
+        self.assertTrue(box_transparent_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_transparent_prim.HasAuthoredReferences())
+        self.check_material_binding(box_transparent_prim, material_transparent)
