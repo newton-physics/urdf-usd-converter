@@ -46,7 +46,7 @@ def convert_geometry(parent: Usd.Prim, name: str, safe_name: str, geometry: Elem
         apply_physics_collision(prim.GetPrim(), data)
 
     # If the visual has a material, bind the material.
-    # After binding materials to each mesh, bind the URDF material.
+    # After binding materials to each mesh, bind the URDF material to any shapes that did not receive materials from the embedded mesh files.
     if isinstance(geometry, ElementVisual):
         if isinstance(geometry.geometry.shape, ElementMesh):
             bind_mesh_material(prim.GetPrim(), geometry.geometry.shape.filename, data)

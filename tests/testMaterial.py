@@ -564,13 +564,29 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(green_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
+        dae_material_prim = material_scope_prim.GetChild("Material")
+        self.assertTrue(dae_material_prim.IsValid())
+        self.assertTrue(dae_material_prim.IsA(UsdShade.Material))
+        dae_material = UsdShade.Material(dae_material_prim)
+        self.assertTrue(dae_material)
+        self.assertTrue(dae_material.GetPrim().HasAuthoredReferences())
+
+        diffuse_color = self.get_material_diffuse_color(dae_material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.8, 0.8, 0.8), 1e-6))
+        opacity = self.get_material_opacity(dae_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
         # Check material bindings.
         default_prim = stage.GetDefaultPrim()
         geometry_scope_prim = default_prim.GetChild("Geometry")
         self.assertTrue(geometry_scope_prim.IsValid())
         self.assertTrue(geometry_scope_prim.IsA(UsdGeom.Scope))
 
-        two_boxes_prim = geometry_scope_prim.GetChild("link_box").GetChild("link_obj").GetChild("two_boxes")
+        link_obj_prim = geometry_scope_prim.GetChild("link_box").GetChild("link_obj")
+        self.assertTrue(link_obj_prim.IsValid())
+
+        two_boxes_prim = link_obj_prim.GetChild("two_boxes")
         self.assertTrue(two_boxes_prim.IsValid())
         self.assertTrue(two_boxes_prim.IsA(UsdGeom.Xform))
         self.assertTrue(two_boxes_prim.HasAuthoredReferences())
@@ -584,11 +600,12 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
         self.check_material_binding(cube_red_prim, red_material)
 
-        # Check that the material bind is overwritten with green_material.
-        cube_green_prim = two_boxes_prim.GetChild("Cube_Green")
-        self.assertTrue(cube_green_prim.IsValid())
-        self.assertTrue(cube_green_prim.IsA(UsdGeom.Mesh))
-        self.check_material_binding(cube_green_prim, green_material)
+        # Check that the material bind is dae_material.
+        # Since the material by dae is already assigned, it will not be overwritten by blue_material.
+        dae_box_prim = link_obj_prim.GetChild("link_dae").GetChild("box")
+        self.assertTrue(dae_box_prim.IsValid())
+        self.assertTrue(dae_box_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(dae_box_prim, dae_material)
 
     def test_dae_materials(self):
         input_path = "tests/data/dae_materials.urdf"

@@ -20,10 +20,27 @@
       <material name="blue"/>
     </visual>
   </link>
+  <link name="link_dae">
+    <visual>
+      <geometry>
+        <!-- This dae file has a material: Material. -->
+        <mesh filename="assets/box.dae" scale="0.5 0.5 0.5"/>
+      </geometry>
+      <!-- Override the material with blue. -->
+      <!-- dae has only one mesh and already has a material assigned. -->
+      <!-- This URDF material specification will be skipped. -->
+      <material name="blue"/>
+    </visual>
+  </link>
 
   <joint name="joint_box_obj" type="fixed">
     <origin rpy="0 0 0" xyz="1 0 0"/>
     <parent link="link_box"/>
     <child link="link_obj"/>
+  </joint>
+  <joint name="joint_obj_dae" type="fixed">
+    <origin rpy="0 0 0" xyz="1 0 0"/>
+    <parent link="link_obj"/>
+    <child link="link_dae"/>
   </joint>
 </robot>
