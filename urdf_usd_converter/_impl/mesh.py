@@ -6,7 +6,7 @@ import numpy as np
 import stl
 import tinyobjloader
 import usdex.core
-from pxr import Tf, Usd, UsdGeom, Vt
+from pxr import Tf, Usd, UsdGeom, UsdShade, Vt
 
 from .conversion_collada import convert_collada
 from .data import ConversionData, Tokens
@@ -95,6 +95,63 @@ def convert_stl(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
     return usd_mesh
 
 
+def _mesh_subsets_obj(
+    mesh: UsdGeom.Mesh,
+    input_path: pathlib.Path,
+    reader: tinyobjloader.ObjReader,
+    obj_mesh: tinyobjloader.mesh_t,
+    data: ConversionData,
+):
+    """
+    Create subsets for the mesh if there are multiple materials.
+    It also stores the names of the materials assigned to the mesh.
+    Material binding is done on the Material layer, so no binding is done at this stage.
+
+    Args:
+        mesh: The USD mesh.
+        input_path: The path to the OBJ file.
+        reader: The tinyobjloader reader.
+        obj_mesh: The tinyobjloader mesh.
+        data: The conversion data.
+    """
+    materials = reader.GetMaterials()
+
+    # Get a list of face numbers for each material_id from obj_mesh.material_ids.
+    # If a material does not exist, the material_id for the face will be set to -1.
+    face_list_by_material = {}
+    material_ids_array = np.array(obj_mesh.material_ids)
+    unique_material_ids = np.unique(material_ids_array)
+
+    if len(unique_material_ids) == 1:
+        # If there is only one material. In this case, no subset is created.
+        material_id = int(unique_material_ids[0])
+        material_name = materials[material_id].name if material_id >= 0 else None
+        if material_name:
+            store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), [material_name], data)
+        return
+
+    for material_id in unique_material_ids:
+        face_indices = np.where(material_ids_array == material_id)[0]
+        face_list_by_material[int(material_id)] = Vt.IntArray.FromNumpy(face_indices)
+
+    stage = mesh.GetPrim().GetStage()
+
+    # If there are multiple materials. In this case, subsets are created.
+    material_names = []
+    for i, (material_id, face_indices) in enumerate(face_list_by_material.items()):
+        material_name = materials[material_id].name if material_id >= 0 else None
+        material_names.append(material_name)
+        subset_name = f"GeomSubset_{(i+1):03d}"
+
+        geom_subset = UsdGeom.Subset.Define(stage, mesh.GetPrim().GetPath().AppendChild(subset_name))
+        geom_subset.GetIndicesAttr().Set(face_indices)
+        geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
+        geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
+
+    # Store the material names for the mesh.
+    store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), material_names, data)
+
+
 def _convert_single_obj(
     prim: Usd.Prim,
     input_path: pathlib.Path,
@@ -116,16 +173,9 @@ def _convert_single_obj(
     """
     shapes = reader.GetShapes()
     attrib = reader.GetAttrib()
-    materials = reader.GetMaterials()
 
     # This method only deals with a single mesh, so it only considers the first mesh.
     obj_mesh = shapes[0].mesh
-
-    # Material references are identified by the ID assigned to each face of the mesh.
-    # This will be a common id for each mesh, so we'll take the first one.
-    material_id = obj_mesh.material_ids[0]
-
-    material_name = materials[material_id].name if material_id >= 0 else None
 
     vertices = attrib.vertices
     face_vertex_counts = obj_mesh.num_face_vertices
@@ -157,10 +207,9 @@ def _convert_single_obj(
     if not usd_mesh:
         Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
 
-    # If the mesh has a material, stores the material name for the mesh.
+    # Create subsets for the mesh if there are multiple materials.
     # Material binding is done on the Geometry layer, so no binding is done at this stage.
-    if material_name:
-        store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), [material_name], data)
+    _mesh_subsets_obj(usd_mesh, input_path, reader, obj_mesh, data)
 
     return usd_mesh
 
@@ -183,7 +232,6 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
         return _convert_single_obj(prim, input_path, reader, data)
 
     attrib = reader.GetAttrib()
-    materials = reader.GetMaterials()
 
     names = []
     for shape in shapes:
@@ -193,9 +241,8 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
 
     for shape, name, safe_name in zip(shapes, names, safe_names):
         obj_mesh = shape.mesh
+
         face_vertex_counts = Vt.IntArray(obj_mesh.num_face_vertices)
-        material_ids = obj_mesh.material_ids[0]
-        material = materials[material_ids] if material_ids >= 0 else None
 
         # Get indices directly as arrays
         vertex_indices_in_shape = np.array(obj_mesh.vertex_indices(), dtype=np.int32)
@@ -250,10 +297,9 @@ def convert_obj(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) 
             Tf.Warn(f'Failed to convert mesh "{prim.GetPath()}" from {input_path}')
             return None
 
-        # If the mesh has a material, stores the material name for the mesh.
+        # Create subsets for the mesh if there are multiple materials.
         # Material binding is done on the Geometry layer, so no binding is done at this stage.
-        if material and material.name:
-            store_mesh_material_reference(input_path, usd_mesh.GetPrim().GetName(), [material.name], data)
+        _mesh_subsets_obj(usd_mesh, input_path, reader, obj_mesh, data)
 
         if name != safe_name:
             usdex.core.setDisplayName(usd_mesh.GetPrim(), name)

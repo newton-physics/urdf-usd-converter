@@ -813,3 +813,99 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(box_transparent_prim.IsA(UsdGeom.Mesh))
         self.assertTrue(box_transparent_prim.HasAuthoredReferences())
         self.check_material_binding(box_transparent_prim, material_transparent)
+
+    def test_mesh_subsets_materials(self):
+        input_path = "tests/data/mesh_subsets.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+
+        # Check the materials.
+        material_scope_prim = default_prim.GetChild("Materials")
+        self.assertTrue(material_scope_prim.IsValid())
+
+        material_green_prim = material_scope_prim.GetChild("Material_green")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+        material_green = UsdShade.Material(material_green_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_green)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        opacity = self.get_material_opacity(material_green)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_red_prim = material_scope_prim.GetChild("Material_red")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+        material_red = UsdShade.Material(material_red_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_red)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
+        opacity = self.get_material_opacity(material_red)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_red_1_prim = material_scope_prim.GetChild("Material_red_1")
+        self.assertTrue(material_red_1_prim.IsValid())
+        self.assertTrue(material_red_1_prim.IsA(UsdShade.Material))
+        material_red_1 = UsdShade.Material(material_red_1_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_red_1)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
+        opacity = self.get_material_opacity(material_red_1)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        material_green_1_prim = material_scope_prim.GetChild("Material_green_1")
+        self.assertTrue(material_green_1_prim.IsValid())
+        self.assertTrue(material_green_1_prim.IsA(UsdShade.Material))
+        material_green_1 = UsdShade.Material(material_green_1_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material_green_1)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        opacity = self.get_material_opacity(material_green_1)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        # Check the bindings.
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope_prim = default_prim.GetChild("Geometry")
+        self.assertTrue(geometry_scope_prim.IsValid())
+        self.assertTrue(geometry_scope_prim.IsA(UsdGeom.Scope))
+        link_mesh_obj_prim = geometry_scope_prim.GetChild("link_mesh_obj")
+        box_materials_prim = link_mesh_obj_prim.GetChild("box_two_materials")
+        self.assertTrue(box_materials_prim.IsValid())
+        self.assertTrue(box_materials_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_materials_prim.HasAuthoredReferences())
+
+        subset_001_prim = box_materials_prim.GetChild("GeomSubset_001")
+        self.assertTrue(subset_001_prim.IsValid())
+        self.assertTrue(subset_001_prim.IsA(UsdGeom.Subset))
+        self.check_material_binding(subset_001_prim, material_green)
+
+        subset_002_prim = box_materials_prim.GetChild("GeomSubset_002")
+        self.assertTrue(subset_002_prim.IsValid())
+        self.assertTrue(subset_002_prim.IsA(UsdGeom.Subset))
+        self.check_material_binding(subset_002_prim, material_red)
+
+        link_mesh_dae_prim = link_mesh_obj_prim.GetChild("link_mesh_dae")
+        box_materials_prim = link_mesh_dae_prim.GetChild("box_two_materials")
+        self.assertTrue(box_materials_prim.IsValid())
+        self.assertTrue(box_materials_prim.IsA(UsdGeom.Mesh))
+        self.assertTrue(box_materials_prim.HasAuthoredReferences())
+
+        subset_001_prim = box_materials_prim.GetChild("GeomSubset_001")
+        self.assertTrue(subset_001_prim.IsValid())
+        self.assertTrue(subset_001_prim.IsA(UsdGeom.Subset))
+        self.check_material_binding(subset_001_prim, material_red_1)
+
+        subset_002_prim = box_materials_prim.GetChild("GeomSubset_002")
+        self.assertTrue(subset_002_prim.IsValid())
+        self.assertTrue(subset_002_prim.IsA(UsdGeom.Subset))
+        self.check_material_binding(subset_002_prim, material_green_1)

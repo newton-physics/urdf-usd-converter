@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot name="mesh_subsets">
+  <link name="link_mesh_obj">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_two_materials.obj" />
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_mesh_dae">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_two_materials.dae" />
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_mesh_obj_mesh_dae" type="fixed">
+    <origin rpy="0 0 0" xyz="2 0 0"/>
+    <parent link="link_mesh_obj"/>
+    <child link="link_mesh_dae"/>
+  </joint>
+</robot>
