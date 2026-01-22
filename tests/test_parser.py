@@ -656,7 +656,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(element.undefined_attributes, {"data": "custom_data"})
         self.assertEqual(element.line_number, 42)
 
-    def test_load_fixed_joint_axis_0(self):
+    def test_fixed_joint_axis_0(self):
         # In the case of a fixed joint, the axis (0, 0, 0) is skipped without causing an error.
         model_path = pathlib.Path("tests/data/fixed_joint_axis_0.urdf")
         parser = URDFParser(model_path)
