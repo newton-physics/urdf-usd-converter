@@ -132,7 +132,7 @@ def _mesh_subsets_obj(
 
     for material_id in unique_material_ids:
         face_indices = np.where(material_ids_array == material_id)[0]
-        face_list_by_material[int(material_id)] = face_indices.tolist()
+        face_list_by_material[int(material_id)] = Vt.IntArray.FromNumpy(face_indices)
 
     stage = mesh.GetPrim().GetStage()
 
@@ -144,7 +144,7 @@ def _mesh_subsets_obj(
         subset_name = f"GeomSubset_{(i+1):03d}"
 
         geom_subset = UsdGeom.Subset.Define(stage, mesh.GetPrim().GetPath().AppendChild(subset_name))
-        geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
+        geom_subset.GetIndicesAttr().Set(face_indices)
         geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
         geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
 
