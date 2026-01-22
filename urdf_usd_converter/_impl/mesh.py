@@ -105,7 +105,7 @@ def _mesh_subsets_obj(
     """
     Create subsets for the mesh if there are multiple materials.
     It also stores the names of the materials assigned to the mesh.
-    Material binding is done on the Geometry layer, so no binding is done at this stage.
+    Material binding is done on the Material layer, so no binding is done at this stage.
 
     Args:
         mesh: The USD mesh.
@@ -114,41 +114,42 @@ def _mesh_subsets_obj(
         obj_mesh: The tinyobjloader mesh.
         data: The conversion data.
     """
+    materials = reader.GetMaterials()
+
     # Get a list of face numbers for each material_id from obj_mesh.material_ids.
     # If a material does not exist, the material_id for the face will be set to -1.
     face_list_by_material = {}
     material_ids_array = np.array(obj_mesh.material_ids)
     unique_material_ids = np.unique(material_ids_array)
+
+    if len(unique_material_ids) == 1:
+        # If there is only one material. In this case, no subset is created.
+        material_id = int(unique_material_ids[0])
+        material_name = materials[material_id].name if material_id >= 0 else None
+        if material_name:
+            store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), [material_name], data)
+        return
+
     for material_id in unique_material_ids:
         face_indices = np.where(material_ids_array == material_id)[0]
         face_list_by_material[int(material_id)] = face_indices.tolist()
 
-    materials = reader.GetMaterials()
-    if len(face_list_by_material) == 1:
-        # If there is only one material. In this case, no subset is created.
-        material_id = next(iter(face_list_by_material.keys()))
+    stage = mesh.GetPrim().GetStage()
+
+    # If there are multiple materials. In this case, subsets are created.
+    material_names = []
+    for i, (material_id, face_indices) in enumerate(face_list_by_material.items()):
         material_name = materials[material_id].name if material_id >= 0 else None
-        if material_name:
-            store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), [material_name], data)
-            return
-    else:
-        stage = mesh.GetPrim().GetStage()
+        material_names.append(material_name)
+        subset_name = f"GeomSubset_{(i+1):03d}"
 
-        # If there are multiple materials. In this case, subsets are created.
-        material_names = []
-        for i, (material_id, face_indices) in enumerate(face_list_by_material.items()):
-            material_name = materials[material_id].name if material_id >= 0 else None
-            material_names.append(material_name)
-            subset_name = f"GeomSubset_{(i+1):03d}"
+        geom_subset = UsdGeom.Subset.Define(stage, mesh.GetPrim().GetPath().AppendChild(subset_name))
+        geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
+        geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
+        geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
 
-            geom_subset = UsdGeom.Subset.Define(stage, mesh.GetPrim().GetPath().AppendChild(subset_name))
-            if geom_subset:
-                geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
-                geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
-                geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
-
-        # Store the material names for the mesh.
-        store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), material_names, data)
+    # Store the material names for the mesh.
+    store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), material_names, data)
 
 
 def _convert_single_obj(
