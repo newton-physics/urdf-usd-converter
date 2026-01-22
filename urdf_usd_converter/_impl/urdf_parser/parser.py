@@ -353,7 +353,8 @@ class URDFParser:
 
         elif isinstance(element, ElementAxis):
             element.xyz = self._convert_attribute_float3(node, "xyz")
-            if element.xyz == (0, 0, 0):
+            # If the axis xyz is (0, 0, 0) and the joint type is not fixed, an error occurs.
+            if element.xyz == (0, 0, 0) and prev_element_type == ElementJoint and prev_element.type != "fixed":
                 raise ValueError(self._get_error_message("Axis xyz cannot be (0, 0, 0)", node))
 
         elif isinstance(element, ElementVerbose):

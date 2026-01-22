@@ -1,0 +1,27 @@
+<robot name="fixed_joint_axis_0">
+  <link name="BaseLink">
+    <visual>
+      <origin rpy="0 0 0" xyz="-2 0 0.5"/>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- The axis xyz is (0, 0, 0). For fixed joints, the axis is ignored. -->
+  <joint name="JointA" type="fixed">
+    <parent link="BaseLink"/>
+    <child link="link2" />
+    <axis xyz="0 0 0"/>
+    <limit lower="-20" upper="20"/>
+  </joint>
+</robot>

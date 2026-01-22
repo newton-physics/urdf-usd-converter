@@ -655,3 +655,19 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(element.undefined_element, False)
         self.assertEqual(element.undefined_attributes, {"data": "custom_data"})
         self.assertEqual(element.line_number, 42)
+
+    def test_fixed_joint_axis_0(self):
+        # In the case of a fixed joint, the axis (0, 0, 0) is skipped without causing an error.
+        model_path = pathlib.Path("tests/data/fixed_joint_axis_0.urdf")
+        parser = URDFParser(model_path)
+        parser.parse()
+
+        root_element = parser.get_root_element()
+        self.assertEqual(len(root_element.joints), 1)
+        joint = root_element.joints[0]
+        self.assertEqual(joint.name, "JointA")
+        self.assertEqual(joint.type, "fixed")
+        self.assertTrue(joint.parent)
+        self.assertEqual(joint.parent.link, "BaseLink")
+        self.assertTrue(joint.child)
+        self.assertEqual(joint.child.link, "link2")
