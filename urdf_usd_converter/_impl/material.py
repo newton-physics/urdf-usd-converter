@@ -432,6 +432,15 @@ def bind_material(geom_prim: Usd.Prim, mesh_file_path: pathlib.Path | None, mate
         Tf.Warn(f"Material '{material_name}' not found in Material Library {data.libraries[Tokens.Materials].GetRootLayer().identifier}")
         return
 
+    geom_over = data.content[Tokens.Materials].OverridePrim(geom_prim.GetPath())
+
+    # If the geometry already has a material binding, skip the binding.
+    material_binding = UsdShade.MaterialBindingAPI(geom_over)
+    if material_binding:
+        binding_rel = material_binding.GetDirectBindingRel()
+        if len(binding_rel.GetTargets()) > 0:
+            return
+
     # If the material does not exist in the Material layer, define the reference.
     material_prim = UsdShade.Material(local_materials.GetChild(ref_material.GetPrim().GetName()))
     if not material_prim:
@@ -448,7 +457,6 @@ def bind_material(geom_prim: Usd.Prim, mesh_file_path: pathlib.Path | None, mate
                 break
 
     # Bind the material to the geometry.
-    geom_over = data.content[Tokens.Materials].OverridePrim(geom_prim.GetPath())
     usdex.core.bindMaterial(geom_over, material_prim)
 
 
@@ -479,9 +487,9 @@ def _get_material_name_from_prim(prim: Usd.Prim, resolved_file_path: pathlib.Pat
         return None
 
     prim_name = prim.GetName()
-    if prim.IsA(UsdGeom.Mesh):
+    if prim.IsA(UsdGeom.Mesh) and len(prim.GetAllChildrenNames()) == 0:
         # If there are no child prims, it is a single mesh with no GeomSubset.
-        if prim.HasAuthoredReferences() and len(prim.GetAllChildrenNames()) == 0:
+        if prim.HasAuthoredReferences():
             # Get the first material name list.
             # In this case, a prim reference exists, and it refers to the single mesh itself.
             # When referencing, the prim_name may not match the name stored in 'data.mesh_material_references',

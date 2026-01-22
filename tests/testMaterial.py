@@ -534,22 +534,78 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(blue_material.GetPrim().HasAuthoredReferences())
 
         diffuse_color = self.get_material_diffuse_color(blue_material)
-        self.assertEqual(diffuse_color, Gf.Vec3f(0, 0, 1))
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 0, 1), 1e-6))
         opacity = self.get_material_opacity(blue_material)
-        self.assertEqual(opacity, 1.0)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
 
+        red_material_prim = material_scope_prim.GetChild("red_mat")
+        self.assertTrue(red_material_prim.IsValid())
+        self.assertTrue(red_material_prim.IsA(UsdShade.Material))
+
+        red_material = UsdShade.Material(red_material_prim)
+        self.assertTrue(red_material)
+        self.assertTrue(red_material.GetPrim().HasAuthoredReferences())
+
+        diffuse_color = self.get_material_diffuse_color(red_material)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
+        opacity = self.get_material_opacity(red_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        green_material_prim = material_scope_prim.GetChild("green_mat")
+        self.assertTrue(green_material_prim.IsValid())
+        self.assertTrue(green_material_prim.IsA(UsdShade.Material))
+
+        green_material = UsdShade.Material(green_material_prim)
+        self.assertTrue(green_material)
+        self.assertTrue(green_material.GetPrim().HasAuthoredReferences())
+
+        diffuse_color = self.get_material_diffuse_color(green_material)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        opacity = self.get_material_opacity(green_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        dae_material_prim = material_scope_prim.GetChild("Material")
+        self.assertTrue(dae_material_prim.IsValid())
+        self.assertTrue(dae_material_prim.IsA(UsdShade.Material))
+        dae_material = UsdShade.Material(dae_material_prim)
+        self.assertTrue(dae_material)
+        self.assertTrue(dae_material.GetPrim().HasAuthoredReferences())
+
+        diffuse_color = self.get_material_diffuse_color(dae_material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.8, 0.8, 0.8), 1e-6))
+        opacity = self.get_material_opacity(dae_material)
+        self.assertAlmostEqual(opacity, 1.0, places=6)
+
+        # Check material bindings.
         default_prim = stage.GetDefaultPrim()
         geometry_scope_prim = default_prim.GetChild("Geometry")
         self.assertTrue(geometry_scope_prim.IsValid())
         self.assertTrue(geometry_scope_prim.IsA(UsdGeom.Scope))
 
-        two_boxes_prim = geometry_scope_prim.GetChild("link_box").GetChild("link_obj").GetChild("two_boxes")
+        link_obj_prim = geometry_scope_prim.GetChild("link_box").GetChild("link_obj")
+        self.assertTrue(link_obj_prim.IsValid())
+
+        two_boxes_prim = link_obj_prim.GetChild("two_boxes")
         self.assertTrue(two_boxes_prim.IsValid())
         self.assertTrue(two_boxes_prim.IsA(UsdGeom.Xform))
         self.assertTrue(two_boxes_prim.HasAuthoredReferences())
 
         # Check that the material bind is overwritten with blue_material.
         self.check_material_binding(two_boxes_prim, blue_material)
+
+        # Check that the material bind is overwritten with red_material.
+        cube_red_prim = two_boxes_prim.GetChild("Cube_Red")
+        self.assertTrue(cube_red_prim.IsValid())
+        self.assertTrue(cube_red_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(cube_red_prim, red_material)
+
+        # Check that the material bind is dae_material.
+        # Since the material by dae is already assigned, it will not be overwritten by blue_material.
+        dae_box_prim = link_obj_prim.GetChild("link_dae").GetChild("box")
+        self.assertTrue(dae_box_prim.IsValid())
+        self.assertTrue(dae_box_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(dae_box_prim, dae_material)
 
     def test_dae_materials(self):
         input_path = "tests/data/dae_materials.urdf"
