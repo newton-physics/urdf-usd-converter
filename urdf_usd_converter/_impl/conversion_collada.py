@@ -144,17 +144,11 @@ def _convert_mesh(
             uv_data = np.array(primitive.texcoordset[0], dtype=np.float32).reshape(-1, 2)
             all_uvs_list.append(uv_data)
 
-            # Try multiple possible attribute names for UV indices
-            uv_indices = None
-            if hasattr(primitive, "texcoord_indexset") and len(primitive.texcoord_indexset) > 0:
-                # For primitives with multiple UV sets
-                uv_indices = primitive.texcoord_indexset[0]
-            elif hasattr(primitive, "texcoord_index"):
-                uv_indices = primitive.texcoord_index
-            else:
-                # Fallback: If no indices are specified, assume sequential indices (0, 1, 2, ...)
-                # This means UV coordinates are stored in vertex order without explicit indexing
-                uv_indices = np.arange(len(uv_data), dtype=np.int32)
+            uv_indices = (
+                primitive.texcoord_indexset[0]
+                if hasattr(primitive, "texcoord_indexset") and len(primitive.texcoord_indexset) > 0
+                else np.arange(len(uv_data), dtype=np.int32)
+            )
 
             # Flatten the UV indices array if needed (same as normal_index processing)
             if is_triangle_type:
