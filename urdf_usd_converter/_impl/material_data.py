@@ -17,7 +17,13 @@ class MaterialData:
         self.mesh_file_path: pathlib.Path | None = None
 
         # The name of the material.
+        # For dae files, the material ID.
         self.name: str | None = None
+
+        # Material name for the dae file.
+        # Duplicate names may exist within the dae file.
+        # This is the name used for the displayName of the material prim in USD.
+        self.material_name: str | None = None
 
         # The safe name of the material.
         # This is a unique name that does not overlap with other material names.
@@ -39,3 +45,9 @@ class MaterialData:
         self.roughness_texture_path: pathlib.Path | None = None
         self.metallic_texture_path: pathlib.Path | None = None
         self.opacity_texture_path: pathlib.Path | None = None
+
+    def get_display_name(self) -> str:
+        """
+        Get the display name of the material.
+        """
+        return self.material_name if self.material_name else self.name

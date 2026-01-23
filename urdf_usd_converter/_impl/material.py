@@ -50,8 +50,9 @@ def convert_materials(data: ConversionData):
             data,
         )
         data.references[Tokens.Materials][material_data.safe_name] = material_prim
-        if material_data.name != material_data.safe_name:
-            usdex.core.setDisplayName(material_prim.GetPrim(), material_data.name)
+        display_name = material_data.get_display_name()
+        if display_name != material_data.safe_name:
+            usdex.core.setDisplayName(material_prim.GetPrim(), display_name)
 
     robot_name = data.urdf_parser.get_robot_name()
     usdex.core.saveStage(data.libraries[Tokens.Materials], comment=f"Material Library for {robot_name}. {data.comment}")
@@ -343,7 +344,11 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
     for material in _collada.materials:
         material_data = MaterialData()
         material_data.mesh_file_path = mesh_file_path
-        material_data.name = material.name
+
+        # Within the dae file, unique names must use the material ID.
+        # For the displayName of USD, use material.name.
+        material_data.name = material.id
+        material_data.material_name = material.name
 
         # Process the color properties.
         _process_dae_effect_color_property(material.effect, "diffuse", mesh_file_path, material_data, "diffuse_texture_path", "diffuse_color")

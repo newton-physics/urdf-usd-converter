@@ -564,7 +564,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(green_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        dae_material_prim = material_scope_prim.GetChild("Material")
+        dae_material_prim = material_scope_prim.GetChild("tn__Materialmaterial_yN")
         self.assertTrue(dae_material_prim.IsValid())
         self.assertTrue(dae_material_prim.IsA(UsdShade.Material))
         dae_material = UsdShade.Material(dae_material_prim)
@@ -626,7 +626,7 @@ class TestMaterial(ConverterTestCase):
         material_scope_prim = default_prim.GetChild("Materials")
         self.assertTrue(material_scope_prim.IsValid())
 
-        material_prim = material_scope_prim.GetChild("texture_mat")
+        material_prim = material_scope_prim.GetChild("tn__texture_matmaterial_hS")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         texture_material = UsdShade.Material(material_prim)
@@ -636,7 +636,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(texture_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        material_prim = material_scope_prim.GetChild("emissive_mat")
+        material_prim = material_scope_prim.GetChild("tn__emissive_matmaterial_wT")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         emissive_material = UsdShade.Material(material_prim)
@@ -650,7 +650,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(emissive_material)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        material_prim = material_scope_prim.GetChild("emissive_color_tex_mat")
+        material_prim = material_scope_prim.GetChild("tn__emissive_color_tex_matmaterial_ri0")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         emissive_color_tex_material = UsdShade.Material(material_prim)
@@ -660,7 +660,7 @@ class TestMaterial(ConverterTestCase):
         emissive_color_texture_path = self.get_material_texture_path(emissive_color_tex_material, "emissiveColor")
         self.assertEqual(emissive_color_texture_path, pathlib.Path("./Textures/emissive.png"))
 
-        material_prim = material_scope_prim.GetChild("opacity_mat")
+        material_prim = material_scope_prim.GetChild("tn__opacity_matmaterial_hS")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         opacity_material = UsdShade.Material(material_prim)
@@ -670,7 +670,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(opacity_material)
         self.assertAlmostEqual(opacity, 0.4, places=6)
 
-        material_prim = material_scope_prim.GetChild("opacity_texture_mat")
+        material_prim = material_scope_prim.GetChild("tn__opacity_texture_matmaterial_de0")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         opacity_texture_material = UsdShade.Material(material_prim)
@@ -680,7 +680,7 @@ class TestMaterial(ConverterTestCase):
         opacity_texture_path = self.get_material_texture_path(opacity_texture_material, "opacity")
         self.assertEqual(opacity_texture_path, pathlib.Path("./Textures/opacity.png"))
 
-        material_prim = material_scope_prim.GetChild("specular_mat")
+        material_prim = material_scope_prim.GetChild("tn__specular_matmaterial_wT")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         specular_material = UsdShade.Material(material_prim)
@@ -696,7 +696,7 @@ class TestMaterial(ConverterTestCase):
         specular_workflow = self.get_material_specular_workflow(specular_material)
         self.assertTrue(specular_workflow)
 
-        material_prim = material_scope_prim.GetChild("specular_texture_mat")
+        material_prim = material_scope_prim.GetChild("tn__specular_texture_mat_001material_ql0")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         specular_texture_material = UsdShade.Material(material_prim)
@@ -711,7 +711,7 @@ class TestMaterial(ConverterTestCase):
         specular_workflow = self.get_material_specular_workflow(specular_texture_material)
         self.assertTrue(specular_workflow)
 
-        material_prim = material_scope_prim.GetChild("Material_red")
+        material_prim = material_scope_prim.GetChild("tn__Material_redmaterial_wT")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         material_red = UsdShade.Material(material_prim)
@@ -722,7 +722,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(material_red)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        material_prim = material_scope_prim.GetChild("Material_green")
+        material_prim = material_scope_prim.GetChild("tn__Material_greenmaterial_vW0")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         material_green = UsdShade.Material(material_prim)
@@ -733,7 +733,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(material_green)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        material_prim = material_scope_prim.GetChild("transparent_mat")
+        material_prim = material_scope_prim.GetChild("tn__transparent_matmaterial_fY0")
         self.assertTrue(material_prim.IsValid())
         self.assertTrue(material_prim.IsA(UsdShade.Material))
         material_transparent = UsdShade.Material(material_prim)
@@ -853,7 +853,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(material_red)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        material_red_1_prim = material_scope_prim.GetChild("Material_red_1")
+        material_red_1_prim = material_scope_prim.GetChild("tn__Material_redmaterial_wT")
         self.assertTrue(material_red_1_prim.IsValid())
         self.assertTrue(material_red_1_prim.IsA(UsdShade.Material))
         material_red_1 = UsdShade.Material(material_red_1_prim)
@@ -863,7 +863,7 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(material_red_1)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 
-        material_green_1_prim = material_scope_prim.GetChild("Material_green_1")
+        material_green_1_prim = material_scope_prim.GetChild("tn__Material_greenmaterial_vW0")
         self.assertTrue(material_green_1_prim.IsValid())
         self.assertTrue(material_green_1_prim.IsA(UsdShade.Material))
         material_green_1 = UsdShade.Material(material_green_1_prim)

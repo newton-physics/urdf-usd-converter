@@ -35,6 +35,14 @@
       </geometry>
     </visual>
   </link>
+  <link name="link-box_two_materials_same_names">
+    <visual>
+      <geometry>
+        <!-- With the same material name (IDs differ) -->
+        <mesh filename="assets/box_two_materials_same_names.dae" scale="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+  </link>
 
   <joint name="joint:root" type="fixed">
     <origin rpy="0 0 0" xyz="1 0 0"/>
@@ -51,5 +59,9 @@
     <parent link="link-box2"/>
     <child link="link-mesh_dae"/>
   </joint>
-
+  <joint name="box_two_materials_same_names" type="fixed">
+    <origin rpy="0 0 0" xyz="0 3 0"/>
+    <parent link="link-box2"/>
+    <child link="link-box_two_materials_same_names"/>
+  </joint>
 </robot>

@@ -72,7 +72,7 @@ def _convert_mesh(
     all_uvs: Vt.Vec2fArray | None = None
     all_uv_indices_list: list[np.ndarray] = []
     face_offsets: list[int] = []
-    face_material_names: list[str] = []
+    face_material_ids: list[str] = []
     current_normal_offset = 0
     current_uv_offset = 0
 
@@ -115,11 +115,11 @@ def _convert_mesh(
             else primitive.material
         )
 
-        # Get the material name and store it temporarily.
+        # Get the material ID and store it temporarily.
         # For primitives, the material ID is retrieved.
-        # The material name that matches the material ID is retrieved from the material list in _collada.materials.
-        material_name = next((material.name for material in _collada.materials if material.id == material_id), None)
-        face_material_names.append(material_name)
+        # The material ID that matches the 'material_id' is retrieved from the material list in _collada.materials.
+        material_id = next((material.id for material in _collada.materials if material.id == material_id), None)
+        face_material_ids.append(material_id)
 
         # normals.
         if hasattr(primitive, "normal") and len(primitive.normal) > 0:
@@ -234,12 +234,12 @@ def _convert_mesh(
                     geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
                 subset_offset += face_offset
 
-        # Stores the material names referenced by geometry. Each primitive can have its own material.
+        # Stores the material ids referenced by geometry. Each primitive can have its own material.
         # These will be allocated per single mesh or GeomSubset in USD.
         # Material binding is done on the Material layer, so no binding is done at this stage.
-        if len(face_material_names) > 0:
+        if len(face_material_ids) > 0:
             dae_file_path = pathlib.Path(_collada.filename)
-            store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_names, data)
+            store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_ids, data)
 
         # Convert the matrix to a Gf.Matrix4d.
         usd_matrix = convert_matrix4d(matrix)

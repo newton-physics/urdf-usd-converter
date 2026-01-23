@@ -103,6 +103,31 @@ class TestAssetStructure(ConverterTestCase):
         self.assertTrue(material_red_prim.IsA(UsdShade.Material))
         self.assertEqual(usdex.core.getDisplayName(material_red_prim), "material:red")
 
+        material_red_prim = material_scope_prim.GetChild("tn__red_matmaterial_jM")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_red_prim), "red_mat")
+
+        material_blue_prim = material_scope_prim.GetChild("tn__blue_matmaterial_yN")
+        self.assertTrue(material_blue_prim.IsValid())
+        self.assertTrue(material_blue_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_blue_prim), "blue_mat")
+
+        material_green_prim = material_scope_prim.GetChild("tn__green_matmaterial_iP")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_green_prim), "green_mat")
+
+        material_red_prim = material_scope_prim.GetChild("tn__Material_redmaterial_wT")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_red_prim), "Material_same")
+
+        material_green_prim = material_scope_prim.GetChild("tn__Material_greenmaterial_vW0")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_green_prim), "Material_same")
+
     def test_interface_layer(self):
         input_path = "tests/data/simple_box.urdf"
         robot_name = pathlib.Path(input_path).stem
