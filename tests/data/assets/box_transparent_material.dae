@@ -18,6 +18,9 @@
             <transparent opaque="RGB_ZERO">
               <color sid="alpha">0.2 0.3 0.1 1</color>
             </transparent>
+            <transparency>
+              <float sid="transparency">1.0</float>
+            </transparency>
             <index_of_refraction>
               <float sid="ior">1.45</float>
             </index_of_refraction>

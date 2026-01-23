@@ -16,7 +16,8 @@ __all__ = ["convert_collada"]
 
 def convert_collada(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> Usd.Prim | None:
     try:
-        _collada = collada.Collada(str(input_path))
+        # Ignore broken references (e.g., missing lights, cameras) to allow parsing incomplete DAE files
+        _collada = collada.Collada(str(input_path), ignore=[collada.DaeError])
 
         # Store the material data from the DAE file.
         store_dae_material_data(input_path, _collada, data)
