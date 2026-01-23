@@ -50,6 +50,7 @@ def _convert_mesh(
     prim: Usd.Prim,
     name: str,
     geometry: collada.geometry.Geometry,
+    node_materials: list[collada.scene.MaterialNode] | None,
     matrix: np.ndarray,
     data: ConversionData,
 ) -> Usd.Prim:
@@ -105,10 +106,18 @@ def _convert_mesh(
 
         face_offsets.append(len(face_vertex_counts))
 
+        # Get the material_id from the primitive.
+        # If node_materials exists, we need to re-search for the material ID using 'primitive.material'.
+        material_id = (
+            next((material.target.id for material in node_materials if material.symbol == primitive.material), primitive.material)
+            if node_materials
+            else primitive.material
+        )
+
         # Get the material name and store it temporarily.
         # For primitives, the material ID is retrieved.
         # The material name that matches the material ID is retrieved from the material list in _collada.materials.
-        material_name = next((material.name for material in _collada.materials if material.id == primitive.material), None)
+        material_name = next((material.name for material in _collada.materials if material.id == material_id), None)
         face_material_names.append(material_name)
 
         # normals.
@@ -133,7 +142,27 @@ def _convert_mesh(
         if hasattr(primitive, "texcoordset") and len(primitive.texcoordset) > 0:
             uv_data = np.array(primitive.texcoordset[0], dtype=np.float32).reshape(-1, 2)
             all_uvs_list.append(uv_data)
-            uv_indices = primitive.texcoord_index if hasattr(primitive, "texcoord_index") else np.arange(len(uv_data), dtype=np.int32)
+
+            # Try multiple possible attribute names for UV indices
+            uv_indices = None
+            if hasattr(primitive, "texcoord_indexset") and len(primitive.texcoord_indexset) > 0:
+                # For primitives with multiple UV sets
+                uv_indices = primitive.texcoord_indexset[0]
+            elif hasattr(primitive, "texcoord_index"):
+                uv_indices = primitive.texcoord_index
+            else:
+                # Fallback: If no indices are specified, assume sequential indices (0, 1, 2, ...)
+                # This means UV coordinates are stored in vertex order without explicit indexing
+                uv_indices = np.arange(len(uv_data), dtype=np.int32)
+
+            # Flatten the UV indices array if needed (same as normal_index processing)
+            if is_triangle_type:
+                # Flatten 2D array more efficiently
+                if isinstance(uv_indices, np.ndarray) and uv_indices.ndim > 1:
+                    uv_indices = uv_indices.ravel()
+            else:  # Polylist or Polygons
+                pass  # uv_indices is already a 1D numpy array
+
             uv_indices_array = np.array(uv_indices, dtype=np.int32) + current_uv_offset
             all_uv_indices_list.append(uv_indices_array)
             current_uv_offset += len(uv_data)
@@ -253,7 +282,7 @@ def _traverse_scene(
         # Converts geometry to usd meshes.
         # If the geometry has no primitives, skip the conversion.
         # The name of the mesh to be created will be the geometry name in DAE.
-        _convert_mesh(_collada, prim, node.geometry.name, node.geometry, matrix, data)
+        _convert_mesh(_collada, prim, node.geometry.name, node.geometry, node.materials, matrix, data)
 
     if hasattr(node, "children") and node.children:
         for child in node.children:

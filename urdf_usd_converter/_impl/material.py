@@ -355,14 +355,14 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         opaque_mode = material.effect.opaque_mode if hasattr(material.effect, "opaque_mode") else None
 
         # Translucency is achieved by multiplying "transparency" and "transparent".
-        material_data.opacity = 1.0
+        _opacity = 1.0
         if (
             opaque_mode is not None
             and hasattr(material.effect, "transparency")
             and material.effect.transparency is not None
             and not isinstance(material.effect.transparency, collada.material.Map)
         ):
-            material_data.opacity = material.effect.transparency if opaque_mode == "A_ONE" else 1.0 - material.effect.transparency
+            _opacity = material.effect.transparency
 
         # A_ONE: "transparent" has RGBA, and the Alpha value goes into transparent[3].
         # RGB_ZERO: "Transparent" has RGB values, and the average of these RGB values is used.
@@ -373,8 +373,10 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
             and not isinstance(material.effect.transparent, collada.material.Map)
         ):
             transparent = material.effect.transparent
-            transparent = transparent[3] if opaque_mode == "A_ONE" else 1.0 - (transparent[0] + transparent[1] + transparent[2]) / 3.0
-            material_data.opacity *= transparent
+            transparent = transparent[3] if opaque_mode == "A_ONE" else (transparent[0] + transparent[1] + transparent[2]) / 3.0
+            _opacity *= transparent
+
+        material_data.opacity = _opacity if opaque_mode == "A_ONE" else 1.0 - _opacity
 
         data.material_data_list.append(material_data)
 
