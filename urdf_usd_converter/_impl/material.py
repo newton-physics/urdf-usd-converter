@@ -164,6 +164,9 @@ def _convert_material(
                 material_prim, "emissiveColor", "EmissiveTexture", _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data)
             )
 
+    # Set the wrap mode to repeat.
+    _set_wrap_mode(material_prim, "repeat")
+
     # Add the material interface.
     result = usdex.core.addPreviewMaterialInterface(material_prim)
     if not result:
@@ -234,6 +237,16 @@ def _acquire_texture_reader(
         return UsdShade.Shader()
 
     return tex_shader
+
+
+def _set_wrap_mode(material_prim: UsdShade.Material, wrap_mode: str):
+    wrap_mode_input = material_prim.CreateInput("wrapMode", Sdf.ValueTypeNames.Token)
+    wrap_mode_input.Set(wrap_mode)
+    for child in material_prim.GetPrim().GetAllChildren():
+        shader = UsdShade.Shader(child)
+        if shader.GetShaderId() == "UsdUVTexture":
+            shader.CreateInput("wrapS", Sdf.ValueTypeNames.Token).ConnectToSource(wrap_mode_input)
+            shader.CreateInput("wrapT", Sdf.ValueTypeNames.Token).ConnectToSource(wrap_mode_input)
 
 
 def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData) -> Sdf.AssetPath:
