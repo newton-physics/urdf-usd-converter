@@ -8,7 +8,7 @@ import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, UsdShade, Vt
 
 from .data import ConversionData
-from .material import store_dae_material_data, store_mesh_material_reference
+from .material import store_dae_material_data, store_mesh_material_reference, use_material_id
 from .numpy import convert_face_indices_array, convert_matrix4d, convert_vec2f_array, convert_vec3f_array
 
 __all__ = ["convert_collada"]
@@ -16,7 +16,8 @@ __all__ = ["convert_collada"]
 
 def convert_collada(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData) -> Usd.Prim | None:
     try:
-        _collada = collada.Collada(str(input_path))
+        # Ignore broken references (e.g., missing lights, cameras) to allow parsing incomplete DAE files
+        _collada = collada.Collada(str(input_path), ignore=[collada.DaeError])
 
         # Store the material data from the DAE file.
         store_dae_material_data(input_path, _collada, data)
@@ -50,6 +51,7 @@ def _convert_mesh(
     prim: Usd.Prim,
     name: str,
     geometry: collada.geometry.Geometry,
+    node_materials: list[collada.scene.MaterialNode] | None,
     matrix: np.ndarray,
     data: ConversionData,
 ) -> Usd.Prim:
@@ -78,6 +80,12 @@ def _convert_mesh(
     all_vertices = geometry.primitives[0].vertex if hasattr(geometry.primitives[0], "vertex") else None
     unique_vertex_indices = []
 
+    # Whether to use material IDs for material identification.
+    # If True, the material ID is used as the identifier.
+    # If False, the material name is used as the identifier.
+    dae_file_path = pathlib.Path(_collada.filename)
+    _use_material_id = use_material_id(dae_file_path, data)
+
     for primitive in geometry.primitives:
         primitive_type = type(primitive).__name__
 
@@ -105,10 +113,20 @@ def _convert_mesh(
 
         face_offsets.append(len(face_vertex_counts))
 
-        # Get the material name and store it temporarily.
+        # Get the material_id from the primitive.
+        # If node_materials exists, we need to re-search for the material ID using 'primitive.material'.
+        material_id = (
+            next((material.target.id for material in node_materials if material.symbol == primitive.material), primitive.material)
+            if node_materials
+            else primitive.material
+        )
+
+        # Retrieve and store the material name or material ID.
         # For primitives, the material ID is retrieved.
-        # The material name that matches the material ID is retrieved from the material list in _collada.materials.
-        material_name = next((material.name for material in _collada.materials if material.id == primitive.material), None)
+        # The material name or ID that matches the 'material_id' is retrieved from the material list in _collada.materials.
+        material_name = next(
+            (material.id if _use_material_id else material.name for material in _collada.materials if material.id == material_id), None
+        )
         face_material_names.append(material_name)
 
         # normals.
@@ -133,7 +151,21 @@ def _convert_mesh(
         if hasattr(primitive, "texcoordset") and len(primitive.texcoordset) > 0:
             uv_data = np.array(primitive.texcoordset[0], dtype=np.float32).reshape(-1, 2)
             all_uvs_list.append(uv_data)
-            uv_indices = primitive.texcoord_index if hasattr(primitive, "texcoord_index") else np.arange(len(uv_data), dtype=np.int32)
+
+            uv_indices = (
+                primitive.texcoord_indexset[0]
+                if hasattr(primitive, "texcoord_indexset") and len(primitive.texcoord_indexset) > 0
+                else np.arange(len(uv_data), dtype=np.int32)
+            )
+
+            # Flatten the UV indices array if needed (same as normal_index processing)
+            if is_triangle_type:
+                # Flatten 2D array more efficiently
+                if isinstance(uv_indices, np.ndarray) and uv_indices.ndim > 1:
+                    uv_indices = uv_indices.ravel()
+            else:  # Polylist or Polygons
+                pass  # uv_indices is already a 1D numpy array
+
             uv_indices_array = np.array(uv_indices, dtype=np.int32) + current_uv_offset
             all_uv_indices_list.append(uv_indices_array)
             current_uv_offset += len(uv_data)
@@ -210,11 +242,10 @@ def _convert_mesh(
                     geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
                 subset_offset += face_offset
 
-        # Stores the material names referenced by geometry. Each primitive can have its own material.
+        # Stores the material names or IDs referenced by geometry. Each primitive can have its own material.
         # These will be allocated per single mesh or GeomSubset in USD.
         # Material binding is done on the Material layer, so no binding is done at this stage.
         if len(face_material_names) > 0:
-            dae_file_path = pathlib.Path(_collada.filename)
             store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_names, data)
 
         # Convert the matrix to a Gf.Matrix4d.
@@ -253,7 +284,7 @@ def _traverse_scene(
         # Converts geometry to usd meshes.
         # If the geometry has no primitives, skip the conversion.
         # The name of the mesh to be created will be the geometry name in DAE.
-        _convert_mesh(_collada, prim, node.geometry.name, node.geometry, matrix, data)
+        _convert_mesh(_collada, prim, node.geometry.name, node.geometry, node.materials, matrix, data)
 
     if hasattr(node, "children") and node.children:
         for child in node.children:

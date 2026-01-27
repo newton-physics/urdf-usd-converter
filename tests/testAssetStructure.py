@@ -103,6 +103,28 @@ class TestAssetStructure(ConverterTestCase):
         self.assertTrue(material_red_prim.IsA(UsdShade.Material))
         self.assertEqual(usdex.core.getDisplayName(material_red_prim), "material:red")
 
+        material_red_prim = material_scope_prim.GetChild("red_mat")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+
+        material_blue_prim = material_scope_prim.GetChild("blue_mat")
+        self.assertTrue(material_blue_prim.IsValid())
+        self.assertTrue(material_blue_prim.IsA(UsdShade.Material))
+
+        material_green_prim = material_scope_prim.GetChild("green_mat")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+
+        material_red_prim = material_scope_prim.GetChild("tn__Material_redmaterial_wT")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_red_prim), "Material_same")
+
+        material_green_prim = material_scope_prim.GetChild("tn__Material_greenmaterial_vW0")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_green_prim), "Material_same")
+
     def test_interface_layer(self):
         input_path = "tests/data/simple_box.urdf"
         robot_name = pathlib.Path(input_path).stem
