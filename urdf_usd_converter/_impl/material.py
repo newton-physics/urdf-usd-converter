@@ -164,13 +164,13 @@ def _convert_material(
                 material_prim, "emissiveColor", "EmissiveTexture", _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data)
             )
 
-    # Set the wrap mode to repeat.
-    _set_wrap_mode(material_prim, "repeat")
-
     # Add the material interface.
     result = usdex.core.addPreviewMaterialInterface(material_prim)
     if not result:
         Tf.RaiseRuntimeError(f'Failed to add material instance to material prim "{material_prim.GetPath()}"')
+
+    # Set the wrap mode to repeat.
+    _set_wrap_mode(material_prim, "repeat")
 
     material_prim.GetPrim().SetInstanceable(True)
 
