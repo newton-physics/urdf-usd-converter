@@ -169,6 +169,9 @@ def _convert_material(
     if not result:
         Tf.RaiseRuntimeError(f'Failed to add material instance to material prim "{material_prim.GetPath()}"')
 
+    # Set the wrap mode to repeat.
+    _set_wrap_mode(material_prim, "repeat")
+
     material_prim.GetPrim().SetInstanceable(True)
 
     return material_prim
@@ -234,6 +237,16 @@ def _acquire_texture_reader(
         return UsdShade.Shader()
 
     return tex_shader
+
+
+def _set_wrap_mode(material_prim: UsdShade.Material, wrap_mode: str):
+    wrap_mode_input = material_prim.CreateInput("wrapMode", Sdf.ValueTypeNames.Token)
+    wrap_mode_input.Set(wrap_mode)
+    for child in material_prim.GetPrim().GetAllChildren():
+        shader = UsdShade.Shader(child)
+        if shader.GetShaderId() == "UsdUVTexture":
+            shader.CreateInput("wrapS", Sdf.ValueTypeNames.Token).ConnectToSource(wrap_mode_input)
+            shader.CreateInput("wrapT", Sdf.ValueTypeNames.Token).ConnectToSource(wrap_mode_input)
 
 
 def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData) -> Sdf.AssetPath:

@@ -144,6 +144,8 @@ class TestMaterial(ConverterTestCase):
         texture_material = UsdShade.Material(texture_material_prim)
         self.assertTrue(texture_material)
         self.assertTrue(texture_material.GetPrim().HasAuthoredReferences())
+        wrap_mode = self.get_material_wrap_mode(texture_material)
+        self.assertEqual(wrap_mode, "repeat")
 
         diffuse_color = self.get_material_diffuse_color(texture_material)
         self.assertEqual(diffuse_color, None)
@@ -159,6 +161,8 @@ class TestMaterial(ConverterTestCase):
         color_texture_material = UsdShade.Material(color_texture_material_prim)
         self.assertTrue(color_texture_material)
         self.assertTrue(color_texture_material.GetPrim().HasAuthoredReferences())
+        wrap_mode = self.get_material_wrap_mode(color_texture_material)
+        self.assertEqual(wrap_mode, "repeat")
 
         opacity = self.get_material_opacity(color_texture_material)
         self.assertEqual(opacity, 1.0)
@@ -457,6 +461,8 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(texture_material_prim.IsA(UsdShade.Material))
         texture_material = UsdShade.Material(texture_material_prim)
         self.assertTrue(texture_material)
+        wrap_mode = self.get_material_wrap_mode(texture_material)
+        self.assertEqual(wrap_mode, "repeat")
 
         diffuse_color = self.get_material_diffuse_color(texture_material)
         self.assertIsNone(diffuse_color)
@@ -478,6 +484,8 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(texture_opacity_material_prim.IsA(UsdShade.Material))
         texture_opacity_material = UsdShade.Material(texture_opacity_material_prim)
         self.assertTrue(texture_opacity_material)
+        wrap_mode = self.get_material_wrap_mode(texture_opacity_material)
+        self.assertEqual(wrap_mode, "repeat")
 
         diffuse_color = self.get_material_diffuse_color(texture_opacity_material)
         self.assertIsNone(diffuse_color)
@@ -491,6 +499,8 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(texture_specular_workflow_material_prim.IsA(UsdShade.Material))
         texture_specular_workflow_material = UsdShade.Material(texture_specular_workflow_material_prim)
         self.assertTrue(texture_specular_workflow_material)
+        wrap_mode = self.get_material_wrap_mode(texture_specular_workflow_material)
+        self.assertEqual(wrap_mode, "repeat")
 
         diffuse_color = self.get_material_diffuse_color(texture_specular_workflow_material)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
