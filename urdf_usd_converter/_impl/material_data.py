@@ -17,8 +17,13 @@ class MaterialData:
         self.mesh_file_path: pathlib.Path | None = None
 
         # The name of the material.
-        # For dae files, the material ID.
+        # For dae files, the material name or material ID.
         self.name: str | None = None
+
+        # In the case of dae, the material ID is stored in self.name.
+        # If there are no duplicate material names within each dae file, the identifier used at this time will be the "material name".
+        # If material names are duplicated, the "material ID" will be used as the distinguishing identifier.
+        self.use_material_id: bool = False
 
         # Material name for the dae file.
         # Duplicate names may exist within the dae file.

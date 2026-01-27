@@ -103,20 +103,17 @@ class TestAssetStructure(ConverterTestCase):
         self.assertTrue(material_red_prim.IsA(UsdShade.Material))
         self.assertEqual(usdex.core.getDisplayName(material_red_prim), "material:red")
 
-        material_red_prim = material_scope_prim.GetChild("tn__red_matmaterial_jM")
+        material_red_prim = material_scope_prim.GetChild("red_mat")
         self.assertTrue(material_red_prim.IsValid())
         self.assertTrue(material_red_prim.IsA(UsdShade.Material))
-        self.assertEqual(usdex.core.getDisplayName(material_red_prim), "red_mat")
 
-        material_blue_prim = material_scope_prim.GetChild("tn__blue_matmaterial_yN")
+        material_blue_prim = material_scope_prim.GetChild("blue_mat")
         self.assertTrue(material_blue_prim.IsValid())
         self.assertTrue(material_blue_prim.IsA(UsdShade.Material))
-        self.assertEqual(usdex.core.getDisplayName(material_blue_prim), "blue_mat")
 
-        material_green_prim = material_scope_prim.GetChild("tn__green_matmaterial_iP")
+        material_green_prim = material_scope_prim.GetChild("green_mat")
         self.assertTrue(material_green_prim.IsValid())
         self.assertTrue(material_green_prim.IsA(UsdShade.Material))
-        self.assertEqual(usdex.core.getDisplayName(material_green_prim), "green_mat")
 
         material_red_prim = material_scope_prim.GetChild("tn__Material_redmaterial_wT")
         self.assertTrue(material_red_prim.IsValid())

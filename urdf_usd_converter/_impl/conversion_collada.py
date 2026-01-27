@@ -8,7 +8,7 @@ import usdex.core
 from pxr import Gf, Tf, Usd, UsdGeom, UsdShade, Vt
 
 from .data import ConversionData
-from .material import store_dae_material_data, store_mesh_material_reference
+from .material import store_dae_material_data, store_mesh_material_reference, use_material_id
 from .numpy import convert_face_indices_array, convert_matrix4d, convert_vec2f_array, convert_vec3f_array
 
 __all__ = ["convert_collada"]
@@ -72,13 +72,19 @@ def _convert_mesh(
     all_uvs: Vt.Vec2fArray | None = None
     all_uv_indices_list: list[np.ndarray] = []
     face_offsets: list[int] = []
-    face_material_ids: list[str] = []
+    face_material_names: list[str] = []
     current_normal_offset = 0
     current_uv_offset = 0
 
     # The list of vertex coordinates is shared among the primitives.
     all_vertices = geometry.primitives[0].vertex if hasattr(geometry.primitives[0], "vertex") else None
     unique_vertex_indices = []
+
+    # Whether to use material IDs for material identification.
+    # If True, the material ID is used as the identifier.
+    # If False, the material name is used as the identifier.
+    dae_file_path = pathlib.Path(_collada.filename)
+    _use_material_id = use_material_id(dae_file_path, data)
 
     for primitive in geometry.primitives:
         primitive_type = type(primitive).__name__
@@ -115,11 +121,13 @@ def _convert_mesh(
             else primitive.material
         )
 
-        # Get the material ID and store it temporarily.
+        # Retrieve and store the material name or material ID.
         # For primitives, the material ID is retrieved.
-        # The material ID that matches the 'material_id' is retrieved from the material list in _collada.materials.
-        material_id = next((material.id for material in _collada.materials if material.id == material_id), None)
-        face_material_ids.append(material_id)
+        # The material name or ID that matches the 'material_id' is retrieved from the material list in _collada.materials.
+        material_name = next(
+            (material.id if _use_material_id else material.name for material in _collada.materials if material.id == material_id), None
+        )
+        face_material_names.append(material_name)
 
         # normals.
         if hasattr(primitive, "normal") and len(primitive.normal) > 0:
@@ -234,12 +242,11 @@ def _convert_mesh(
                     geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
                 subset_offset += face_offset
 
-        # Stores the material ids referenced by geometry. Each primitive can have its own material.
+        # Stores the material names or IDs referenced by geometry. Each primitive can have its own material.
         # These will be allocated per single mesh or GeomSubset in USD.
         # Material binding is done on the Material layer, so no binding is done at this stage.
-        if len(face_material_ids) > 0:
-            dae_file_path = pathlib.Path(_collada.filename)
-            store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_ids, data)
+        if len(face_material_names) > 0:
+            store_mesh_material_reference(dae_file_path, usd_mesh.GetPrim().GetName(), face_material_names, data)
 
         # Convert the matrix to a Gf.Matrix4d.
         usd_matrix = convert_matrix4d(matrix)

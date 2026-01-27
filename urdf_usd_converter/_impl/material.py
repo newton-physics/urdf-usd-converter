@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 import shutil
+from collections import Counter
 
 import collada
 import tinyobjloader
@@ -20,6 +21,7 @@ __all__ = [
     "store_dae_material_data",
     "store_mesh_material_reference",
     "store_obj_material_data",
+    "use_material_id",
 ]
 
 
@@ -354,14 +356,22 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         _collada: The DAE file.
         data: The conversion data.
     """
+
+    # Check for duplicate material names.
+    # If duplicate material names are found, the material ID will be used as the distinguishing identifier.
+    material_name_counts = Counter(material.name for material in _collada.materials)
+    use_material_id = any(count > 1 for count in material_name_counts.values())
+
     for material in _collada.materials:
         material_data = MaterialData()
         material_data.mesh_file_path = mesh_file_path
 
-        # Within the dae file, unique names must use the material ID.
+        # If use_material_id is True, the "material name" is used as the material identification name.
+        # If use_material_id is False, the "material ID" is used as the material identification name.
         # For the displayName of USD, use material.name.
-        material_data.name = material.id
+        material_data.name = material.id if use_material_id else material.name
         material_data.material_name = material.name
+        material_data.use_material_id = use_material_id
 
         # Process the color properties.
         _process_dae_effect_color_property(material.effect, "diffuse", mesh_file_path, material_data, "diffuse_texture_path", "diffuse_color")
@@ -397,6 +407,21 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         material_data.opacity = _opacity if opaque_mode == "A_ONE" else 1.0 - _opacity
 
         data.material_data_list.append(material_data)
+
+
+def use_material_id(mesh_file_path: pathlib.Path, data: ConversionData) -> bool:
+    """
+    Check if the material ID should be used for identification of the material prim in USD.
+
+    Args:
+        mesh_file_path: The path to the mesh file.
+        data: The conversion data.
+
+    Returns:
+        True if the material ID is used for identification, False if the material name is used.
+    """
+    material_data = next((material_data for material_data in data.material_data_list if material_data.mesh_file_path == mesh_file_path), None)
+    return material_data.use_material_id if material_data else False
 
 
 def store_mesh_material_reference(mesh_file_path: pathlib.Path, mesh_safe_name: str, material_name_list: list[str], data: ConversionData):
