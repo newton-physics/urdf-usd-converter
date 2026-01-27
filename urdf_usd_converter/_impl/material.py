@@ -108,7 +108,6 @@ def _convert_material(
         The material prim.
     """
     diffuse_color = usdex.core.sRgbToLinear(material_data.diffuse_color)
-    specular_color = usdex.core.sRgbToLinear(material_data.specular_color)
     emissive_color = usdex.core.sRgbToLinear(material_data.emissive_color)
 
     # Build kwargs for material properties
@@ -146,15 +145,6 @@ def _convert_material(
 
     if material_data.opacity_texture_path:
         usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data))
-
-    # If the specular color is not black or the specular texture exists, use the specular workflow.
-    if specular_color != [0, 0, 0] or material_data.specular_texture_path:
-        surface_shader.CreateInput("useSpecularWorkflow", Sdf.ValueTypeNames.Int).Set(1)
-        surface_shader.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f).Set(specular_color)
-        if material_data.specular_texture_path:
-            _add_color_texture_to_preview_material(
-                material_prim, "specularColor", "SpecularTexture", _get_texture_asset_path(material_data.specular_texture_path, texture_paths, data)
-            )
 
     # Add the emissive color to the preview material.
     if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
