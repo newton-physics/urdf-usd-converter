@@ -520,17 +520,8 @@ class TestAssetStructure(ConverterTestCase):
         texture_file_attr = value_attrs[0]
         self.assertEqual(texture_file_attr.Get().path, "./Textures/opacity.png")
 
+        # Specular Workflow is currently disabled.
         material_prim = stage.GetPrimAtPath(f"/{robot_name}/Materials/specular_workflow_with_texture_mat")
         self.assertTrue(material_prim.IsValid())
         shader = usdex.core.computeEffectivePreviewSurfaceShader(UsdShade.Material(material_prim))
         self.assertTrue(shader)
-
-        texture_input: UsdShade.Input = shader.GetInput("specularColor")
-        connected_source = texture_input.GetConnectedSource()
-        texture_shader_prim = UsdShade.Shader(connected_source[0].GetPrim())
-
-        # The values are defined in the material interface, not in the shader
-        value_attrs = UsdShade.Utils.GetValueProducingAttributes(texture_shader_prim.GetInput("file"))
-        self.assertEqual(value_attrs[0].GetPrim(), material_prim)
-        texture_file_attr = value_attrs[0]
-        self.assertEqual(texture_file_attr.Get().path, "./Textures/specular.png")
