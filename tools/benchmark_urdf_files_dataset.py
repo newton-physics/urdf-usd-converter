@@ -1,0 +1,933 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+urdf_files_dataset Benchmark Script
+
+This script benchmarks the urdf-usd-converter against all models in the urdf_files_dataset repository.
+It generates a comprehensive report with success/failure metrics, performance data,
+and templates for manual evaluation.
+"""
+
+import argparse
+import csv
+import logging
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from urllib.parse import urljoin
+
+import yaml
+
+# TOML parsing imports (handle both Python 3.11+ and older versions)
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+
+HOST_ARCH = platform.machine()
+if HOST_ARCH == "AMD64":
+    HOST_ARCH = "x86_64"
+
+Path("benchmarks").mkdir(parents=True, exist_ok=True)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler("benchmarks/benchmarks.log", mode="a")],
+)
+logger = logging.getLogger(__name__)
+
+
+def get_converter_version() -> str:
+    """Read the converter version from pyproject.toml in the parent directory."""
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+
+    try:
+        with Path.open(pyproject_path, "rb") as f:
+            pyproject_data = tomllib.load(f)
+
+        version = pyproject_data.get("project", {}).get("version", "unknown")
+        logger.debug("Read converter version from pyproject.toml: %s", version)
+        return version
+    except Exception as e:
+        logger.warning("Failed to read version from pyproject.toml: %s", e)
+        return "unknown"
+
+
+# Import the converter and USD dependencies
+# These should work properly when run through uv in the project environment
+try:
+    import usdex.core
+
+    logger.info("Successfully imported usdex.core")
+except ImportError as e:
+    logger.error("Failed to import required dependencies: %s", e)
+    logger.error("Make sure you're running this script with: uv run benchmark")
+    logger.error("Or: uv run python benchmark_urdf_files_dataset.py")
+    sys.exit(1)
+
+
+@dataclass
+class BenchmarkResult:
+    """Data class for storing benchmark results for a single model."""
+
+    robot_name: str
+    group_name: str
+    subgroup_name: str
+    local_path: str
+    dataset_url: str
+    success: bool
+    error_count: int
+    warning_count: int
+    error_message: str
+    warnings: str
+    conversion_time_seconds: float
+    total_file_size_mb: float
+    verified: str = "No"  # Manual annotation template
+    notes: str = ""  # Manual annotation template
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for JSON serialization."""
+        return asdict(self)
+
+
+class DiagnosticsCapture:
+    """Custom diagnostics capture using usdex.core diagnostics system."""
+
+    def __init__(self):
+        self.warnings = []
+        self.errors = []
+        self.statuses = []
+        self.captured_output = []
+        self.original_stream = None
+
+    def reset(self):
+        """Reset captured diagnostics."""
+        self.warnings.clear()
+        self.errors.clear()
+        self.statuses.clear()
+        self.captured_output.clear()
+
+    def get_counts(self) -> tuple[int, int]:
+        """Get error and warning counts."""
+        return len(self.errors), len(self.warnings)
+
+    def capture_subprocess_output(self, cmd: list[str], cwd: str | None = None) -> tuple[str, str, int]:
+        """Run a command and capture its output including diagnostics."""
+        try:
+            result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=300)  # 5 minute timeout
+
+            # Parse both stdout and stderr for diagnostics
+            combined_output = result.stdout + result.stderr
+            self._parse_captured_output(combined_output)
+
+            return result.stdout, result.stderr, result.returncode
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("Conversion timed out after 5 minutes")
+        except Exception as e:
+            raise RuntimeError(f"Failed to run conversion: {e}")
+
+    def _parse_captured_output(self, output: str):
+        """Parse captured output to extract warnings and errors."""
+        if not output:
+            return
+
+        lines = output.strip().split("\n")
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Parse structured diagnostic messages in format [Level] [Component] Message
+            if line.startswith("[") and "]" in line:
+                # Extract the level from [Level] at the start
+                first_bracket_end = line.find("]")
+                if first_bracket_end != -1:
+                    level = line[1:first_bracket_end].lower()
+
+                    if level in ["error", "fatal", "critical"]:
+                        self.errors.append(line)
+                    elif level in ["warning", "warn"]:
+                        self.warnings.append(line)
+                    elif level in ["status", "info", "debug"]:
+                        self.statuses.append(line)
+                    else:
+                        # If we can't categorize it but it looks like a diagnostic message
+                        self.statuses.append(line)
+                    continue
+
+            # Fallback: Look for common error/warning patterns in other formats
+            lower_line = line.lower()
+            if any(pattern in lower_line for pattern in ["error:", "failed:", "exception:", "fatal:", "critical:", "abort"]):
+                self.errors.append(line)
+            elif any(pattern in lower_line for pattern in ["warning:", "warn:", "deprecated:", "caution:"]):
+                self.warnings.append(line)
+            elif any(pattern in lower_line for pattern in ["status:", "info:", "note:", "debug:"]):
+                self.statuses.append(line)
+
+
+class URDFFilesDatasetBenchmark:
+    """Main benchmark class for testing urdf-usd-converter against urdf_files_dataset."""
+
+    URDF_FILES_DATASET_REPO_URL = "https://github.com/Daniella1/urdf_files_dataset.git"
+    URDF_FILES_DATASET_BASE_URL = "https://github.com/Daniella1/urdf_files_dataset/tree/main/"
+    DEFAULT_ANNOTATION_FILE = "urdf_files_dataset_annotations.yaml"
+
+    def __init__(
+        self,
+        urdf_files_dataset_path: str | None = None,
+        report_output_dir: str = "benchmarks",
+        conversion_output_dir: str = "benchmarks",
+        annotation_file: str | None = None,
+    ):
+        self.urdf_files_dataset_path = Path(urdf_files_dataset_path) if urdf_files_dataset_path else None
+        self.report_output_dir = Path(report_output_dir)
+        self.conversion_output_dir = Path(conversion_output_dir)
+        self.temp_urdf_files_dataset = False
+        self.diagnostics = DiagnosticsCapture()
+        self.results: list[BenchmarkResult] = []
+        self.annotations: dict[str, dict] = {}
+
+        # Setup URDF list file path
+        if annotation_file:
+            self.annotation_file = Path(annotation_file)
+        else:
+            self.annotation_file = Path(__file__).parent / self.DEFAULT_ANNOTATION_FILE
+
+        # Create output directory
+        self.report_output_dir.mkdir(parents=True, exist_ok=True)
+        self.conversion_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Load annotation data
+        self._load_annotations()
+
+        # Setup USD diagnostics
+        self._setup_diagnostics()
+
+    def _load_annotations(self):
+        """Load existing annotations from file."""
+        if not self.annotation_file.exists():
+            logger.info("Annotation file does not exist: %s", self.annotation_file)
+            return {}
+
+        try:
+            with Path.open(self.annotation_file, encoding="utf-8") as f:
+                self.annotations = yaml.safe_load(f) or {}
+            logger.info("Loaded %d existing annotations", len(self.annotations))
+            return self.annotations
+        except Exception as e:
+            logger.error("Failed to load annotations: %s", e)
+            return {}
+
+    def _setup_diagnostics(self):
+        """Setup USD diagnostics to capture warnings and errors."""
+        try:
+            # Activate the usdex.core diagnostics delegate
+            usdex.core.activateDiagnosticsDelegate()
+
+            # Set diagnostics level to capture all messages
+            usdex.core.setDiagnosticsLevel(usdex.core.DiagnosticsLevel.eStatus)
+
+            logger.info("Successfully activated usdex.core diagnostics delegate")
+        except Exception as e:
+            logger.warning("Failed to setup USD diagnostics: %s", e)
+
+    def setup_urdf_files_dataset(self) -> Path:
+        """Setup urdf_files_dataset repository (clone if needed)."""
+        if self.urdf_files_dataset_path and self.urdf_files_dataset_path.exists():
+            logger.info("Using existing urdf_files_dataset at: %s", self.urdf_files_dataset_path)
+            return self.urdf_files_dataset_path
+
+        # Clone to temporary directory
+        temp_dir = tempfile.mkdtemp(prefix="urdf_files_dataset_benchmark_")
+        urdf_files_dataset_path = Path(temp_dir) / "urdf_files_dataset"
+
+        logger.info("Cloning urdf_files_dataset to: %s", urdf_files_dataset_path)
+        try:
+            subprocess.run(
+                ["git", "clone", "--depth", "1", self.URDF_FILES_DATASET_REPO_URL, str(urdf_files_dataset_path)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.error("Failed to clone urdf_files_dataset: %s", e)
+            raise
+
+        self.urdf_files_dataset_path = urdf_files_dataset_path
+        self.temp_urdf_files_dataset = True
+        return urdf_files_dataset_path
+
+    def convert_urdf(self, group_name: str, subgroup_name: str, urdf_file_path: str, ros_package_paths: dict[str, Path]) -> BenchmarkResult:
+        """Convert a single URDF file and return the benchmark result."""
+        logger.info("Converting URDF file: %s", urdf_file_path)
+
+        _urdf_file_path = self.urdf_files_dataset_path / urdf_file_path
+
+        robot_name = _urdf_file_path.stem
+
+        # Create result object
+        result = BenchmarkResult(
+            robot_name=robot_name,
+            group_name=group_name,
+            subgroup_name=subgroup_name,
+            dataset_url=urljoin(self.URDF_FILES_DATASET_BASE_URL, f"{urdf_file_path}"),
+            local_path=urdf_file_path,
+            success=False,
+            error_count=0,
+            warning_count=0,
+            error_message="",
+            warnings="",
+            conversion_time_seconds=0.0,
+            total_file_size_mb=0.0,
+            verified="No",  # Initialize with default
+            notes="",  # Initialize with default
+        )
+
+        # Create output directory for this model
+        model_output_dir = self.conversion_output_dir / group_name / subgroup_name / robot_name
+        model_output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Reset diagnostics for this model
+        self.diagnostics.reset()
+
+        start_time = time.time()
+
+        # Run conversion via subprocess to capture diagnostics properly
+        stdout, stderr, return_code = self.diagnostics.capture_subprocess_output(
+            [
+                "uv",
+                "run",
+                "urdf_usd_converter",
+                str(_urdf_file_path),
+                str(model_output_dir),
+                "--verbose",
+                "--comment",
+                f"Converted from urdf_files_dataset: {robot_name}",
+                # ROS package paths
+                *[arg for package_name, package_path in ros_package_paths.items() for arg in ("--package", f"{package_name}={package_path}")],
+            ]
+        )
+
+        end_time = time.time()
+        result.conversion_time_seconds = end_time - start_time
+
+        if return_code != 0:
+            result.error_message = f"Conversion failed with return code {return_code}. Stderr: {stderr}"
+            logger.error("Failed to convert %s: %s", robot_name, result.error_message)
+        else:
+            layer_files = [f for f in model_output_dir.iterdir() if f.is_file() and f.suffix.lower() == ".usda"]
+
+            if layer_files:
+                result.success = True
+                result.total_file_size_mb = self._get_categorized_file_sizes(model_output_dir)
+                logger.info("Successfully converted %s in %.2fs", robot_name, result.conversion_time_seconds)
+            else:
+                result.error_message = f"Conversion completed but no USD layer file found in {model_output_dir}"
+                logger.warning("Conversion completed but no USD layer found for %s", robot_name)
+
+        # Capture diagnostics counts
+        result.error_count, result.warning_count = self.diagnostics.get_counts()
+        result.warnings = "\n".join([x.rpartition("] ")[2].strip() for x in self.diagnostics.warnings])
+
+        # Get manual annotations
+        result.verified, result.notes = self._get_annotation(urdf_file_path)
+
+        return result
+
+    def _get_annotation(self, urdf_file_path: str) -> tuple[str, str]:
+        """Get the manual annotations for a URDF file."""
+        annotation = self.annotations[urdf_file_path]
+        return annotation["verified"], annotation["notes"]
+
+    def _get_categorized_file_sizes(self, directory: Path) -> float:
+        """Get total file size in MB."""
+
+        total_size = 0
+
+        try:
+            for file_path in directory.rglob("*"):
+                if file_path.is_file():
+                    try:
+                        file_size = file_path.stat().st_size
+                        total_size += file_size
+
+                    except OSError as e:
+                        logger.warning("Failed to get size for file %s: %s", file_path, e)
+                        continue
+
+        except Exception as e:
+            logger.error("Failed to scan directory %s: %s", directory, e)
+            return 0.0
+
+        # Convert bytes to MB
+        total_size_mb = total_size / (1024 * 1024)
+
+        return total_size_mb
+
+    def _format_time_duration(self, seconds: float) -> str:
+        """Format time duration as XXmYY.ZZs."""
+        minutes = int(seconds // 60)
+        remaining_seconds = seconds % 60
+        return f"{minutes}m {remaining_seconds:.2f}s"
+
+    def run_benchmark(self) -> list[BenchmarkResult]:
+        """Run the complete benchmark suite."""
+        logger.info("Starting urdf_files_dataset benchmark")
+
+        # Setup urdf_files_dataset repository
+        self.setup_urdf_files_dataset()
+
+        # Convert each URDF
+        results = []
+        urdf_file_paths = self.annotations.keys()
+        for i, urdf_file_path in enumerate(urdf_file_paths):
+            annotation = self.annotations[urdf_file_path]
+            _urdf_file_path = self.urdf_files_dataset_path / urdf_file_path
+
+            # ROS package paths
+            ros_package_paths = {}
+            urdf_file_dir = _urdf_file_path.parent
+            for package_name, package_path in annotation["ros_package_paths"].items():
+                if package_name and package_path:
+                    combined_path = urdf_file_dir / package_path
+                    if combined_path.exists():
+                        ros_package_paths[package_name] = combined_path
+
+            # Convert the URDF file
+            result = self.convert_urdf(annotation["group_name"], annotation["subgroup_name"], urdf_file_path, ros_package_paths)
+            results.append(result)
+
+            # Log progress
+            success_count = sum(1 for r in results if r.success)
+            logger.info("Progress: %d/%d processed, %d successful", i, len(urdf_file_paths), success_count)
+
+        self.results = results
+        return results
+
+    def generate_report(self, format_type: str = "all") -> dict[str, Path]:
+        """Generate benchmark report in specified format(s)."""
+        if not self.results:
+            logger.warning("No results to generate report from")
+            return {}
+
+        reports = {}
+
+        if format_type in ["csv", "all"]:
+            reports["csv"] = self._generate_csv_report()
+
+        if format_type in ["html", "all"]:
+            reports["html"] = self._generate_html_report()
+
+        if format_type in ["md", "all"]:
+            reports["md"] = self._generate_markdown_report()
+
+        # Generate summary
+        self._generate_summary(save_to_file=format_type == "all")
+
+        return reports
+
+    def _generate_csv_report(self) -> Path:
+        """Generate CSV report."""
+        csv_path = self.report_output_dir / "benchmarks.csv"
+
+        fieldnames = [
+            "Robot Name",
+            "Group Name",
+            "Subgroup Name",
+            "URDF URL",
+            "Local Path",
+            "Success",
+            "Error Count",
+            "Warning Count",
+            "Conversion Time (s)",
+            "Total Size (MB)",
+            "Verified (Manual)",
+            "Notes (Manual)",
+            "Errors",
+        ]
+
+        # Sort results by group_name, subgroup_name and robot_name.
+        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.robot_name))
+
+        with Path.open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for result in sorted_results:
+                writer.writerow(
+                    {
+                        "Robot Name": result.robot_name,
+                        "Group Name": result.group_name,
+                        "Subgroup Name": result.subgroup_name,
+                        "URDF URL": result.dataset_url,
+                        "Local Path": result.local_path,
+                        "Success": "Yes" if result.success else "No",
+                        "Error Count": result.error_count,
+                        "Warning Count": result.warning_count,
+                        "Conversion Time (s)": f"{result.conversion_time_seconds:.3f}" if result.success else "N/A",
+                        "Total Size (MB)": f"{result.total_file_size_mb:.2f}",
+                        "Verified (Manual)": result.verified,
+                        "Notes (Manual)": result.notes,
+                        "Errors": result.error_message,
+                    }
+                )
+
+        logger.info("CSV report generated: %s", csv_path.absolute())
+        return csv_path
+
+    def _generate_html_report(self) -> Path:
+        """Generate HTML report."""
+        html_path = self.report_output_dir / "benchmarks.html"
+
+        # Calculate statistics
+        total_models = len(self.results)
+        successful = sum(1 for r in self.results if r.success)
+        failed = total_models - successful
+        total_errors = sum(r.error_count for r in self.results)
+        total_warnings = sum(r.warning_count for r in self.results)
+        avg_time = sum(r.conversion_time_seconds for r in self.results) / total_models if total_models > 0 else 0
+        total_time = sum(r.conversion_time_seconds for r in self.results)
+        total_file_size = sum(r.total_file_size_mb for r in self.results)
+
+        html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>urdf_files_dataset Benchmark Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ background-color: #f0f0f0; padding: 20px; border-radius: 5px; }}
+        .stats {{ display: flex; justify-content: space-around; margin: 20px 0; flex-wrap: wrap; }}
+        .stat-box {{ background-color: #e8f4f8; padding: 15px; border-radius: 5px; text-align: center; margin: 5px; }}
+        .success {{ color: #28a745; }}
+        .failure {{ color: #dc3545; }}
+        .warning {{ color: #ffc107; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th:nth-child(10), td:nth-child(10) {{ min-width: 350px; width: 350px; }}
+        th {{ background-color: #f2f2f2; }}
+        .success-cell {{ background-color: #d4edda; }}
+        .failure-cell {{ background-color: #f8d7da; }}
+        .warning-cell {{ background-color: #faaa64; }}
+        .manual-annotation {{ background-color: #fff3cd; font-style: italic; }}
+        .numeric {{ text-align: right; }}
+        .asset-group {{ border-top: 2px solid #007bff; }}
+        .variant-row {{ border-top: 1px solid #e9ecef; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>urdf_files_dataset Benchmark Report</h1>
+        <p>Generated on: {time.strftime("%Y-%m-%d %H:%M:%S")}</p>
+        <p>Repository: <a href="{self.URDF_FILES_DATASET_REPO_URL}">{self.URDF_FILES_DATASET_REPO_URL}</a></p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <h3>Total Models</h3>
+            <p>{total_models}</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="success">Successful</h3>
+            <p>{successful} ({successful/total_models*100:.1f}%)</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="failure">Failed</h3>
+            <p>{failed} ({failed/total_models*100:.1f}%)</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="warning">Total Warnings</h3>
+            <p>{total_warnings}</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="failure">Total Errors</h3>
+            <p>{total_errors}</p>
+        </div>
+        <div class="stat-box">
+            <h3>Avg Time</h3>
+            <p>{avg_time:.2f}s</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total Time</h3>
+            <p>{self._format_time_duration(total_time)}</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total File Size</h3>
+            <p>{total_file_size:.2f} MB</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Robot Name</th>
+                <th>Group Name</th>
+                <th>Subgroup Name</th>
+                <th>Success</th>
+                <th><a href="#manual-annotation-instructions" style="color: inherit; text-decoration: none;">Verified (Manual)</a></th>
+                <th>Errors</th>
+                <th>Warnings</th>
+                <th>Time (s)</th>
+                <th>Total Size (MB)</th>
+                <th>Notes</th>
+                <th>Errors</th>
+                <th>Warnings</th>
+            </tr>
+        </thead>
+        <tbody>
+"""
+
+        # Sort results by group_name, subgroup_name and robot_name.
+        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.robot_name))
+
+        for result in sorted_results:
+            success_class = "success-cell" if result.success else "failure-cell"
+            verified_class = "success-cell" if result.verified == "Yes" else "" if result.verified == "Unknown" else "failure-cell"
+
+            # Determine if this is the first variant of a new asset
+            row_class = "asset-group"
+
+            # Only show robot name and link
+            link_style = "color: inherit; text-decoration: none;"
+            asset_link = f'<a href="{result.dataset_url}" target="_blank" style="{link_style}">{result.robot_name}</a>'
+            asset_display = f"<strong>{asset_link}</strong>"
+
+            # Convert newlines and tabs to HTML for proper display
+            error_message_html = result.error_message.replace("\n", "<br>")
+            warnings_html = result.warnings.replace("\n", "<br>")
+
+            html_content += f"""
+            <tr class="{row_class}">
+                <td>{asset_display}</td>
+                <td>{result.group_name}</td>
+                <td>{result.subgroup_name}</td>
+                <td class="{success_class}">{'Yes' if result.success else 'No'}</td>
+                <td class="{verified_class}">{result.verified}</td>
+                <td class="numeric">{result.error_count}</td>
+                <td class="numeric">{result.warning_count}</td>
+                <td class="numeric">{result.conversion_time_seconds:.2f}</td>
+                <td class="numeric">{result.total_file_size_mb:.2f}</td>
+                <td>{result.notes}</td>
+                <td>{error_message_html}</td>
+                <td>{warnings_html}</td>
+            </tr>
+"""
+
+        html_content += """
+        </tbody>
+    </table>
+
+    <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+        <h3 id="manual-annotation-instructions">Manual Annotation Instructions</h3>
+        <p><strong>Verified:</strong> Each model variant can be individually annotated with "Yes", "No", or "Unknown"
+        based on manual inspection of the converted USD files. Update the annotations in the
+        <code>tools/urdf_files_dataset_annotations.yaml</code> file under each variant's <code>verified</code> field.
+        Consider factors like:</p>
+        <ul>
+            <li>Visual correctness when loaded in USD viewer</li>
+            <li>Proper hierarchy and naming</li>
+            <li>Material and texture fidelity</li>
+            <li>Physics properties preservation</li>
+            <li>Simulation correctness in USD compared to the original URDF file</li>
+        </ul>
+        <p><strong>Notes:</strong> Document any known issues, limitations, or special considerations for each
+        URDF file in the <code>notes</code> field under each URDF file in the annotations file.</p>
+
+        <h3>Annotation Structure</h3>
+        <p>Annotations are specified for each urdf file.<br />
+        Each URDF file listed under a robot's <code>urdf files</code> dictionary has its own <code>verified</code>,
+        <code>notes</code>,<code>evaluation_date</code>,<code>evaluator</code>,and <code>notes</code> fields.
+        </p>
+        <h3>File Size Information</h3>
+        <p><strong>Total Size:</strong> Overall size of all files in the output directory, including USD files,
+        textures, and any other generated assets.</p>
+    </div>
+</body>
+</html>
+"""
+
+        with Path.open(html_path, "w", encoding="utf-8") as htmlfile:
+            htmlfile.write(html_content)
+
+        logger.info("HTML report generated: %s", html_path.absolute())
+        return html_path
+
+    def _generate_markdown_report(self) -> Path:
+        """Generate Markdown report."""
+        md_path = self.report_output_dir / "benchmarks.md"
+
+        # Calculate statistics
+        total_models = len(self.results)
+        successful = sum(1 for r in self.results if r.success)
+        failed = total_models - successful
+        total_errors = sum(r.error_count for r in self.results)
+        total_warnings = sum(r.warning_count for r in self.results)
+        avg_time = sum(r.conversion_time_seconds for r in self.results) / total_models if total_models > 0 else 0
+        total_time = sum(r.conversion_time_seconds for r in self.results)
+        total_file_size = sum(r.total_file_size_mb for r in self.results)
+
+        # Start building markdown content
+        md_content = f"""# urdf_files_dataset Benchmark Report
+
+**Generated on:** {time.strftime("%Y-%m-%d %H:%M:%S")}
+
+**Repository:** [{self.URDF_FILES_DATASET_REPO_URL}]({self.URDF_FILES_DATASET_REPO_URL})
+
+## Summary Statistics
+
+| Total Models | Successful | Failed | Total Warnings | Total Errors | Average Time | Total Time | Total File Size |
+|:------------:|:----------:|:------:|:--------------:|:------------:|:------------:|:----------:|:---------------:|
+"""
+
+        # Build summary data row (split to avoid long line)
+        summary_row = (
+            f"| {total_models} | {successful} ({successful/total_models*100:.1f}%) | "
+            f"{failed} ({failed/total_models*100:.1f}%) | {total_warnings} | {total_errors} | "
+            f"{avg_time:.2f}s | {self._format_time_duration(total_time)} | {total_file_size:.2f} MB |"
+        )
+        md_content += (
+            summary_row
+            + """
+
+## Detailed Results
+
+"""
+        )
+
+        # Add table header (split to avoid long line)
+        table_header = (
+            "| Robot | Group | Subgroup | Success | [Verified (Manual)](#manual-annotation-instructions) | Errors | Warnings | "
+            "Time (s) | Size (MB) | Notes | Error Messages | Warning Messages |\n"
+        )
+        table_separator = (
+            "|-------|---------|---------|---------|----------|-------:|--------:|"
+            "---------:|---------:|----------------------|----------------|------------------|\n"
+        )
+        md_content += table_header + table_separator
+
+        # Sort results by group_name, subgroup_name and robot_name.
+        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.robot_name))
+
+        for result in sorted_results:
+            robot_display = f"**[{result.robot_name}]({result.dataset_url})**"
+
+            # Success status with emoji
+            success_display = "✅" if result.success else "❌"
+
+            # Verified status with emoji
+            if result.verified == "Yes":
+                verified_display = "✅"
+            elif result.verified == "Unknown":
+                verified_display = "❓"
+            else:
+                verified_display = "❌"
+
+            # Escape pipe characters and clean up text for markdown table
+            def clean_for_table(text: str) -> str:
+                if not text:
+                    return ""
+                # Replace pipes with escaped pipes, newlines with <br> for markdown, and clean carriage returns
+                cleaned = text.replace("|", "\\|").replace("\n", "<br>").replace("\r", "")
+                return cleaned
+
+            error_messages = clean_for_table(result.error_message)
+            warning_messages = clean_for_table(result.warnings)
+            notes = clean_for_table(result.notes)
+
+            # Build table row (split to avoid long line)
+            row_parts = [
+                robot_display,
+                result.group_name,
+                result.subgroup_name,
+                success_display,
+                verified_display,
+                str(result.error_count),
+                str(result.warning_count),
+                f"{result.conversion_time_seconds:.2f}",
+                f"{result.total_file_size_mb:.2f}",
+                notes,
+                error_messages,
+                warning_messages,
+            ]
+            md_content += "| " + " | ".join(row_parts) + " |\n"
+
+        # Add manual annotation instructions
+        md_content += """
+
+## Manual Annotation Instructions
+
+### Verified Status
+Each robot variant can be individually annotated with "Yes", "No", or "Unknown" based on manual
+inspection of the converted USD files. Update the annotations in the `tools/urdf_files_dataset_annotations.yaml`
+file under each variant's `verified` field.
+
+**Consider these factors:**
+- Visual correctness when loaded in USD viewer
+- Proper hierarchy and naming
+- Material and texture fidelity
+- Physics properties preservation
+- Simulation correctness in USD compared to the original URDF file
+
+### Notes
+Document any known issues, limitations, or special considerations for each robot variant in the
+`notes` field under each variant in the annotations file.
+
+### Annotation Structure
+Annotations are specified for each urdf file.
+Each URDF file listed under a robot's urdf files dictionary has its own `verified`, `notes`, `evaluation_date`, `evaluator`, and `notes` fields.
+
+### File Size Information
+**Total Size:** Overall size of all files in the output directory, including USD files, textures,
+and any other generated files.
+
+---
+
+*Report generated by urdf-usd-converter benchmark tool*
+"""
+
+        with Path.open(md_path, "w", encoding="utf-8") as mdfile:
+            mdfile.write(md_content)
+
+        logger.info("Markdown report generated: %s", md_path.absolute())
+        return md_path
+
+    def _generate_summary(self, save_to_file: bool = True):
+        """Generate a summary of the benchmark results."""
+        if not self.results:
+            return
+
+        total_robots = len(self.results)
+        successful = sum(1 for r in self.results if r.success)
+        failed = total_robots - successful
+        total_errors = sum(r.error_count for r in self.results)
+        total_warnings = sum(r.warning_count for r in self.results)
+        total_time = sum(r.conversion_time_seconds for r in self.results)
+        total_file_size = sum(r.total_file_size_mb for r in self.results)
+
+        # Count unique assets
+        unique_assets = len({r.robot_name for r in self.results})
+
+        summary = f"""
+=== urdf_files_dataset Benchmark Summary ===
+Total Assets: {unique_assets}
+Total Robots Variants: {total_robots}
+Successful Conversions: {successful} ({successful/total_robots*100:.1f}%)
+Failed Conversions: {failed} ({failed/total_robots*100:.1f}%)
+Total Errors: {total_errors}
+Total Warnings: {total_warnings}
+Total Conversion Time: {self._format_time_duration(total_time)}
+Average Time per Robot: {self._format_time_duration(total_time/total_robots)}
+
+=== File Size Analysis ===
+Total File Size: {total_file_size:.2f} MB
+Average Size per Robot: {total_file_size/total_robots:.2f} MB"""
+
+        failed_results = [result for result in self.results if not result.success]
+        if failed_results:
+            summary += "\n\n=== Failed Robots ===\n"
+            # Group failed results by asset for better readability
+            failed_by_robot = {}
+            for result in failed_results:
+                if result.robot_name not in failed_by_robot:
+                    failed_by_robot[result.robot_name] = []
+                failed_by_robot[result.robot_name].append(result)
+
+            for robot_name, variants in sorted(failed_by_robot.items()):
+                summary += f"\n{robot_name}:\n"
+                for result in variants:
+                    summary += f"  - {result.group_name}/{result.subgroup_name}: {result.error_message}\n"
+
+        logger.info(summary)
+
+        if save_to_file:
+            summary_path = self.report_output_dir / "benchmark_summary.txt"
+            with Path.open(summary_path, "w", encoding="utf-8") as f:
+                f.write(summary)
+            logger.info("Summary saved to: %s", summary_path.absolute())
+
+    def cleanup(self):
+        """Clean up temporary resources."""
+        if self.temp_urdf_files_dataset and self.urdf_files_dataset_path:
+            try:
+                shutil.rmtree(self.urdf_files_dataset_path.parent)
+                logger.info("Cleaned up temporary urdf_files_dataset directory")
+            except Exception as e:
+                logger.warning("Failed to clean up temporary directory: %s", e)
+
+
+def main():
+    """Main entry point for the benchmark script."""
+    parser = argparse.ArgumentParser(
+        description="Benchmark urdf-usd-converter against urdf_files_dataset models", formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    parser.add_argument("--urdf-files-dataset-path", type=str, help="Path to existing urdf_files_dataset repository (will clone if not provided)")
+    parser.add_argument(
+        "--conversion-output-dir", type=str, default="benchmarks/usd_urdf_files_dataset", help="Directory to store converted USD assets"
+    )
+    parser.add_argument("--report-output-dir", type=str, default="benchmarks", help="Directory to store benchmark reports")
+    parser.add_argument("--report-format", choices=["csv", "html", "md", "all"], default="all", help="Format for the benchmark report")
+    parser.add_argument(
+        "--annotation-file",
+        type=str,
+        default="tools/urdf_files_dataset_annotations.yaml",
+        help="Path to a YAML file containing manual annotations for robots.",
+    )
+
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+
+    args = parser.parse_args()
+
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    # Create benchmark instance
+    benchmark = URDFFilesDatasetBenchmark(
+        urdf_files_dataset_path=args.urdf_files_dataset_path,
+        report_output_dir=args.report_output_dir,
+        conversion_output_dir=args.conversion_output_dir,
+        annotation_file=args.annotation_file,
+    )
+
+    try:
+        # Run benchmark
+        results = benchmark.run_benchmark()
+
+        if not results:
+            logger.error("No results generated")
+            return 1
+
+        # Generate reports
+        reports = benchmark.generate_report(args.report_format)
+
+        logger.info("Benchmark completed successfully!")
+        logger.info("USD Assets saved to: %s", Path(args.conversion_output_dir).absolute())
+        logger.info("Reports saved to: %s", Path(args.report_output_dir).absolute())
+
+        for format_type, path in reports.items():
+            logger.info("%s report: %s", format_type.upper(), path.absolute())
+
+        return 0
+
+    except KeyboardInterrupt:
+        logger.info("Benchmark interrupted by user")
+        return 1
+    except Exception as e:
+        logger.error("Benchmark failed: %s", e)
+        raise Exception(e)
+    finally:
+        benchmark.cleanup()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
