@@ -147,6 +147,7 @@ def _mesh_subsets_obj(
         geom_subset.GetIndicesAttr().Set(face_indices)
         geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
         geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
+        geom_subset.SetFamilyType(mesh, UsdShade.Tokens.materialBind, UsdGeom.Tokens.partition)
 
     # Store the material names for the mesh.
     store_mesh_material_reference(input_path, mesh.GetPrim().GetName(), material_names, data)

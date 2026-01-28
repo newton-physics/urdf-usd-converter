@@ -240,6 +240,7 @@ def _convert_mesh(
                     geom_subset.GetIndicesAttr().Set(Vt.IntArray(face_indices))
                     geom_subset.GetElementTypeAttr().Set(UsdGeom.Tokens.face)
                     geom_subset.GetFamilyNameAttr().Set(UsdShade.Tokens.materialBind)
+                    geom_subset.SetFamilyType(usd_mesh, UsdShade.Tokens.materialBind, UsdGeom.Tokens.partition)
                 subset_offset += face_offset
 
         # Stores the material names or IDs referenced by geometry. Each primitive can have its own material.
