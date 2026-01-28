@@ -44,12 +44,6 @@ class ConverterTestCase(usdex.test.TestCase):
     def get_material_emissive_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
         return self._get_material_input_value(material, "emissiveColor")
 
-    def get_material_specular_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
-        return self._get_material_input_value(material, "specularColor")
-
-    def get_material_specular_workflow(self, material: UsdShade.Material) -> bool:
-        return self._get_material_input_value(material, "useSpecularWorkflow") == 1
-
     def get_material_opacity(self, material: UsdShade.Material) -> float:
         return self._get_material_input_value(material, "opacity")
 

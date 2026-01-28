@@ -103,6 +103,28 @@ class TestAssetStructure(ConverterTestCase):
         self.assertTrue(material_red_prim.IsA(UsdShade.Material))
         self.assertEqual(usdex.core.getDisplayName(material_red_prim), "material:red")
 
+        material_red_prim = material_scope_prim.GetChild("red_mat")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+
+        material_blue_prim = material_scope_prim.GetChild("blue_mat")
+        self.assertTrue(material_blue_prim.IsValid())
+        self.assertTrue(material_blue_prim.IsA(UsdShade.Material))
+
+        material_green_prim = material_scope_prim.GetChild("green_mat")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+
+        material_red_prim = material_scope_prim.GetChild("tn__Material_redmaterial_wT")
+        self.assertTrue(material_red_prim.IsValid())
+        self.assertTrue(material_red_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_red_prim), "Material_same")
+
+        material_green_prim = material_scope_prim.GetChild("tn__Material_greenmaterial_vW0")
+        self.assertTrue(material_green_prim.IsValid())
+        self.assertTrue(material_green_prim.IsA(UsdShade.Material))
+        self.assertEqual(usdex.core.getDisplayName(material_green_prim), "Material_same")
+
     def test_interface_layer(self):
         input_path = "tests/data/simple_box.urdf"
         robot_name = pathlib.Path(input_path).stem
@@ -498,17 +520,8 @@ class TestAssetStructure(ConverterTestCase):
         texture_file_attr = value_attrs[0]
         self.assertEqual(texture_file_attr.Get().path, "./Textures/opacity.png")
 
+        # Specular Workflow is currently disabled.
         material_prim = stage.GetPrimAtPath(f"/{robot_name}/Materials/specular_workflow_with_texture_mat")
         self.assertTrue(material_prim.IsValid())
         shader = usdex.core.computeEffectivePreviewSurfaceShader(UsdShade.Material(material_prim))
         self.assertTrue(shader)
-
-        texture_input: UsdShade.Input = shader.GetInput("specularColor")
-        connected_source = texture_input.GetConnectedSource()
-        texture_shader_prim = UsdShade.Shader(connected_source[0].GetPrim())
-
-        # The values are defined in the material interface, not in the shader
-        value_attrs = UsdShade.Utils.GetValueProducingAttributes(texture_shader_prim.GetInput("file"))
-        self.assertEqual(value_attrs[0].GetPrim(), material_prim)
-        texture_file_attr = value_attrs[0]
-        self.assertEqual(texture_file_attr.Get().path, "./Textures/specular.png")

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 import shutil
+from collections import Counter
 
 import collada
 import tinyobjloader
@@ -20,6 +21,7 @@ __all__ = [
     "store_dae_material_data",
     "store_mesh_material_reference",
     "store_obj_material_data",
+    "use_material_id",
 ]
 
 
@@ -50,8 +52,9 @@ def convert_materials(data: ConversionData):
             data,
         )
         data.references[Tokens.Materials][material_data.safe_name] = material_prim
-        if material_data.name != material_data.safe_name:
-            usdex.core.setDisplayName(material_prim.GetPrim(), material_data.name)
+        display_name = material_data.get_display_name()
+        if display_name != material_data.safe_name:
+            usdex.core.setDisplayName(material_prim.GetPrim(), display_name)
 
     robot_name = data.urdf_parser.get_robot_name()
     usdex.core.saveStage(data.libraries[Tokens.Materials], comment=f"Material Library for {robot_name}. {data.comment}")
@@ -108,7 +111,6 @@ def _convert_material(
         The material prim.
     """
     diffuse_color = usdex.core.sRgbToLinear(material_data.diffuse_color)
-    specular_color = usdex.core.sRgbToLinear(material_data.specular_color)
     emissive_color = usdex.core.sRgbToLinear(material_data.emissive_color)
 
     # Build kwargs for material properties
@@ -146,15 +148,6 @@ def _convert_material(
 
     if material_data.opacity_texture_path:
         usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data))
-
-    # If the specular color is not black or the specular texture exists, use the specular workflow.
-    if specular_color != [0, 0, 0] or material_data.specular_texture_path:
-        surface_shader.CreateInput("useSpecularWorkflow", Sdf.ValueTypeNames.Int).Set(1)
-        surface_shader.CreateInput("specularColor", Sdf.ValueTypeNames.Color3f).Set(specular_color)
-        if material_data.specular_texture_path:
-            _add_color_texture_to_preview_material(
-                material_prim, "specularColor", "SpecularTexture", _get_texture_asset_path(material_data.specular_texture_path, texture_paths, data)
-            )
 
     # Add the emissive color to the preview material.
     if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
@@ -353,10 +346,22 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         _collada: The DAE file.
         data: The conversion data.
     """
+
+    # Check for duplicate material names.
+    # If duplicate material names are found, the material ID will be used as the distinguishing identifier.
+    material_name_counts = Counter(material.name for material in _collada.materials)
+    use_material_id = any(count > 1 for count in material_name_counts.values())
+
     for material in _collada.materials:
         material_data = MaterialData()
         material_data.mesh_file_path = mesh_file_path
-        material_data.name = material.name
+
+        # If use_material_id is True, the "material name" is used as the material identification name.
+        # If use_material_id is False, the "material ID" is used as the material identification name.
+        # For the displayName of USD, use material.name.
+        material_data.name = material.id if use_material_id else material.name
+        material_data.material_name = material.name
+        material_data.use_material_id = use_material_id
 
         # Process the color properties.
         _process_dae_effect_color_property(material.effect, "diffuse", mesh_file_path, material_data, "diffuse_texture_path", "diffuse_color")
@@ -368,14 +373,14 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         opaque_mode = material.effect.opaque_mode if hasattr(material.effect, "opaque_mode") else None
 
         # Translucency is achieved by multiplying "transparency" and "transparent".
-        material_data.opacity = 1.0
+        _opacity = 1.0
         if (
             opaque_mode is not None
             and hasattr(material.effect, "transparency")
             and material.effect.transparency is not None
             and not isinstance(material.effect.transparency, collada.material.Map)
         ):
-            material_data.opacity = material.effect.transparency if opaque_mode == "A_ONE" else 1.0 - material.effect.transparency
+            _opacity = material.effect.transparency
 
         # A_ONE: "transparent" has RGBA, and the Alpha value goes into transparent[3].
         # RGB_ZERO: "Transparent" has RGB values, and the average of these RGB values is used.
@@ -386,10 +391,27 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
             and not isinstance(material.effect.transparent, collada.material.Map)
         ):
             transparent = material.effect.transparent
-            transparent = transparent[3] if opaque_mode == "A_ONE" else 1.0 - (transparent[0] + transparent[1] + transparent[2]) / 3.0
-            material_data.opacity *= transparent
+            transparent = transparent[3] if opaque_mode == "A_ONE" else (transparent[0] + transparent[1] + transparent[2]) / 3.0
+            _opacity *= transparent
+
+        material_data.opacity = _opacity if opaque_mode == "A_ONE" else 1.0 - _opacity
 
         data.material_data_list.append(material_data)
+
+
+def use_material_id(mesh_file_path: pathlib.Path, data: ConversionData) -> bool:
+    """
+    Check if the material ID should be used for identification of the material prim in USD.
+
+    Args:
+        mesh_file_path: The path to the mesh file.
+        data: The conversion data.
+
+    Returns:
+        True if the material ID is used for identification, False if the material name is used.
+    """
+    material_data = next((material_data for material_data in data.material_data_list if material_data.mesh_file_path == mesh_file_path), None)
+    return material_data.use_material_id if material_data else False
 
 
 def store_mesh_material_reference(mesh_file_path: pathlib.Path, mesh_safe_name: str, material_name_list: list[str], data: ConversionData):
