@@ -28,8 +28,8 @@ Usage:
     # In this case, you must manually assign the target path.
 
     # This does not output a YAML file.
-    # it only reads "tools/urdf_files_dataset_annotations.yaml" to verify the existence of the URDF file and ROS package directory.
-    python tools/manage_annotations.py --urdf-files-dataset-path /home/foo/urdf_files_dataset --validate
+    # Lists information on whether URDF files have been manually checked from the "tools/urdf_files_dataset_annotations.yaml" file.
+    python tools/manage_annotations.py --validate
 """
 
 import argparse
