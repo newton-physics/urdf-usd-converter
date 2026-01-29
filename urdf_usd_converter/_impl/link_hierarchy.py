@@ -43,7 +43,7 @@ class LinkHierarchy:
                 self.link_tree[parent_link_name]["joints"].append(joint)
 
         # If the link tree is empty, make the first link the root.
-        if len(self.link_tree) == 0:
+        if len(self.link_tree) == 0 and len(self.root_element.links) > 0:
             link = self.root_element.links[0]
             self.link_tree[link.name] = {
                 "link": link,
@@ -56,6 +56,9 @@ class LinkHierarchy:
         Get the root link name from the link hierarchy.
         """
         links = [data["link"] for data in self.link_tree.values()]
+        if len(links) == 0:
+            raise ValueError("The link does not exist.")
+
         for link in links:
             is_child = False
             for d in self.link_tree.values():

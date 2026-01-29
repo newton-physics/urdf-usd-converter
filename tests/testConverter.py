@@ -48,6 +48,15 @@ class TestConverter(ConverterTestCase):
         with self.assertRaisesRegex(ValueError, r".*Closed loop articulations are not supported.*"):
             converter.convert(input_path, output_dir)
 
+    def test_load_error_no_link(self):
+        # When no links exist within the URDF file.
+        input_path = "tests/data/error_no_link.urdf"
+        output_dir = str(pathlib.Path(self.tmpDir()) / "error_no_link")
+
+        converter = urdf_usd_converter.Converter()
+        with self.assertRaisesRegex(ValueError, r".*The link does not exist.*"):
+            converter.convert(input_path, output_dir)
+
     def test_load_warning_obj_no_exist_filename(self):
         # A non-existent obj file is specified.
 
