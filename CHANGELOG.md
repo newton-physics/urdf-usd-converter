@@ -1,3 +1,31 @@
+# 0.1.0a2
+
+## Features
+
+- Added conversion of DAE embedded materials to `UsdPreviewSurface` materials
+- Improved performance by optimizing numpy processing when converting STL, OBJ, and DAE meshes
+
+## Fixes
+
+- Fixed several DAE mesh conversion issues
+  - Fixed to correctly parse even when the DAE file structure is corrupted
+  - Fixed an issue where the UV array could not be acquired correctly in some cases
+  - Fixed `familyType` attribute when meshes contain subsets
+- Fixed OBJ per-face material assignments via `UsdGeomSubsets`
+- Fixed material overrides beween native URDF & embedded OBJ/DAE materials
+  - We now match `rviz` & `urdfviewer` where embedded OBJ/DAE materials take priority over URDF materials
+- Fixed texture wrapping behaviour using `repeat` mode on all `UsdUvTexture` shaders
+  - The `wrapMode` is exposed on the material interface so users can change it as needed
+- Fixed color issue related to the specular workflow
+  - Specular workflow has been unconditionally disabled. There is no meaningful mapping of URDF specular color (phong based materials) to UsdPreviewSurface (simplistic PBR based materials) so we ignore specular color for now. This gives results more closely matching `rviz` & `urdfviewer`
+- Fixed URDF Parser to allow invalid `axis` specification on `fixed` joints
+  - Many sample assets have `axis="0 0 0"` on fixed joints, which is meaningless but harmless
+- Fixed URDF Parser to handle errors when no links exist in the file
+
+## Documention
+
+- Update Concept Mapping document to reflect new stance on material overrides
+
 # 0.1.0a1
 
 ## Features
@@ -71,7 +99,6 @@
   - For DAE files, only "TriangleSet", "Triangles", "Polylist", and "Polygons" are supported
   - For OBJ files, only objects with faces are supported (i.e. no points, lines, or free-form curves/surfaces)
 - **Visual Material and Texture Conversion**
-  - DAE embedded materials are not implemented
   - Projection shaders for basic geometry primitives (box, cylinder, sphere) are not implemented
   - More accurate PBR materials (e.g. OpenPBR via UsdMtlx) are not implemented
 - **Other Elements**
