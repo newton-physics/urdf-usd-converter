@@ -1,0 +1,44 @@
+# 'SO-ARM100' Manual Annotations
+# This file contains manual evaluation results for the 'SO-ARM100' benchmark
+#
+# Format:
+#   urdf_file_path:
+#     description: "Description of this URDF variant"
+#     evaluation_date: "YYYY/MM/DD" (asset-level evaluation date)
+#     evaluator: "Name or identifier of person who evaluated"
+#     group_name: "Directory names for classification"
+#     notes: "Additional notes about the evaluation"
+#     ros_package_paths: Array of ROS package names and paths
+#       package_name: package_path
+#     subgroup_name: "Directory names for sub classification"
+#     verified: "Yes" | "No" | "Unknown"
+#
+# Asset names correspond to directory names in the 'SO-ARM100' repository:
+# https://github.com/TheRobotStudio/SO-ARM100
+Simulation/SO100/so100.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: SO100
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+Simulation/SO101/so101_new_calib.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: SO101
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+Simulation/SO101/so101_old_calib.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: SO101
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'

@@ -1,0 +1,784 @@
+# 'example-robot-data' Manual Annotations
+# This file contains manual evaluation results for the 'example-robot-data' benchmark
+#
+# Format:
+#   urdf_file_path:
+#     description: "Description of this URDF variant"
+#     evaluation_date: "YYYY/MM/DD" (asset-level evaluation date)
+#     evaluator: "Name or identifier of person who evaluated"
+#     group_name: "Directory names for classification"
+#     notes: "Additional notes about the evaluation"
+#     ros_package_paths: Array of ROS package names and paths
+#       package_name: package_path
+#     subgroup_name: "Directory names for sub classification"
+#     verified: "Yes" | "No" | "Unknown"
+#
+# Asset names correspond to directory names in the 'example-robot-data' repository:
+# https://github.com/Gepetto/example-robot-data
+robots/a1_description/urdf/a1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: a1_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/alex_description/urdf/alex_nub_hands.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: alex_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/alex_description/urdf/alex_psyonic_hands.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: alex_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/alex_description/urdf/alex_sake_hands.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: alex_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/alexander_description/urdf/alexander_v1.lowerBodyOnly.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: alexander_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/allegro_hand_description/urdf/allegro_left_hand.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: allegro_hand_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/allegro_hand_description/urdf/allegro_right_hand.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: allegro_hand_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/anymal_b_simple_description/robots/anymal-kinova.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: anymal_b_simple_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/anymal_b_simple_description/robots/anymal.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: anymal_b_simple_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/anymal_c_simple_description/urdf/anymal.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: anymal_c_simple_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/asr_twodof_description/urdf/TwoDofs.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: asr_twodof_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/b1_description/urdf/b1-z1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: b1_description
+  notes: ''
+  ros_package_paths:
+    b1_description: ..
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/b1_description/urdf/b1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: b1_description
+  notes: ''
+  ros_package_paths:
+    b1_description: ..
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/b1_description/urdf/b1_test.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: b1_description
+  notes: ''
+  ros_package_paths:
+    b1_description: ..
+  subgroup_name: ''
+  verified: 'No'
+robots/baxter_description/urdf/baxter.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: baxter_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/baxter_description/urdf/baxter_test.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: baxter_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/bluevolta_description/urdf/bluevolta.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: bluevolta_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/bluevolta_description/urdf/bluevolta_bravo7_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: bluevolta_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/bluevolta_description/urdf/bluevolta_bravo7_no_ee.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: bluevolta_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/bolt_description/robots/bolt.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: bolt_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/borinot_description/urdf/borinot_flying_arm_2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: borinot_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/bravo7_description/urdf/bravo7_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: bravo7_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/bravo7_description/urdf/bravo7_no_ee.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: bravo7_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/centauro_description/urdf/centauro.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: centauro_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/double_pendulum_description/urdf/double_pendulum.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: double_pendulum_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/double_pendulum_description/urdf/double_pendulum_continuous.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: double_pendulum_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/double_pendulum_description/urdf/double_pendulum_simple.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: double_pendulum_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/falcon_description/urdf/falcon.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: falcon_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/falcon_description/urdf/falcon_bravo7_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: falcon_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/falcon_description/urdf/falcon_bravo7_no_ee.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: falcon_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/finger_edu_description/robots/finger_edu.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: finger_edu_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/go1_description/urdf/go1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: go1_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/go2_description/urdf/go2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: go2_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/hector_description/robots/quadrotor_base.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: hector_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/hextilt_description/urdf/hextilt_flying_arm_5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: hextilt_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/human_description/robots/human.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: human_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/hyq_description/robots/hyq_no_sensors.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: hyq_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/icub_description/robots/icub.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: icub_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/icub_description/robots/icub_reduced.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: icub_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/iris_description/robots/iris.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: iris_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/iris_description/robots/iris_simple.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: iris_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/kinova_description/robots/kinova.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: kinova_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/laikago_description/urdf/laikago.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: laikago_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/panda_description/urdf/panda.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: panda_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/panda_description/urdf/panda_collision.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: panda_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/pr2_description/urdf/pr2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: pr2_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/quadruped_description/urdf/quadruped.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: quadruped_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/romeo_description/urdf/romeo.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: romeo_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/romeo_description/urdf/romeo_laas_small.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: romeo_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/romeo_description/urdf/romeo_small.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: romeo_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/simple_humanoid_description/urdf/simple_humanoid.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: simple_humanoid_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/simple_humanoid_description/urdf/simple_humanoid_classical.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: simple_humanoid_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/so_arm_description/urdf/so100.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: so_arm_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/so_arm_description/urdf/so101.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: so_arm_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/solo_description/robots/solo.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: solo_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/solo_description/robots/solo12.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: solo_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/talos_data/robots/talos_full_v2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: talos_data
+  notes: ''
+  ros_package_paths:
+    ? ''
+    : ../../../..
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/talos_data/robots/talos_full_v2_box.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: talos_data
+  notes: ''
+  ros_package_paths:
+    ? ''
+    : ../../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/talos_data/robots/talos_left_arm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: talos_data
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/talos_data/robots/talos_reduced.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: talos_data
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/talos_data/robots/talos_reduced_box.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: talos_data
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/talos_data/robots/talos_reduced_corrected.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: talos_data
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/tiago_description/robots/tiago.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: tiago_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/tiago_description/robots/tiago_dual.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: tiago_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/tiago_description/robots/tiago_no_hand.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: tiago_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/tiago_pro_description/robots/tiago_pro.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: tiago_pro_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur10_joint_limited_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur10_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur3_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur3_joint_limited_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur3_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur5_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur5_joint_limited_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/ur_description/urdf/ur5_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ur_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/xarm_description/urdf/xarm7.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: xarm_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/z1_description/urdf/z1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: z1_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'

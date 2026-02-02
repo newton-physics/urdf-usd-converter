@@ -1,3 +1,20 @@
+# 'urdf_files_dataset' Manual Annotations
+# This file contains manual evaluation results for the 'urdf_files_dataset' benchmark
+#
+# Format:
+#   urdf_file_path:
+#     description: "Description of this URDF variant"
+#     evaluation_date: "YYYY/MM/DD" (asset-level evaluation date)
+#     evaluator: "Name or identifier of person who evaluated"
+#     group_name: "Directory names for classification"
+#     notes: "Additional notes about the evaluation"
+#     ros_package_paths: Array of ROS package names and paths
+#       package_name: package_path
+#     subgroup_name: "Directory names for sub classification"
+#     verified: "Yes" | "No" | "Unknown"
+#
+# Asset names correspond to directory names in the 'urdf_files_dataset' repository:
+# https://github.com/Daniella1/urdf_files_dataset
 urdf_files/matlab/Atlas/urdf/atlas.urdf:
   description: ''
   evaluation_date: 2026/01/28

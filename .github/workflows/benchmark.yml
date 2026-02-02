@@ -16,6 +16,18 @@ jobs:
       (github.event_name == 'pull_request' && contains(github.event.label.name, 'benchmark')) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repository:
+          - url: "https://github.com/Daniella1/urdf_files_dataset"
+            name: "urdf_files_dataset"
+          - url: "https://github.com/newton-physics/newton-assets"
+            name: "newton-assets"
+          - url: "https://github.com/Gepetto/example-robot-data"
+            name: "example-robot-data"
+          - url: "https://github.com/TheRobotStudio/SO-ARM100"
+            name: "SO-ARM100"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,8 +35,8 @@ jobs:
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
 
-      - name: Run benchmarks
-        run: uv run --group dev poe benchmark
+      - name: Run benchmarks for ${{ matrix.repository.name }}
+        run: uv run --group dev poe benchmark --urdf-repository-path ${{ matrix.repository.url }}
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
