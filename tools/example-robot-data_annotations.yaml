@@ -147,16 +147,6 @@ robots/b1_description/urdf/b1.urdf:
     example-robot-data: ../../..
   subgroup_name: ''
   verified: 'No'
-robots/b1_description/urdf/b1_test.urdf:
-  description: ''
-  evaluation_date: ''
-  evaluator: ''
-  group_name: b1_description
-  notes: ''
-  ros_package_paths:
-    b1_description: ..
-  subgroup_name: ''
-  verified: 'No'
 robots/baxter_description/urdf/baxter.urdf:
   description: ''
   evaluation_date: ''
@@ -165,15 +155,6 @@ robots/baxter_description/urdf/baxter.urdf:
   notes: ''
   ros_package_paths:
     example-robot-data: ../../..
-  subgroup_name: ''
-  verified: 'No'
-robots/baxter_description/urdf/baxter_test.urdf:
-  description: ''
-  evaluation_date: ''
-  evaluator: ''
-  group_name: baxter_description
-  notes: ''
-  ros_package_paths: {}
   subgroup_name: ''
   verified: 'No'
 robots/bluevolta_description/urdf/bluevolta.urdf:
@@ -317,6 +298,26 @@ robots/finger_edu_description/robots/finger_edu.urdf:
   evaluation_date: ''
   evaluator: ''
   group_name: finger_edu_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/g1_description/urdf/g1_29dof_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: g1_description
+  notes: ''
+  ros_package_paths:
+    example-robot-data: ../../..
+  subgroup_name: ''
+  verified: 'No'
+robots/g1_description/urdf/g1_29dof_with_hand_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: g1_description
   notes: ''
   ros_package_paths:
     example-robot-data: ../../..
