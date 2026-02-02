@@ -62,6 +62,49 @@ def get_converter_version() -> str:
         return "unknown"
 
 
+def get_default_branch(repository_url: str) -> str:
+    """
+    Get the default branch name of a Git repository.
+
+    Args:
+        repository_url: The URL of the Git repository (e.g., https://github.com/user/repo)
+
+    Returns:
+        The name of the default branch (e.g., 'main', 'master', 'devel')
+        Falls back to 'main' if unable to determine.
+    """
+    try:
+        # Use git ls-remote to get the symbolic reference for HEAD
+        result = subprocess.run(
+            ["git", "ls-remote", "--symref", repository_url, "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=True,
+        )
+
+        # Parse output: "ref: refs/heads/main	HEAD"
+        for line in result.stdout.splitlines():
+            if line.startswith("ref:"):
+                # Extract branch name from "ref: refs/heads/branch_name"
+                branch = line.split("refs/heads/")[1].split()[0]
+                logger.debug("Detected default branch '%s' for %s", branch, repository_url)
+                return branch
+
+        logger.warning("Could not determine default branch for %s, falling back to 'main'", repository_url)
+        return "main"
+
+    except subprocess.TimeoutExpired:
+        logger.warning("Timeout while checking default branch for %s, falling back to 'main'", repository_url)
+        return "main"
+    except subprocess.CalledProcessError as e:
+        logger.warning("Failed to get default branch for %s: %s, falling back to 'main'", repository_url, e)
+        return "main"
+    except Exception as e:
+        logger.warning("Unexpected error getting default branch for %s: %s, falling back to 'main'", repository_url, e)
+        return "main"
+
+
 # Import the converter and USD dependencies
 # These should work properly when run through uv in the project environment
 try:
@@ -199,7 +242,12 @@ class URDFBenchmark:
 
         self.repository_name = self.urdf_repository_url.split("/")[-1] if self.urdf_repository_url else self.local_urdf_directory.name
 
-        self.urdf_repository_base_url = f"{self.urdf_repository_url}/tree/main/" if self.urdf_repository_url else None
+        # Get the default branch dynamically for GitHub repositories
+        if self.urdf_repository_url:
+            default_branch = get_default_branch(self.urdf_repository_url)
+            self.urdf_repository_base_url = f"{self.urdf_repository_url}/tree/{default_branch}/"
+        else:
+            self.urdf_repository_base_url = None
 
         if not annotation_file:
             self.annotation_file = Path(f"tools/{self.repository_name}_annotations.yaml")
