@@ -16,17 +16,6 @@ jobs:
       (github.event_name == 'pull_request' && contains(github.event.label.name, 'benchmark')) ||
       github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        repository:
-          - url: "https://github.com/Daniella1/urdf_files_dataset"
-            name: "urdf_files_dataset"
-          - url: "https://github.com/newton-physics/newton-assets"
-            name: "newton-assets"
-          - url: "https://github.com/Gepetto/example-robot-data"
-            name: "example-robot-data"
-          - url: "https://github.com/TheRobotStudio/SO-ARM100"
-            name: "SO-ARM100"
 
     steps:
       - name: Checkout repository
@@ -35,8 +24,31 @@ jobs:
       - name: Bootstrap
         uses: ./.github/actions/bootstrap
 
-      - name: Run benchmarks for ${{ matrix.repository.name }}
-        run: uv run --group dev poe benchmark --urdf-repository-path ${{ matrix.repository.url }}
+      - name: Run benchmarks for all repositories
+        run: |
+          # Define repositories as arrays
+          declare -a urls=(
+            "https://github.com/Daniella1/urdf_files_dataset"
+            "https://github.com/newton-physics/newton-assets"
+            "https://github.com/Gepetto/example-robot-data"
+            "https://github.com/TheRobotStudio/SO-ARM100"
+          )
+          declare -a names=(
+            "urdf_files_dataset"
+            "newton-assets"
+            "example-robot-data"
+            "SO-ARM100"
+          )
+
+          # Loop through each repository and run benchmarks sequentially
+          for i in "${!urls[@]}"; do
+            echo "============================================"
+            echo "Running benchmark for ${names[$i]}"
+            echo "Repository: ${urls[$i]}"
+            echo "============================================"
+            uv run --group dev poe benchmark --urdf-repository-path "${urls[$i]}"
+            echo ""
+          done
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
