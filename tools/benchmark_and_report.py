@@ -301,7 +301,7 @@ class URDFBenchmarks:
         ]
 
         # Sort results by group_name, subgroup_name and model_name.
-        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
+        sorted_results = sorted(self.results, key=lambda r: (r.repository_name, r.group_name, r.subgroup_name, r.model_name))
 
         with Path.open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -436,7 +436,7 @@ class URDFBenchmarks:
 """
 
         # Sort results by group_name, subgroup_name and model_name.
-        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
+        sorted_results = sorted(self.results, key=lambda r: (r.repository_name, r.group_name, r.subgroup_name, r.model_name))
 
         for result in sorted_results:
             success_class = "success-cell" if result.success else "failure-cell"
@@ -563,7 +563,7 @@ class URDFBenchmarks:
         md_content += table_header + table_separator
 
         # Sort results by group_name, subgroup_name and model_name.
-        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
+        sorted_results = sorted(self.results, key=lambda r: (r.repository_name, r.group_name, r.subgroup_name, r.model_name))
 
         for result in sorted_results:
             model_display = f"**[{result.model_name}]({result.dataset_url})**"
@@ -664,9 +664,6 @@ and any other generated files.
             total_time = sum(r.conversion_time_seconds for r in benchmark.results)
             total_file_size = sum(r.total_file_size_mb for r in benchmark.results)
 
-            # Count unique models
-            unique_models = len({r.model_name for r in benchmark.results})
-
             repository_url = benchmark.urdf_repository_url if benchmark.urdf_repository_url else benchmark.local_urdf_directory.absolute()
 
             summary += f"""
@@ -676,8 +673,7 @@ Repository URL: {repository_url}
 ===========================================================================
 
 === Benchmark Summary ===
-Total Models: {unique_models}
-Total Models Variants: {total_models}
+Total Models: {total_models}
 Successful Conversions: {successful} ({successful/total_models*100:.1f}%)
 Failed Conversions: {failed} ({failed/total_models*100:.1f}%)
 Total Errors: {total_errors}
