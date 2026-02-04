@@ -33,22 +33,21 @@ jobs:
             "https://github.com/Gepetto/example-robot-data"
             "https://github.com/TheRobotStudio/SO-ARM100"
           )
-          declare -a names=(
-            "urdf_files_dataset"
-            "newton-assets"
-            "example-robot-data"
-            "SO-ARM100"
-          )
 
-          # Loop through each repository and run benchmarks sequentially
-          for i in "${!urls[@]}"; do
-            echo "============================================"
-            echo "Running benchmark for ${names[$i]}"
-            echo "Repository: ${urls[$i]}"
-            echo "============================================"
-            uv run --group dev poe benchmark --urdf-repository-path "${urls[$i]}"
-            echo ""
+          # Build arguments array with --urdf-repository-path for each URL
+          args=()
+          for url in "${urls[@]}"; do
+            args+=(--urdf-repository-path "$url")
           done
+
+          # Run benchmarks for all repositories in a single command
+          echo "============================================"
+          echo "Running benchmarks for all repositories:"
+          for url in "${urls[@]}"; do
+            echo "  - $url"
+          done
+          echo "============================================"
+          uv run --group dev poe benchmark "${args[@]}"
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4

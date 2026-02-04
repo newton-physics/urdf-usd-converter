@@ -122,6 +122,7 @@ except ImportError as e:
 class BenchmarkResult:
     """Data class for storing benchmark results for a single model."""
 
+    repository_name: str
     model_name: str
     group_name: str
     subgroup_name: str
@@ -217,6 +218,506 @@ class DiagnosticsCapture:
                 self.statuses.append(line)
 
 
+class URDFBenchmarks:
+    """Benchmark class for testing urdf-usd-converter against multiple URDF repositories."""
+
+    def __init__(
+        self,
+        urdf_repository_path_list: list[str],
+        report_output_dir: str = "benchmarks",
+        conversion_output_dir: str = "benchmarks",
+    ):
+        for urdf_repository_path in urdf_repository_path_list:
+            if urdf_repository_path.startswith("https://") and not urdf_repository_path.startswith("https://github.com/"):
+                logger.error("URDF repository path must start with 'https://github.com/'")
+                raise
+        self.urdf_benchmarks: list[URDFBenchmark] = [
+            URDFBenchmark(urdf_repository_path, report_output_dir, conversion_output_dir) for urdf_repository_path in urdf_repository_path_list
+        ]
+        self.results: list[BenchmarkResult] = []
+
+        self.report_output_dir = Path(report_output_dir)
+        self.conversion_output_dir = Path(conversion_output_dir)
+
+        # Create output directory
+        self.report_output_dir.mkdir(parents=True, exist_ok=True)
+        self.conversion_output_dir.mkdir(parents=True, exist_ok=True)
+
+    def _format_time_duration(self, seconds: float) -> str:
+        """Format time duration as XXmYY.ZZs."""
+        minutes = int(seconds // 60)
+        remaining_seconds = seconds % 60
+        return f"{minutes}m {remaining_seconds:.2f}s"
+
+    def run_benchmarks(self) -> list[BenchmarkResult]:
+        results = []
+        for benchmark in self.urdf_benchmarks:
+            results.extend(benchmark.run_benchmark())
+        self.results = results
+
+        return results
+
+    def generate_report(self, format_type: str = "all") -> dict[str, Path]:
+        """Generate benchmark report in specified format(s)."""
+        if not self.results:
+            logger.warning("No results to generate report from")
+            return {}
+
+        reports = {}
+
+        if format_type in ["csv", "all"]:
+            reports["csv"] = self._generate_csv_report()
+
+        if format_type in ["html", "all"]:
+            reports["html"] = self._generate_html_report()
+
+        if format_type in ["md", "all"]:
+            reports["md"] = self._generate_markdown_report()
+
+        # Generate summary
+        self._generate_summary(save_to_file=format_type == "all")
+
+        return reports
+
+    def _generate_csv_report(self) -> Path:
+        """Generate CSV report."""
+        csv_path = self.report_output_dir / "benchmarks.csv"
+
+        fieldnames = [
+            "Repository",
+            "Model",
+            "Group",
+            "Subgroup",
+            "URDF URL",
+            "Local Path",
+            "Success",
+            "Error Count",
+            "Warning Count",
+            "Conversion Time (s)",
+            "Total Size (MB)",
+            "Verified (Manual)",
+            "Notes (Manual)",
+            "Errors",
+        ]
+
+        # Sort results by group_name, subgroup_name and model_name.
+        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
+
+        with Path.open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for result in sorted_results:
+                writer.writerow(
+                    {
+                        "Repository": result.repository_name,
+                        "Model": result.model_name,
+                        "Group": result.group_name,
+                        "Subgroup": result.subgroup_name,
+                        "URDF URL": result.dataset_url,
+                        "Local Path": result.local_path,
+                        "Success": "Yes" if result.success else "No",
+                        "Error Count": result.error_count,
+                        "Warning Count": result.warning_count,
+                        "Conversion Time (s)": f"{result.conversion_time_seconds:.3f}" if result.success else "N/A",
+                        "Total Size (MB)": f"{result.total_file_size_mb:.2f}",
+                        "Verified (Manual)": result.verified,
+                        "Notes (Manual)": result.notes,
+                        "Errors": result.error_message,
+                    }
+                )
+
+        logger.info("CSV report generated: %s", csv_path.absolute())
+        return csv_path
+
+    def _generate_html_report(self) -> Path:
+        """Generate HTML report."""
+        html_path = self.report_output_dir / "benchmarks.html"
+
+        # Calculate statistics
+        total_models = len(self.results)
+        successful = sum(1 for r in self.results if r.success)
+        failed = total_models - successful
+        total_errors = sum(r.error_count for r in self.results)
+        total_warnings = sum(r.warning_count for r in self.results)
+        avg_time = sum(r.conversion_time_seconds for r in self.results) / total_models if total_models > 0 else 0
+        total_time = sum(r.conversion_time_seconds for r in self.results)
+        total_file_size = sum(r.total_file_size_mb for r in self.results)
+
+        html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benchmark Report</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ background-color: #f0f0f0; padding: 20px; border-radius: 5px; }}
+        .stats {{ display: flex; justify-content: space-around; margin: 20px 0; flex-wrap: wrap; }}
+        .stat-box {{ background-color: #e8f4f8; padding: 15px; border-radius: 5px; text-align: center; margin: 5px; }}
+        .success {{ color: #28a745; }}
+        .failure {{ color: #dc3545; }}
+        .warning {{ color: #ffc107; }}
+        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th:nth-child(10), td:nth-child(10) {{ min-width: 350px; width: 350px; }}
+        th {{ background-color: #f2f2f2; }}
+        .success-cell {{ background-color: #d4edda; }}
+        .failure-cell {{ background-color: #f8d7da; }}
+        .warning-cell {{ background-color: #faaa64; }}
+        .manual-annotation {{ background-color: #fff3cd; font-style: italic; }}
+        .numeric {{ text-align: right; }}
+        .asset-group {{ border-top: 2px solid #007bff; }}
+        .variant-row {{ border-top: 1px solid #e9ecef; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Benchmark Report</h1>
+        <p>Generated on: {time.strftime("%Y-%m-%d %H:%M:%S")}</p>
+        <!-- <p>Repository:  -->
+    </div>
+
+    <div class="stats">
+        <div class="stat-box">
+            <h3>Total Models</h3>
+            <p>{total_models}</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="success">Successful</h3>
+            <p>{successful} ({successful/total_models*100:.1f}%)</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="failure">Failed</h3>
+            <p>{failed} ({failed/total_models*100:.1f}%)</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="warning">Total Warnings</h3>
+            <p>{total_warnings}</p>
+        </div>
+        <div class="stat-box">
+            <h3 class="failure">Total Errors</h3>
+            <p>{total_errors}</p>
+        </div>
+        <div class="stat-box">
+            <h3>Avg Time</h3>
+            <p>{avg_time:.2f}s</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total Time</h3>
+            <p>{self._format_time_duration(total_time)}</p>
+        </div>
+        <div class="stat-box">
+            <h3>Total File Size</h3>
+            <p>{total_file_size:.2f} MB</p>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Repository</th>
+                <th>Model</th>
+                <th>Group</th>
+                <th>Subgroup</th>
+                <th>Success</th>
+                <th><a href="#manual-annotation-instructions" style="color: inherit; text-decoration: none;">Verified (Manual)</a></th>
+                <th>Errors</th>
+                <th>Warnings</th>
+                <th>Time (s)</th>
+                <th>Total Size (MB)</th>
+                <th>Notes</th>
+                <th>Errors</th>
+                <th>Warnings</th>
+            </tr>
+        </thead>
+        <tbody>
+"""
+
+        # Sort results by group_name, subgroup_name and model_name.
+        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
+
+        for result in sorted_results:
+            success_class = "success-cell" if result.success else "failure-cell"
+            verified_class = "success-cell" if result.verified == "Yes" else "" if result.verified == "Unknown" else "failure-cell"
+
+            # Determine if this is the first variant of a new asset
+            row_class = "asset-group"
+
+            # Only show model name and link
+            link_style = "color: inherit; text-decoration: none;"
+            asset_link = f'<a href="{result.dataset_url}" target="_blank" style="{link_style}">{result.model_name}</a>'
+            asset_display = f"<strong>{asset_link}</strong>"
+
+            # Convert newlines and tabs to HTML for proper display
+            error_message_html = result.error_message.replace("\n", "<br>")
+            warnings_html = result.warnings.replace("\n", "<br>")
+
+            html_content += f"""
+            <tr class="{row_class}">
+                <td>{result.repository_name}</td>
+                <td>{asset_display}</td>
+                <td>{result.group_name}</td>
+                <td>{result.subgroup_name}</td>
+                <td class="{success_class}">{'Yes' if result.success else 'No'}</td>
+                <td class="{verified_class}">{result.verified}</td>
+                <td class="numeric">{result.error_count}</td>
+                <td class="numeric">{result.warning_count}</td>
+                <td class="numeric">{result.conversion_time_seconds:.2f}</td>
+                <td class="numeric">{result.total_file_size_mb:.2f}</td>
+                <td>{result.notes}</td>
+                <td>{error_message_html}</td>
+                <td>{warnings_html}</td>
+            </tr>
+"""
+
+        html_content += """
+        </tbody>
+    </table>
+
+    <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+        <h3 id="manual-annotation-instructions">Manual Annotation Instructions</h3>
+        <p><strong>Verified:</strong> Each model variant can be individually annotated with "Yes", "No", or "Unknown"
+        based on manual inspection of the converted USD files. Update the annotations in the
+        <code>tools/&lt;repository name&gt;_annotations.yaml</code> file under each variant's <code>verified</code> field.
+        Consider factors like:</p>
+        <ul>
+            <li>Visual correctness when loaded in USD viewer</li>
+            <li>Proper hierarchy and naming</li>
+            <li>Material and texture fidelity</li>
+            <li>Physics properties preservation</li>
+            <li>Simulation correctness in USD compared to the original URDF file</li>
+        </ul>
+        <p><strong>Notes:</strong> Document any known issues, limitations, or special considerations for each
+        URDF file in the <code>notes</code> field under each URDF file in the annotations file.</p>
+
+        <h3>Annotation Structure</h3>
+        <p>Annotations are specified for each urdf file.<br />
+        Each URDF file listed under a model's dictionary has its own <code>verified</code>,
+        <code>notes</code>,<code>evaluation_date</code>,<code>evaluator</code>,and <code>notes</code> fields.
+        </p>
+        <h3>File Size Information</h3>
+        <p><strong>Total Size:</strong> Overall size of all files in the output directory, including USD files,
+        textures, and any other generated assets.</p>
+    </div>
+</body>
+</html>
+"""
+
+        with Path.open(html_path, "w", encoding="utf-8") as htmlfile:
+            htmlfile.write(html_content)
+
+        logger.info("HTML report generated: %s", html_path.absolute())
+        return html_path
+
+    def _generate_markdown_report(self) -> Path:
+        """Generate Markdown report."""
+        md_path = self.report_output_dir / "benchmarks.md"
+
+        # Calculate statistics
+        total_models = len(self.results)
+        successful = sum(1 for r in self.results if r.success)
+        failed = total_models - successful
+        total_errors = sum(r.error_count for r in self.results)
+        total_warnings = sum(r.warning_count for r in self.results)
+        avg_time = sum(r.conversion_time_seconds for r in self.results) / total_models if total_models > 0 else 0
+        total_time = sum(r.conversion_time_seconds for r in self.results)
+        total_file_size = sum(r.total_file_size_mb for r in self.results)
+
+        # Start building markdown content
+        md_content = f"""# Benchmark Report
+
+**Generated on:** {time.strftime("%Y-%m-%d %H:%M:%S")}
+
+## Summary Statistics
+
+| Total Models | Successful | Failed | Total Warnings | Total Errors | Average Time | Total Time | Total File Size |
+|:------------:|:----------:|:------:|:--------------:|:------------:|:------------:|:----------:|:---------------:|
+"""
+
+        # Build summary data row (split to avoid long line)
+        summary_row = (
+            f"| {total_models} | {successful} ({successful/total_models*100:.1f}%) | "
+            f"{failed} ({failed/total_models*100:.1f}%) | {total_warnings} | {total_errors} | "
+            f"{avg_time:.2f}s | {self._format_time_duration(total_time)} | {total_file_size:.2f} MB |"
+        )
+        md_content += (
+            summary_row
+            + """
+
+## Detailed Results
+
+"""
+        )
+
+        # Add table header (split to avoid long line)
+        table_header = (
+            "| Repository | Model | Group | Subgroup | Success | [Verified (Manual)](#manual-annotation-instructions) | Errors | Warnings | "
+            "Time (s) | Size (MB) | Notes | Error Messages | Warning Messages |\n"
+        )
+        table_separator = (
+            "|-------|-------|---------|---------|---------|----------|-------:|--------:|"
+            "---------:|---------:|----------------------|----------------|------------------|\n"
+        )
+        md_content += table_header + table_separator
+
+        # Sort results by group_name, subgroup_name and model_name.
+        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
+
+        for result in sorted_results:
+            model_display = f"**[{result.model_name}]({result.dataset_url})**"
+
+            # Success status with emoji
+            success_display = "✅" if result.success else "❌"
+
+            # Verified status with emoji
+            if result.verified == "Yes":
+                verified_display = "✅"
+            elif result.verified == "Unknown":
+                verified_display = "❓"
+            else:
+                verified_display = "❌"
+
+            # Escape pipe characters and clean up text for markdown table
+            def clean_for_table(text: str) -> str:
+                if not text:
+                    return ""
+                # Replace pipes with escaped pipes, newlines with <br> for markdown, and clean carriage returns
+                cleaned = text.replace("|", "\\|").replace("\n", "<br>").replace("\r", "")
+                return cleaned
+
+            error_messages = clean_for_table(result.error_message)
+            warning_messages = clean_for_table(result.warnings)
+            notes = clean_for_table(result.notes)
+
+            # Build table row (split to avoid long line)
+            row_parts = [
+                result.repository_name,
+                model_display,
+                result.group_name,
+                result.subgroup_name,
+                success_display,
+                verified_display,
+                str(result.error_count),
+                str(result.warning_count),
+                f"{result.conversion_time_seconds:.2f}",
+                f"{result.total_file_size_mb:.2f}",
+                notes,
+                error_messages,
+                warning_messages,
+            ]
+            md_content += "| " + " | ".join(row_parts) + " |\n"
+
+        # Add manual annotation instructions
+        md_content += """
+
+## Manual Annotation Instructions
+
+### Verified Status
+Each model variant can be individually annotated with "Yes", "No", or "Unknown" based on manual
+inspection of the converted USD files. Update the annotations in the `tools/<repository name>_annotations.yaml`
+file under each variant's `verified` field.
+
+**Consider these factors:**
+- Visual correctness when loaded in USD viewer
+- Proper hierarchy and naming
+- Material and texture fidelity
+- Physics properties preservation
+- Simulation correctness in USD compared to the original URDF file
+
+### Notes
+Document any known issues, limitations, or special considerations for each model variant in the
+`notes` field under each variant in the annotations file.
+
+### Annotation Structure
+Annotations are specified for each urdf file.
+Each URDF file listed under a model's urdf files dictionary has its own `verified`, `notes`, `evaluation_date`, `evaluator`, and `notes` fields.
+
+### File Size Information
+**Total Size:** Overall size of all files in the output directory, including USD files, textures,
+and any other generated files.
+
+---
+
+*Report generated by urdf-usd-converter benchmark tool*
+"""
+
+        with Path.open(md_path, "w", encoding="utf-8") as mdfile:
+            mdfile.write(md_content)
+
+        logger.info("Markdown report generated: %s", md_path.absolute())
+        return md_path
+
+    def _generate_summary(self, save_to_file: bool = True):
+        """Generate a summary of the benchmark results."""
+        if not self.results:
+            return
+
+        summary = ""
+        for benchmark in self.urdf_benchmarks:
+            total_models = len(benchmark.results)
+            successful = sum(1 for r in benchmark.results if r.success)
+            failed = total_models - successful
+            total_errors = sum(r.error_count for r in benchmark.results)
+            total_warnings = sum(r.warning_count for r in benchmark.results)
+            total_time = sum(r.conversion_time_seconds for r in benchmark.results)
+            total_file_size = sum(r.total_file_size_mb for r in benchmark.results)
+
+            # Count unique models
+            unique_models = len({r.model_name for r in benchmark.results})
+
+            repository_url = benchmark.urdf_repository_url if benchmark.urdf_repository_url else benchmark.local_urdf_directory.absolute()
+
+            summary += f"""
+===========================================================================
+Repository: {benchmark.repository_name}
+Repository URL: {repository_url}
+===========================================================================
+
+=== Benchmark Summary ===
+Total Models: {unique_models}
+Total Models Variants: {total_models}
+Successful Conversions: {successful} ({successful/total_models*100:.1f}%)
+Failed Conversions: {failed} ({failed/total_models*100:.1f}%)
+Total Errors: {total_errors}
+Total Warnings: {total_warnings}
+Total Conversion Time: {self._format_time_duration(total_time)}
+Average Time per Model: {self._format_time_duration(total_time/total_models)}
+
+=== File Size Analysis ===
+Total File Size: {total_file_size:.2f} MB
+Average Size per Model: {total_file_size/total_models:.2f} MB"""
+
+            failed_results = [result for result in benchmark.results if not result.success]
+            if failed_results:
+                summary += "\n\n=== Failed Models ===\n"
+                # Group failed results by asset for better readability
+                failed_by_model = {}
+                for result in failed_results:
+                    if result.model_name not in failed_by_model:
+                        failed_by_model[result.model_name] = []
+                    failed_by_model[result.model_name].append(result)
+
+                for model_name, variants in sorted(failed_by_model.items()):
+                    summary += f"\n{model_name}:\n"
+                    for result in variants:
+                        summary += f"  - {result.group_name}/{result.subgroup_name}: {result.error_message}\n"
+            summary += "\n"
+
+        logger.info(summary)
+
+        if save_to_file:
+            summary_path = self.report_output_dir / "benchmark_summary.txt"
+            with Path.open(summary_path, "w", encoding="utf-8") as f:
+                f.write(summary)
+            logger.info("Summary saved to: %s", summary_path.absolute())
+
+    def cleanup(self):
+        for benchmark in self.urdf_benchmarks:
+            benchmark.cleanup()
+
+
 class URDFBenchmark:
     """Main benchmark class for testing urdf-usd-converter against urdf_files_dataset, etc."""
 
@@ -276,14 +777,14 @@ class URDFBenchmark:
     def _setup_urdf_files_from_repository(self) -> Path:
         """Setup the URDF repository in the temporary directory. (clone if needed)."""
         if self.local_urdf_directory and self.local_urdf_directory.exists():
-            logger.info("Using existing URDF repository at: %s", self.local_urdf_directory)
+            logger.info("[%s] Using existing URDF repository at: %s", self.repository_name, self.local_urdf_directory)
             return self.local_urdf_directory
 
         # Clone to temporary directory using TemporaryDirectory context manager
         self.temp_dir_context = tempfile.TemporaryDirectory(prefix=f"urdf_{self.repository_name}_benchmark_")
         urdf_files_path = Path(self.temp_dir_context.name) / self.repository_name
 
-        logger.info("Cloning URDF repository to: %s", urdf_files_path)
+        logger.info("[%s] Cloning URDF repository to: %s", self.repository_name, urdf_files_path)
         try:
             subprocess.run(
                 ["git", "clone", "--depth", "1", f"{self.urdf_repository_url}.git", str(urdf_files_path)],
@@ -292,7 +793,7 @@ class URDFBenchmark:
                 text=True,
             )
         except subprocess.CalledProcessError as e:
-            logger.error("Failed to clone %s: %s", self.repository_name, e)
+            logger.error("[%s] Failed to clone %s: %s", self.repository_name, self.urdf_repository_url, e)
             # Clean up temporary directory on error
             self.temp_dir_context.cleanup()
             self.temp_dir_context = None
@@ -304,16 +805,16 @@ class URDFBenchmark:
     def _load_annotations(self):
         """Load existing annotations from file."""
         if not self.annotation_file.exists():
-            logger.info("Annotation file does not exist: %s", self.annotation_file)
+            logger.info("[%s] Annotation file does not exist: %s", self.repository_name, self.annotation_file)
             return {}
 
         try:
             with Path.open(self.annotation_file, encoding="utf-8") as f:
                 self.annotations = yaml.safe_load(f) or {}
-            logger.info("Loaded %d existing annotations", len(self.annotations))
+            logger.info("[%s] Loaded %d existing annotations", self.repository_name, len(self.annotations))
             return self.annotations
         except Exception as e:
-            logger.error("Failed to load annotations: %s", e)
+            logger.error("[%s] Failed to load annotations: %s", self.repository_name, e)
             return {}
 
     def _setup_diagnostics(self):
@@ -325,13 +826,13 @@ class URDFBenchmark:
             # Set diagnostics level to capture all messages
             usdex.core.setDiagnosticsLevel(usdex.core.DiagnosticsLevel.eStatus)
 
-            logger.info("Successfully activated usdex.core diagnostics delegate")
+            logger.info("[%s] Successfully activated usdex.core diagnostics delegate", self.repository_name)
         except Exception as e:
-            logger.warning("Failed to setup USD diagnostics: %s", e)
+            logger.warning("[%s] Failed to setup USD diagnostics: %s", self.repository_name, e)
 
     def _convert_urdf(self, group_name: str, subgroup_name: str, urdf_file_path: str, ros_package_paths: dict[str, Path]) -> BenchmarkResult:
         """Convert a single URDF file and return the benchmark result."""
-        logger.info("Converting URDF file: %s", urdf_file_path)
+        logger.info("[%s] Converting URDF file: %s", self.repository_name, urdf_file_path)
 
         _urdf_file_path = self.local_urdf_directory / urdf_file_path
 
@@ -339,6 +840,7 @@ class URDFBenchmark:
 
         # Create result object
         result = BenchmarkResult(
+            repository_name=self.repository_name,
             model_name=model_name,
             group_name=group_name,
             subgroup_name=subgroup_name,
@@ -395,17 +897,17 @@ class URDFBenchmark:
 
         if return_code != 0:
             result.error_message = f"Conversion failed with return code {return_code}. Stderr: {stderr}"
-            logger.error("Failed to convert %s: %s", model_name, result.error_message)
+            logger.error("[%s] Failed to convert %s: %s", self.repository_name, model_name, result.error_message)
         else:
             layer_files = [f for f in model_output_dir.iterdir() if f.is_file() and f.suffix.lower() == ".usda"]
 
             if layer_files:
                 result.success = True
                 result.total_file_size_mb = self._get_categorized_file_sizes(model_output_dir)
-                logger.info("Successfully converted %s in %.2fs", model_name, result.conversion_time_seconds)
+                logger.info("[%s] Successfully converted %s in %.2fs", self.repository_name, model_name, result.conversion_time_seconds)
             else:
                 result.error_message = f"Conversion completed but no USD layer file found in {model_output_dir}"
-                logger.warning("Conversion completed but no USD layer found for %s", model_name)
+                logger.warning("[%s] Conversion completed but no USD layer found for %s", self.repository_name, model_name)
 
         # Capture diagnostics counts
         result.error_count, result.warning_count = self.diagnostics.get_counts()
@@ -434,11 +936,11 @@ class URDFBenchmark:
                         total_size += file_size
 
                     except OSError as e:
-                        logger.warning("Failed to get size for file %s: %s", file_path, e)
+                        logger.warning("[%s] Failed to get size for file %s: %s", self.repository_name, file_path, e)
                         continue
 
         except Exception as e:
-            logger.error("Failed to scan directory %s: %s", directory, e)
+            logger.error("[%s] Failed to scan directory %s: %s", self.repository_name, directory, e)
             return 0.0
 
         # Convert bytes to MB
@@ -481,464 +983,19 @@ class URDFBenchmark:
 
             # Log progress
             success_count = sum(1 for r in results if r.success)
-            logger.info("Progress: %d/%d processed, %d successful", i, len(urdf_file_paths), success_count)
+            logger.info("[%s] Progress: %d/%d processed, %d successful", self.repository_name, i, len(urdf_file_paths), success_count)
 
         self.results = results
         return results
-
-    def generate_report(self, format_type: str = "all") -> dict[str, Path]:
-        """Generate benchmark report in specified format(s)."""
-        if not self.results:
-            logger.warning("No results to generate report from")
-            return {}
-
-        reports = {}
-
-        if format_type in ["csv", "all"]:
-            reports["csv"] = self._generate_csv_report()
-
-        if format_type in ["html", "all"]:
-            reports["html"] = self._generate_html_report()
-
-        if format_type in ["md", "all"]:
-            reports["md"] = self._generate_markdown_report()
-
-        # Generate summary
-        self._generate_summary(save_to_file=format_type == "all")
-
-        return reports
-
-    def _generate_csv_report(self) -> Path:
-        """Generate CSV report."""
-        csv_path = self.report_output_dir / f"benchmarks_{self.repository_name}.csv"
-
-        fieldnames = [
-            "Model",
-            "Group",
-            "Subgroup",
-            "URDF URL",
-            "Local Path",
-            "Success",
-            "Error Count",
-            "Warning Count",
-            "Conversion Time (s)",
-            "Total Size (MB)",
-            "Verified (Manual)",
-            "Notes (Manual)",
-            "Errors",
-        ]
-
-        # Sort results by group_name, subgroup_name and model_name.
-        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
-
-        with Path.open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-
-            for result in sorted_results:
-                writer.writerow(
-                    {
-                        "Model": result.model_name,
-                        "Group": result.group_name,
-                        "Subgroup": result.subgroup_name,
-                        "URDF URL": result.dataset_url,
-                        "Local Path": result.local_path,
-                        "Success": "Yes" if result.success else "No",
-                        "Error Count": result.error_count,
-                        "Warning Count": result.warning_count,
-                        "Conversion Time (s)": f"{result.conversion_time_seconds:.3f}" if result.success else "N/A",
-                        "Total Size (MB)": f"{result.total_file_size_mb:.2f}",
-                        "Verified (Manual)": result.verified,
-                        "Notes (Manual)": result.notes,
-                        "Errors": result.error_message,
-                    }
-                )
-
-        logger.info("CSV report generated: %s", csv_path.absolute())
-        return csv_path
-
-    def _generate_html_report(self) -> Path:
-        """Generate HTML report."""
-        html_path = self.report_output_dir / f"benchmarks_{self.repository_name}.html"
-
-        # Calculate statistics
-        total_models = len(self.results)
-        successful = sum(1 for r in self.results if r.success)
-        failed = total_models - successful
-        total_errors = sum(r.error_count for r in self.results)
-        total_warnings = sum(r.warning_count for r in self.results)
-        avg_time = sum(r.conversion_time_seconds for r in self.results) / total_models if total_models > 0 else 0
-        total_time = sum(r.conversion_time_seconds for r in self.results)
-        total_file_size = sum(r.total_file_size_mb for r in self.results)
-
-        urdf_repository_url = self.urdf_repository_url if self.urdf_repository_url else self.local_urdf_directory.absolute()
-        html_content = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{self.repository_name} Benchmark Report</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        .header {{ background-color: #f0f0f0; padding: 20px; border-radius: 5px; }}
-        .stats {{ display: flex; justify-content: space-around; margin: 20px 0; flex-wrap: wrap; }}
-        .stat-box {{ background-color: #e8f4f8; padding: 15px; border-radius: 5px; text-align: center; margin: 5px; }}
-        .success {{ color: #28a745; }}
-        .failure {{ color: #dc3545; }}
-        .warning {{ color: #ffc107; }}
-        table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
-        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        th:nth-child(10), td:nth-child(10) {{ min-width: 350px; width: 350px; }}
-        th {{ background-color: #f2f2f2; }}
-        .success-cell {{ background-color: #d4edda; }}
-        .failure-cell {{ background-color: #f8d7da; }}
-        .warning-cell {{ background-color: #faaa64; }}
-        .manual-annotation {{ background-color: #fff3cd; font-style: italic; }}
-        .numeric {{ text-align: right; }}
-        .asset-group {{ border-top: 2px solid #007bff; }}
-        .variant-row {{ border-top: 1px solid #e9ecef; }}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>{self.repository_name} Benchmark Report</h1>
-        <p>Generated on: {time.strftime("%Y-%m-%d %H:%M:%S")}</p>
-        <p>Repository: <a href="{urdf_repository_url}">{urdf_repository_url}</a></p>
-    </div>
-
-    <div class="stats">
-        <div class="stat-box">
-            <h3>Total Models</h3>
-            <p>{total_models}</p>
-        </div>
-        <div class="stat-box">
-            <h3 class="success">Successful</h3>
-            <p>{successful} ({successful/total_models*100:.1f}%)</p>
-        </div>
-        <div class="stat-box">
-            <h3 class="failure">Failed</h3>
-            <p>{failed} ({failed/total_models*100:.1f}%)</p>
-        </div>
-        <div class="stat-box">
-            <h3 class="warning">Total Warnings</h3>
-            <p>{total_warnings}</p>
-        </div>
-        <div class="stat-box">
-            <h3 class="failure">Total Errors</h3>
-            <p>{total_errors}</p>
-        </div>
-        <div class="stat-box">
-            <h3>Avg Time</h3>
-            <p>{avg_time:.2f}s</p>
-        </div>
-        <div class="stat-box">
-            <h3>Total Time</h3>
-            <p>{self._format_time_duration(total_time)}</p>
-        </div>
-        <div class="stat-box">
-            <h3>Total File Size</h3>
-            <p>{total_file_size:.2f} MB</p>
-        </div>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Model</th>
-                <th>Group</th>
-                <th>Subgroup</th>
-                <th>Success</th>
-                <th><a href="#manual-annotation-instructions" style="color: inherit; text-decoration: none;">Verified (Manual)</a></th>
-                <th>Errors</th>
-                <th>Warnings</th>
-                <th>Time (s)</th>
-                <th>Total Size (MB)</th>
-                <th>Notes</th>
-                <th>Errors</th>
-                <th>Warnings</th>
-            </tr>
-        </thead>
-        <tbody>
-"""
-
-        # Sort results by group_name, subgroup_name and model_name.
-        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
-
-        for result in sorted_results:
-            success_class = "success-cell" if result.success else "failure-cell"
-            verified_class = "success-cell" if result.verified == "Yes" else "" if result.verified == "Unknown" else "failure-cell"
-
-            # Determine if this is the first variant of a new asset
-            row_class = "asset-group"
-
-            # Only show model name and link
-            link_style = "color: inherit; text-decoration: none;"
-            asset_link = f'<a href="{result.dataset_url}" target="_blank" style="{link_style}">{result.model_name}</a>'
-            asset_display = f"<strong>{asset_link}</strong>"
-
-            # Convert newlines and tabs to HTML for proper display
-            error_message_html = result.error_message.replace("\n", "<br>")
-            warnings_html = result.warnings.replace("\n", "<br>")
-
-            html_content += f"""
-            <tr class="{row_class}">
-                <td>{asset_display}</td>
-                <td>{result.group_name}</td>
-                <td>{result.subgroup_name}</td>
-                <td class="{success_class}">{'Yes' if result.success else 'No'}</td>
-                <td class="{verified_class}">{result.verified}</td>
-                <td class="numeric">{result.error_count}</td>
-                <td class="numeric">{result.warning_count}</td>
-                <td class="numeric">{result.conversion_time_seconds:.2f}</td>
-                <td class="numeric">{result.total_file_size_mb:.2f}</td>
-                <td>{result.notes}</td>
-                <td>{error_message_html}</td>
-                <td>{warnings_html}</td>
-            </tr>
-"""
-
-        html_content += f"""
-        </tbody>
-    </table>
-
-    <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
-        <h3 id="manual-annotation-instructions">Manual Annotation Instructions</h3>
-        <p><strong>Verified:</strong> Each model variant can be individually annotated with "Yes", "No", or "Unknown"
-        based on manual inspection of the converted USD files. Update the annotations in the
-        <code>tools/{self.repository_name}_annotations.yaml</code> file under each variant's <code>verified</code> field.
-        Consider factors like:</p>
-        <ul>
-            <li>Visual correctness when loaded in USD viewer</li>
-            <li>Proper hierarchy and naming</li>
-            <li>Material and texture fidelity</li>
-            <li>Physics properties preservation</li>
-            <li>Simulation correctness in USD compared to the original URDF file</li>
-        </ul>
-        <p><strong>Notes:</strong> Document any known issues, limitations, or special considerations for each
-        URDF file in the <code>notes</code> field under each URDF file in the annotations file.</p>
-
-        <h3>Annotation Structure</h3>
-        <p>Annotations are specified for each urdf file.<br />
-        Each URDF file listed under a model's dictionary has its own <code>verified</code>,
-        <code>notes</code>,<code>evaluation_date</code>,<code>evaluator</code>,and <code>notes</code> fields.
-        </p>
-        <h3>File Size Information</h3>
-        <p><strong>Total Size:</strong> Overall size of all files in the output directory, including USD files,
-        textures, and any other generated assets.</p>
-    </div>
-</body>
-</html>
-"""
-
-        with Path.open(html_path, "w", encoding="utf-8") as htmlfile:
-            htmlfile.write(html_content)
-
-        logger.info("HTML report generated: %s", html_path.absolute())
-        return html_path
-
-    def _generate_markdown_report(self) -> Path:
-        """Generate Markdown report."""
-        md_path = self.report_output_dir / f"benchmarks_{self.repository_name}.md"
-
-        # Calculate statistics
-        total_models = len(self.results)
-        successful = sum(1 for r in self.results if r.success)
-        failed = total_models - successful
-        total_errors = sum(r.error_count for r in self.results)
-        total_warnings = sum(r.warning_count for r in self.results)
-        avg_time = sum(r.conversion_time_seconds for r in self.results) / total_models if total_models > 0 else 0
-        total_time = sum(r.conversion_time_seconds for r in self.results)
-        total_file_size = sum(r.total_file_size_mb for r in self.results)
-        urdf_repository_url = self.urdf_repository_url if self.urdf_repository_url else self.local_urdf_directory.absolute()
-
-        # Start building markdown content
-        md_content = f"""# {self.repository_name} Benchmark Report
-
-**Generated on:** {time.strftime("%Y-%m-%d %H:%M:%S")}
-
-**Repository:** [{urdf_repository_url}]({urdf_repository_url})
-
-## Summary Statistics
-
-| Total Models | Successful | Failed | Total Warnings | Total Errors | Average Time | Total Time | Total File Size |
-|:------------:|:----------:|:------:|:--------------:|:------------:|:------------:|:----------:|:---------------:|
-"""
-
-        # Build summary data row (split to avoid long line)
-        summary_row = (
-            f"| {total_models} | {successful} ({successful/total_models*100:.1f}%) | "
-            f"{failed} ({failed/total_models*100:.1f}%) | {total_warnings} | {total_errors} | "
-            f"{avg_time:.2f}s | {self._format_time_duration(total_time)} | {total_file_size:.2f} MB |"
-        )
-        md_content += (
-            summary_row
-            + """
-
-## Detailed Results
-
-"""
-        )
-
-        # Add table header (split to avoid long line)
-        table_header = (
-            "| Model | Group | Subgroup | Success | [Verified (Manual)](#manual-annotation-instructions) | Errors | Warnings | "
-            "Time (s) | Size (MB) | Notes | Error Messages | Warning Messages |\n"
-        )
-        table_separator = (
-            "|-------|---------|---------|---------|----------|-------:|--------:|"
-            "---------:|---------:|----------------------|----------------|------------------|\n"
-        )
-        md_content += table_header + table_separator
-
-        # Sort results by group_name, subgroup_name and model_name.
-        sorted_results = sorted(self.results, key=lambda r: (r.group_name, r.subgroup_name, r.model_name))
-
-        for result in sorted_results:
-            model_display = f"**[{result.model_name}]({result.dataset_url})**"
-
-            # Success status with emoji
-            success_display = "✅" if result.success else "❌"
-
-            # Verified status with emoji
-            if result.verified == "Yes":
-                verified_display = "✅"
-            elif result.verified == "Unknown":
-                verified_display = "❓"
-            else:
-                verified_display = "❌"
-
-            # Escape pipe characters and clean up text for markdown table
-            def clean_for_table(text: str) -> str:
-                if not text:
-                    return ""
-                # Replace pipes with escaped pipes, newlines with <br> for markdown, and clean carriage returns
-                cleaned = text.replace("|", "\\|").replace("\n", "<br>").replace("\r", "")
-                return cleaned
-
-            error_messages = clean_for_table(result.error_message)
-            warning_messages = clean_for_table(result.warnings)
-            notes = clean_for_table(result.notes)
-
-            # Build table row (split to avoid long line)
-            row_parts = [
-                model_display,
-                result.group_name,
-                result.subgroup_name,
-                success_display,
-                verified_display,
-                str(result.error_count),
-                str(result.warning_count),
-                f"{result.conversion_time_seconds:.2f}",
-                f"{result.total_file_size_mb:.2f}",
-                notes,
-                error_messages,
-                warning_messages,
-            ]
-            md_content += "| " + " | ".join(row_parts) + " |\n"
-
-        # Add manual annotation instructions
-        md_content += f"""
-
-## Manual Annotation Instructions
-
-### Verified Status
-Each model variant can be individually annotated with "Yes", "No", or "Unknown" based on manual
-inspection of the converted USD files. Update the annotations in the `tools/{self.repository_name}_annotations.yaml`
-file under each variant's `verified` field.
-
-**Consider these factors:**
-- Visual correctness when loaded in USD viewer
-- Proper hierarchy and naming
-- Material and texture fidelity
-- Physics properties preservation
-- Simulation correctness in USD compared to the original URDF file
-
-### Notes
-Document any known issues, limitations, or special considerations for each model variant in the
-`notes` field under each variant in the annotations file.
-
-### Annotation Structure
-Annotations are specified for each urdf file.
-Each URDF file listed under a model's urdf files dictionary has its own `verified`, `notes`, `evaluation_date`, `evaluator`, and `notes` fields.
-
-### File Size Information
-**Total Size:** Overall size of all files in the output directory, including USD files, textures,
-and any other generated files.
-
----
-
-*Report generated by urdf-usd-converter benchmark tool*
-"""
-
-        with Path.open(md_path, "w", encoding="utf-8") as mdfile:
-            mdfile.write(md_content)
-
-        logger.info("Markdown report generated: %s", md_path.absolute())
-        return md_path
-
-    def _generate_summary(self, save_to_file: bool = True):
-        """Generate a summary of the benchmark results."""
-        if not self.results:
-            return
-
-        total_models = len(self.results)
-        successful = sum(1 for r in self.results if r.success)
-        failed = total_models - successful
-        total_errors = sum(r.error_count for r in self.results)
-        total_warnings = sum(r.warning_count for r in self.results)
-        total_time = sum(r.conversion_time_seconds for r in self.results)
-        total_file_size = sum(r.total_file_size_mb for r in self.results)
-
-        # Count unique models
-        unique_models = len({r.model_name for r in self.results})
-
-        summary = f"""
-=== {self.repository_name} Benchmark Summary ===
-Total Models: {unique_models}
-Total Models Variants: {total_models}
-Successful Conversions: {successful} ({successful/total_models*100:.1f}%)
-Failed Conversions: {failed} ({failed/total_models*100:.1f}%)
-Total Errors: {total_errors}
-Total Warnings: {total_warnings}
-Total Conversion Time: {self._format_time_duration(total_time)}
-Average Time per Model: {self._format_time_duration(total_time/total_models)}
-
-=== File Size Analysis ===
-Total File Size: {total_file_size:.2f} MB
-Average Size per Model: {total_file_size/total_models:.2f} MB"""
-
-        failed_results = [result for result in self.results if not result.success]
-        if failed_results:
-            summary += "\n\n=== Failed Models ===\n"
-            # Group failed results by asset for better readability
-            failed_by_model = {}
-            for result in failed_results:
-                if result.model_name not in failed_by_model:
-                    failed_by_model[result.model_name] = []
-                failed_by_model[result.model_name].append(result)
-
-            for model_name, variants in sorted(failed_by_model.items()):
-                summary += f"\n{model_name}:\n"
-                for result in variants:
-                    summary += f"  - {result.group_name}/{result.subgroup_name}: {result.error_message}\n"
-
-        logger.info(summary)
-
-        if save_to_file:
-            summary_path = self.report_output_dir / f"benchmark_summary_{self.repository_name}.txt"
-            with Path.open(summary_path, "w", encoding="utf-8") as f:
-                f.write(summary)
-            logger.info("Summary saved to: %s", summary_path.absolute())
 
     def cleanup(self):
         """Clean up temporary resources."""
         if self.temp_dir_context:
             try:
                 self.temp_dir_context.cleanup()
-                logger.info("Cleaned up temporary URDF directory")
+                logger.info("[%s] Cleaned up temporary URDF directory", self.repository_name)
             except Exception as e:
-                logger.warning("Failed to clean up temporary URDF directory: %s", str(e))
+                logger.warning("[%s] Failed to clean up temporary URDF directory: %s", self.repository_name, str(e))
             finally:
                 self.temp_dir_context = None
 
@@ -953,12 +1010,12 @@ def main():
         "--urdf-repository-path",
         type=str,
         required=True,
+        action="append",
         help="URL or local path of the repository containing the URDF.",
     )
     parser.add_argument("--conversion-output-dir", type=str, default="benchmarks/usd", help="Directory to store converted USD assets")
     parser.add_argument("--report-output-dir", type=str, default="benchmarks", help="Directory to store benchmark reports")
     parser.add_argument("--report-format", choices=["csv", "html", "md", "all"], default="all", help="Format for the benchmark report")
-    parser.add_argument("--annotation-file", type=Path, default=None, help="Path to the annotation YAML file")
 
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
 
@@ -968,23 +1025,23 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     # Create benchmark instance
-    benchmark = URDFBenchmark(
-        urdf_repository_path=args.urdf_repository_path,
+    # urdf_repository_path contains a list of multiple paths.
+    benchmarks = URDFBenchmarks(
+        urdf_repository_path_list=args.urdf_repository_path,
         report_output_dir=args.report_output_dir,
         conversion_output_dir=args.conversion_output_dir,
-        annotation_file=args.annotation_file,
     )
 
     try:
-        # Run benchmark
-        results = benchmark.run_benchmark()
+        # Run benchmarks
+        results = benchmarks.run_benchmarks()
 
         if not results:
             logger.error("No results generated")
             return 1
 
         # Generate reports
-        reports = benchmark.generate_report(args.report_format)
+        reports = benchmarks.generate_report(args.report_format)
 
         logger.info("Benchmark completed successfully!")
         logger.info("USD Assets saved to: %s", Path(args.conversion_output_dir).absolute())
@@ -1002,7 +1059,7 @@ def main():
         logger.error("Benchmark failed: %s", e)
         raise Exception(e)
     finally:
-        benchmark.cleanup()
+        benchmarks.cleanup()
 
 
 if __name__ == "__main__":
