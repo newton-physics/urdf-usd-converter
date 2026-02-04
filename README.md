@@ -55,6 +55,64 @@ stage: Usd.Stage = Usd.Stage.Open(asset.path)
 usdex.core.saveStage(stage, comment="modified after conversion")
 ```
 
+## Specifying ROS packages
+
+If a filename within a mesh or texture in the URDF file is specified as `package://<package_name>/<path>`, we must separately provide the actual path where the package is located.  
+`<package_name>` is the ROS package name and has a corresponding path.
+`<path>` is a relative path within that package path.  
+The package path specified for `<package_name>` can be either a relative path or an absolute path.  
+If the package path is a relative path, the path specification will be relative to this URDF file.  
+
+When the converter traces back to the parent directory with the URDF file as the current directory, if a file matching the specified path is found, the combination of the package name and path at that time is automatically used.  
+
+If the ROS package path still cannot be found, we must manually specify the path combination for the package name.  
+
+### CLI
+
+Specify the path to the package name by using the `--package` argument in the CLI.  
+We can also specify multiple packages.  
+
+When a filename is specified in an URDF file as shown below, the "robot_package" following `package://` is the package name.  
+ROS packages are assigned either a relative path or an absolute path from the URDF relative to the package name.  
+
+```xml
+  <material name="body_mat">
+    <color rgba="1.0 1.0 1.0 1.0"/>
+    <texture filename="package://robot_package/textures/body_image.png"/>
+  </material>
+```
+
+When specifying the `--package` argument in the CLI as shown below, the actual path will be "/path/to/assets/textures/body_image.png".  
+
+```bash  
+urdf_usd_converter /path/to/robot.urdf /path/to/usd_robot --package robot_package=/path/to/assets
+```
+
+If multiple packages and paths exist, specify them as follows.  
+
+```bash
+urdf_usd_converter /path/to/robot.urdf /path/to/usd_robot --package robot_package=/path/to/assets --package robot_foo=/path/to/foo
+```
+If the path contains spaces, please enclose it in double quotation marks.  
+
+### Python
+
+When specifying a list of ROS package names and paths in Python, assign the package name to the "name" key and the path to the "path" key in a dictionary.  
+Specify the list of packages for this package in the `ros_packages` argument of `urdf_usd_converter.Converter`.  
+
+```python
+import urdf_usd_converter
+import usdex.core
+from pxr import Sdf, Usd
+
+packages = [
+    {"name": "robot_package", "path": "/path/to/assets"},
+    {"name": "robot_foo", "path": "/path/to/foo"},
+]
+converter = urdf_usd_converter.Converter(ros_packages=packages)
+asset: Sdf.AssetPath = converter.convert("/path/to/robot.urdf", "/path/to/usd_robot")
+```
+
 ## Loading the USD Asset
 
 Once your asset is saved to storage, it can be loaded into an OpenUSD Ecosystem application.
