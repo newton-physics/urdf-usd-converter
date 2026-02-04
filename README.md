@@ -58,6 +58,11 @@ usdex.core.saveStage(stage, comment="modified after conversion")
 ## Specifying ROS packages
 
 If a filename within a mesh or texture in the URDF file is specified as `package://<package_name>/<path>`, we must separately provide the actual path where the package is located.  
+`<package_name>` is the ROS package name and has a corresponding path.
+`<path>` is a relative path within that package path.  
+The package path specified for `<package_name>` can be either a relative path or an absolute path.  
+If the package path is a relative path, the path specification will be relative to this URDF file.  
+
 When the converter traces back to the parent directory with the URDF file as the current directory, if a file matching the specified path is found, the combination of the package name and path at that time is automatically used.  
 
 If the ROS package path still cannot be found, we must manually specify the path combination for the package name.  
