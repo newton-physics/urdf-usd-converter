@@ -1,0 +1,3084 @@
+# 'urdf_files_dataset' Manual Annotations
+# This file contains manual evaluation results for the 'urdf_files_dataset' benchmark
+#
+# Format:
+#   urdf_file_path:
+#     description: "Description of this URDF variant"
+#     evaluation_date: "YYYY/MM/DD" (asset-level evaluation date)
+#     evaluator: "Name or identifier of person who evaluated"
+#     group_name: "Directory names for classification"
+#     notes: "Additional notes about the evaluation"
+#     ros_package_paths: Array of ROS package names and paths
+#       package_name: package_path
+#     subgroup_name: "Directory names for sub classification"
+#     verified: "Yes" | "No" | "Unknown"
+#
+# Asset names correspond to directory names in the 'urdf_files_dataset' repository:
+# https://github.com/Daniella1/urdf_files_dataset
+urdf_files/matlab/Atlas/urdf/atlas.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    Atlas: ../../../drake/atlas
+  subgroup_name: Atlas
+  verified: 'Yes'
+urdf_files/matlab/abb_irb120_support/urdf/abbIrb120.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    abb_irb120_support: ..
+  subgroup_name: abb_irb120_support
+  verified: 'Yes'
+urdf_files/matlab/abb_irb120_support/urdf/abbIrb120T.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    abb_irb120_support: ..
+  subgroup_name: abb_irb120_support
+  verified: 'Yes'
+urdf_files/matlab/abb_irb1600_support/urdf/abbIrb1600.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    abb_irb1600_support: ..
+  subgroup_name: abb_irb1600_support
+  verified: 'No'
+urdf_files/matlab/amr_robots_description/urdf/amrPioneer3AT.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    amr_robots_description: ..
+  subgroup_name: amr_robots_description
+  verified: 'No'
+urdf_files/matlab/amr_robots_description/urdf/amrPioneer3DX.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    amr_robots_description: ..
+  subgroup_name: amr_robots_description
+  verified: 'No'
+urdf_files/matlab/amr_robots_description/urdf/amrPioneerLX.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    amr_robots_description: ..
+  subgroup_name: amr_robots_description
+  verified: 'No'
+urdf_files/matlab/baxter_description/urdf/rethinkBaxter.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    baxter_description: ..
+  subgroup_name: baxter_description
+  verified: 'Yes'
+urdf_files/matlab/fanuc_lrmate200ib_support/urdf/fanucLRMate200ib.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ib_support: ..
+  subgroup_name: fanuc_lrmate200ib_support
+  verified: 'No'
+urdf_files/matlab/fanuc_m16ib_support/urdf/fanucM16ib.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    fanuc_m16ib_support: ..
+  subgroup_name: fanuc_m16ib_support
+  verified: 'No'
+urdf_files/matlab/franka_description/robots/frankaEmikaPanda.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    franka_description: ..
+  subgroup_name: franka_description
+  verified: 'Yes'
+urdf_files/matlab/husky_description/urdf/clearpathHusky.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    husky_description: ..
+  subgroup_name: husky_description
+  verified: 'No'
+urdf_files/matlab/iiwa_description/urdf/kukaIiwa14.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    iiwa_description: ..
+  subgroup_name: iiwa_description
+  verified: 'No'
+urdf_files/matlab/iiwa_description/urdf/kukaIiwa7.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    iiwa_description: ..
+  subgroup_name: iiwa_description
+  verified: 'No'
+urdf_files/matlab/jackal_description/urdf/clearpathJackal.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    jackal_description: ..
+  subgroup_name: jackal_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaJacoJ2N6S200.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaJacoJ2N6S300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaJacoJ2N7S300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaJacoJ2S6S300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaJacoJ2S7S300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaJacoTwoArmExample.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaMicoM1N4S200.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaMicoM1N6S200.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kinova_description/urdf/kinovaMicoM1N6S300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: kinova_description
+  verified: 'No'
+urdf_files/matlab/kortex_description/urdf/kinovaGen3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: kortex_description
+  verified: 'No'
+urdf_files/matlab/kortex_v12_description/robots/kinovaGen3V12.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    kortex_description: ..
+  subgroup_name: kortex_v12_description
+  verified: 'No'
+urdf_files/matlab/mecademic_description/urdf/meca500r3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    mecademic_description: ..
+  subgroup_name: mecademic_description
+  verified: 'No'
+urdf_files/matlab/motoman_mh5_support/urdf/yaskawaMotomanMH5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    motoman_mh5_support: ..
+  subgroup_name: motoman_mh5_support
+  verified: 'No'
+urdf_files/matlab/movo_description/urdf/kinovaMovo.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    movo_description: ..
+  subgroup_name: movo_description
+  verified: 'No'
+urdf_files/matlab/open_manipulator_description/urdf/robotisOpenManipulator.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    open_manipulator_description: ..
+  subgroup_name: open_manipulator_description
+  verified: 'No'
+urdf_files/matlab/pr2_description/robots/willowgaragePR2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    pr2_description: ..
+  subgroup_name: pr2_description
+  verified: 'No'
+urdf_files/matlab/qarm_description/urdf/quanserQArm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: qarm_description
+  verified: 'No'
+urdf_files/matlab/quanser_description/urdf/quanserQBot2e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    qbot2e: ..
+  subgroup_name: quanser_description
+  verified: 'No'
+urdf_files/matlab/quanser_description/urdf/quanserQCar.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    qcar: ..
+  subgroup_name: quanser_description
+  verified: 'No'
+urdf_files/matlab/robotiq2F85/urdf/robotiq2F85.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    robotiq_2f_85_gripper_visualization: ..
+  subgroup_name: robotiq2F85
+  verified: 'No'
+urdf_files/matlab/robotis_op_description/robots/robotisOP2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    robotis_op_description: ..
+  subgroup_name: robotis_op_description
+  verified: 'No'
+urdf_files/matlab/sawyer_description/urdf/rethinkSawyer.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    sawyer_description: ..
+  subgroup_name: sawyer_description
+  verified: 'No'
+urdf_files/matlab/turtlebot3_description/urdf/robotisTurtleBot3Burger.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: turtlebot3_description
+  verified: 'No'
+urdf_files/matlab/turtlebot3_description/urdf/robotisTurtleBot3Waffle.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: turtlebot3_description
+  verified: 'No'
+urdf_files/matlab/turtlebot3_description/urdf/robotisTurtleBot3WaffleForOpenManipulator.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: turtlebot3_description
+  verified: 'No'
+urdf_files/matlab/turtlebot3_description/urdf/robotisTurtleBot3WafflePi.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: turtlebot3_description
+  verified: 'No'
+urdf_files/matlab/turtlebot3_description/urdf/robotisTurtleBot3WafflePiForOpenManipulator.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: turtlebot3_description
+  verified: 'No'
+urdf_files/matlab/turtlebot_description/robots/clearpathTurtleBot2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: The files corresponding to the 'create_description' package were not found.
+  ros_package_paths:
+    create_description: null
+    turtlebot_description: ..
+  subgroup_name: turtlebot_description
+  verified: 'No'
+urdf_files/matlab/ur_description/urdf/universalUR10.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_description
+  verified: 'No'
+urdf_files/matlab/ur_description/urdf/universalUR3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_description
+  verified: 'No'
+urdf_files/matlab/ur_description/urdf/universalUR5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_description
+  verified: 'No'
+urdf_files/matlab/ur_e_description/urdf/universalUR10e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_e_description
+  verified: 'No'
+urdf_files/matlab/ur_e_description/urdf/universalUR16e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_e_description
+  verified: 'No'
+urdf_files/matlab/ur_e_description/urdf/universalUR3e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_e_description
+  verified: 'No'
+urdf_files/matlab/ur_e_description/urdf/universalUR5e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: ur_e_description
+  verified: 'No'
+urdf_files/matlab/valkyrie/urdf/urdf/valkyrie.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    valkyrie: ..
+  subgroup_name: valkyrie
+  verified: 'No'
+urdf_files/matlab/yumi_description/urdf/abbYuMi.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: matlab
+  notes: ''
+  ros_package_paths:
+    yumi_description: ..
+  subgroup_name: yumi_description
+  verified: 'No'
+urdf_files/oems/anymal_anybotics/anymal_b_simple_description/urdf/anymal.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    meshes: ../meshes
+  subgroup_name: anymal_anybotics
+  verified: 'Yes'
+urdf_files/oems/baxter_rethink_robotics/baxter_description/urdf/baxter.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    meshes: ../meshes
+  subgroup_name: baxter_rethink_robotics
+  verified: 'Yes'
+urdf_files/oems/eveR3_halodi/eve_r3_description/urdf/eve_r3.urdf:
+  description: ''
+  evaluation_date: 2026/01/28
+  evaluator: YutakaYoshisaka
+  group_name: oems
+  notes: The files corresponding to the 'qb_hand_description' package were not found.
+  ros_package_paths:
+    meshes: ../meshes
+    qb_hand_description: null
+  subgroup_name: eveR3_halodi
+  verified: 'Yes'
+urdf_files/oems/pioneer_adept_mobile_robots/description/urdf/pioneer-lx-devil.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: The files corresponding to the 'kinova_description' package were not found.
+  ros_package_paths:
+    kinova_description: null
+    meshes: ../meshes
+  subgroup_name: pioneer_adept_mobile_robots
+  verified: 'No'
+urdf_files/oems/pioneer_adept_mobile_robots/description/urdf/pioneer-lx.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    meshes: ../meshes
+  subgroup_name: pioneer_adept_mobile_robots
+  verified: 'No'
+urdf_files/oems/pioneer_adept_mobile_robots/description/urdf/pioneer3at.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    meshes: ../meshes
+  subgroup_name: pioneer_adept_mobile_robots
+  verified: 'No'
+urdf_files/oems/pioneer_adept_mobile_robots/description/urdf/pioneer3dx.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    meshes: ../meshes
+  subgroup_name: pioneer_adept_mobile_robots
+  verified: 'No'
+urdf_files/oems/qarm_quanser/qarm_description/urdf/QARM.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: qarm_quanser
+  verified: 'No'
+urdf_files/oems/spot_boston_dynamics/spot_base_urdf/model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: spot_boston_dynamics
+  verified: 'No'
+urdf_files/oems/xacro_generated/franka_emika/franka_description/robots/dual_panda/dual_panda.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    franka_description: ../..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/franka_emika/franka_description/robots/fr3/fr3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    franka_description: ../..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/franka_emika/franka_description/robots/panda/panda.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    franka_description: ../..
+  subgroup_name: xacro_generated
+  verified: 'No'
+? urdf_files/oems/xacro_generated/grippers_rethink_robotics/rethink_ee_description/urdf/electric_gripper/rethink_electric_gripper.urdf
+: description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    rethink_ee_description: ../..
+  subgroup_name: xacro_generated
+  verified: 'No'
+? urdf_files/oems/xacro_generated/grippers_rethink_robotics/rethink_ee_description/urdf/pneumatic_gripper/rethink_pneumatic_gripper.urdf
+: description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    rethink_ee_description: ../..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/jackal_clearpath_robotics/jackal_description/urdf/jackal.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    jackal_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2n4s300_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2n6s200_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2n6s300_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2n7s300_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2s6s200_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2s6s300_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/j2s7s300_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/m1n4s200_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/m1n6s200_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/m1n6s300_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/kinova_robotics/kinova_description/urdf/two_arm_robot_example_standalone.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/open-manipulator_robotis/open_manipulator_description/urdf/open_manipulator.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    open_manipulator_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/open-manipulator_robotis/open_manipulator_description/urdf/open_manipulator_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    open_manipulator_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_burger.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_burger_for_autorace.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_burger_for_autorace_2020.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_waffle.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_waffle_for_open_manipulator.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_waffle_pi.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+? urdf_files/oems/xacro_generated/turtlebot3_robotis/turtlebot3_description/urdf/turtlebot3_waffle_pi_for_open_manipulator.urdf
+: description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: oems
+  notes: ''
+  ros_package_paths:
+    turtlebot3_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/robot-assets/anymal/anymal.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    anymal_b_simple_description: .
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/barret_hand/bhand_model.URDF:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/fetch/robots/fetch.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    fetch_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/franka_panda/panda.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/ginger_robot/gingerurdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/halodi/eve_r3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: The files corresponding to the 'qb_hand_description' package were not found.
+  ros_package_paths:
+    qb_hand_description: null
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/kinova/kinova.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/kuka_iiwa/model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/pr2/pr2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2_left_forearm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2_left_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2b.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2b_control.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2b_dynamics.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2b_sim_upperbody_control.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2b_sim_upperbody_dynamics.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c1_control.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c1_dynamics.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c5_control.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c5_dynamics.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c6.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c6_control.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c6_dynamics.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c6_valve.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c_sim_full_control.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c_sim_full_dynamics.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c_sim_legs_control.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c_sim_legs_dynamics.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c_sim_upperbody_control.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/r2_description/robots/r2c_sim_upperbody_dynamics.urdf.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    r2_description: ..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/robotiq_gripper/robotiq_arg85_description.URDF:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/ur10/ur10_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/ur5/ur5_gripper.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/forearm_left.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/forearm_right.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/imu_test.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/test_bench.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_A.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_A_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_B.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_B_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_C.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_C_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_D.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_D_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_sim.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_sim_angled_legj1s.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_sim_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/val_description/model/robots/valkyrie_sim_gazebo_sync.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/robot-assets/yumi/yumi.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    yumi: .
+  subgroup_name: robot-assets
+  verified: 'No'
+urdf_files/random/schunk_lwa4p/robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: The files corresponding to the 'schunk_description' package were not found.
+  ros_package_paths:
+    schunk_description: null
+  subgroup_name: schunk_lwa4p
+  verified: 'No'
+urdf_files/random/spot_ros/spot_description/urdf/spot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    spot_description: ..
+  subgroup_name: spot_ros
+  verified: 'No'
+urdf_files/random/spot_ros/spot_description/urdf/spot_arm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    spot_description: ..
+  subgroup_name: spot_ros
+  verified: 'No'
+urdf_files/random/xacro_generated/juandpenan/onrobot_2fg7_description/urdf/onrobot_2fg7_upload.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    onrobot_2fg7_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/mir_description/urdf/mir.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    mir_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/osaka_university_onrobot/onrobot_rg2_visualization/urdf/onrobot_rg2_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    onrobot_rg2_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/osaka_university_onrobot/onrobot_rg6_visualization/urdf/onrobot_rg6_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    onrobot_rg6_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/osaka_university_onrobot/onrobot_vg10_visualization/urdf/onrobot_vg10_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    onrobot_vg10_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/osaka_university_onrobot/onrobot_vgc10_visualization/urdf/onrobot_vgc10_1cup_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    onrobot_vgc10_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/osaka_university_onrobot/onrobot_vgc10_visualization/urdf/onrobot_vgc10_4cups_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    onrobot_vgc10_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/schunk_modular_robotics/schunk_description/urdf/schunk_lwa4d.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    schunk_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/schunk_modular_robotics/schunk_description/urdf/schunk_lwa4p.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    schunk_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/schunk_modular_robotics/schunk_description/urdf/schunk_lwa4p_extended.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    schunk_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/schunk_modular_robotics/schunk_description/urdf/schunk_pg70.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    schunk_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/random/xacro_generated/schunk_modular_robotics/schunk_description/urdf/schunk_pw70.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: random
+  notes: ''
+  ros_package_paths:
+    schunk_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/abb_irb140/urdf/irb140.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    abb_irb140_support: ..
+  subgroup_name: abb_irb140
+  verified: 'No'
+urdf_files/robotics-toolbox/abb_irb140/urdf/irb140QT.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    abb_irb140_support: ..
+  subgroup_name: abb_irb140
+  verified: 'No'
+urdf_files/robotics-toolbox/al5d_description/urdf/al5d_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    al5d_description: ..
+  subgroup_name: al5d_description
+  verified: 'No'
+urdf_files/robotics-toolbox/fetch_description/robots/fetch.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    fetch_description: ..
+  subgroup_name: fetch_description
+  verified: 'No'
+urdf_files/robotics-toolbox/fetch_description/robots/fetch_camera.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    fetch_description: ..
+  subgroup_name: fetch_description
+  verified: 'No'
+urdf_files/robotics-toolbox/fetch_description/robots/freight.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    fetch_description: ..
+  subgroup_name: fetch_description
+  verified: 'No'
+urdf_files/robotics-toolbox/kuka_description/kuka_lbr_iiwa/urdf/lbr_iiwa_14_r820.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    kuka_lbr_iiwa_support: ..
+  subgroup_name: kuka_description
+  verified: 'No'
+urdf_files/robotics-toolbox/puma560_description/urdf/puma560_robot.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    puma560_description: ..
+  subgroup_name: puma560_description
+  verified: 'No'
+urdf_files/robotics-toolbox/pxpincher/urdf/pincher_arm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    turtlebot_arm_description: ..
+  subgroup_name: pxpincher
+  verified: 'No'
+urdf_files/robotics-toolbox/pxpincher/urdf/turtlebot_arm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    turtlebot_arm_description: ..
+  subgroup_name: pxpincher
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/forearm_left.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/forearm_right.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/imu_test.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/test_bench.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_A.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_A_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_B.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_B_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_C.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_C_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_D.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_D_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_sim.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_sim_angled_legj1s.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_sim_arm_mass_sims.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/val_description/model/robots/valkyrie_sim_gazebo_sync.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    val_description: ../..
+  subgroup_name: val_description
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/franka_description/robots/frankie.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    franka_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/franka_description/robots/panda.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    franka_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/px100.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/px150.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/rx150.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/rx200.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/vx300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/vx300s.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/wx200.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/wx250.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/interbotix_descriptions/urdf/wx250s.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    interbotix_descriptions: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/kinova_description/urdf/j2n4s300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    kinova_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/kinova_description/urdf/kinovaGen3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: The files corresponding to the 'kortex_description' package were not found.
+  ros_package_paths:
+    kortex_description: null
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/pr2_description/robots/pr2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    pr2_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/ur_description/urdf/ur10.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/ur_description/urdf/ur3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/xacro_generated/ur_description/urdf/ur5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/robotics-toolbox/yumi_description/urdf/yumi.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: robotics-toolbox
+  notes: ''
+  ros_package_paths:
+    yumi_description: ..
+  subgroup_name: yumi_description
+  verified: 'No'
+urdf_files/ros-industrial/abb/abb_irb2400_support/urdf/irb2400.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/irb2400/collision
+    visual: ../meshes/irb2400/visual
+  subgroup_name: abb
+  verified: 'No'
+urdf_files/ros-industrial/abb/abb_irb5400_support/urdf/irb5400.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/irb5400/collision
+    visual: ../meshes/irb5400/visual
+  subgroup_name: abb
+  verified: 'No'
+urdf_files/ros-industrial/abb/abb_irb6600_support/urdf/irb6640.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/irb6640/collision
+    visual: ../meshes/irb6640/visual
+  subgroup_name: abb
+  verified: 'No'
+urdf_files/ros-industrial/abb/abb_irb6640_support/urdf/irb6640_185_280.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/irb6640_185_280/collision
+    visual: ../meshes/irb6640_185_280/visual
+  subgroup_name: abb
+  verified: 'No'
+urdf_files/ros-industrial/kuka/kuka_kr120_support/urdf/kr120r2500pro.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/kr120r2500pro/collision
+    visual: ../meshes/kr120r2500pro/visual
+  subgroup_name: kuka
+  verified: 'No'
+urdf_files/ros-industrial/kuka/kuka_kr16_support/urdf/kr16_2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/kr16_2/collision
+    visual: ../meshes/kr16_2/visual
+  subgroup_name: kuka
+  verified: 'No'
+urdf_files/ros-industrial/kuka/kuka_kr210_support/urdf/kr210l150.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/collision
+    visual: ../meshes/visual
+  subgroup_name: kuka
+  verified: 'No'
+urdf_files/ros-industrial/kuka/kuka_lbr_iiwa_support/urdf/lbr_iiwa_14_r820.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/lbr_iiwa_14_r820/collision
+    visual: ../meshes/lbr_iiwa_14_r820/visual
+  subgroup_name: kuka
+  verified: 'No'
+urdf_files/ros-industrial/motoman/motoman_mh5_support/urdf/mh5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/mh5/collision
+    visual: ../meshes/mh5/visual
+  subgroup_name: motoman
+  verified: 'No'
+urdf_files/ros-industrial/motoman/motoman_sia10d_support/urdf/sia10d.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/sia10d/collision
+    visual: ../meshes/sia10d/visual
+  subgroup_name: motoman
+  verified: 'No'
+urdf_files/ros-industrial/motoman/motoman_sia10f_support/urdf/sia10f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/sia10f/collision
+    visual: ../meshes/sia10f/visual
+  subgroup_name: motoman
+  verified: 'No'
+urdf_files/ros-industrial/motoman/motoman_sia20d_support/urdf/sia20d.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/sia20d/collision
+    visual: ../meshes/sia20d/visual
+  subgroup_name: motoman
+  verified: 'No'
+urdf_files/ros-industrial/motoman/motoman_sia5d_support/urdf/sia5d.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/sia5d/collision
+    visual: ../meshes/sia5d/visual
+  subgroup_name: motoman
+  verified: 'No'
+urdf_files/ros-industrial/robotiq/robotiq_2f_c2_gripper_visualization/urdf/robotiq_c2_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/robotiq_c2/collision
+    visual: ../meshes/robotiq_c2/visual
+  subgroup_name: robotiq
+  verified: 'No'
+urdf_files/ros-industrial/robotiq/robotiq_3f_gripper_visualization/cfg/robotiq-3f-gripper_articulated.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/robotiq-3f-gripper/collision
+    visual: ../meshes/robotiq-3f-gripper/visual
+  subgroup_name: robotiq
+  verified: 'No'
+urdf_files/ros-industrial/robotiq/robotiq_3f_gripper_visualization/cfg/robotiq-3f-gripper_mesh.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/robotiq-3f-gripper/collision
+    visual: ../meshes/robotiq-3f-gripper/visual
+  subgroup_name: robotiq
+  verified: 'No'
+urdf_files/ros-industrial/staubli/staubli_rx160_support/urdf/rx160.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/rx160/collision
+    visual: ../meshes/rx160/visual
+  subgroup_name: staubli
+  verified: 'No'
+urdf_files/ros-industrial/staubli/staubli_rx160_support/urdf/rx160l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    collision: ../meshes/rx160l/collision
+    staubli_rx160_support: ..
+    visual: ../meshes/rx160l/visual
+  subgroup_name: staubli
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_crb15000_support/urdf/crb15000_5_95.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_crb15000_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb1200_support/urdf/irb1200_5_90.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb1200_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb1200_support/urdf/irb1200_7_70.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb1200_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb120_support/urdf/irb120_3_58.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb120_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb120_support/urdf/irb120t_3_58.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb120_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb1600_support/urdf/irb1600_6_12.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb1600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb1600_support/urdf/irb1600_8_145.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb1600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb2600_support/urdf/irb2600_12_165.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb2600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb4400_support/urdf/irb4400l_30_243.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb4400_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb4600_support/urdf/irb4600_20_250.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb4600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb4600_support/urdf/irb4600_40_255.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb4600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb4600_support/urdf/irb4600_60_205.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb4600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb52_support/urdf/irb52_7_120.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb52_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb52_support/urdf/irb52_7_145.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb52_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb6600_support/urdf/irb6600_225_255.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb6600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb6650s_support/urdf/irb6650s_125_350.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb6650s_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb6650s_support/urdf/irb6650s_90_390.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb6650s_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb6700_support/urdf/irb6700_200_260.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb6700_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb6700_support/urdf/irb6700_235_265.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb6700_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/abb/abb_irb7600_support/urdf/irb7600_150_350.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    abb_irb7600_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_cr35ia_support/urdf/cr35ia.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_cr35ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_cr7ia_support/urdf/cr7ia.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_cr7ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_cr7ia_support/urdf/cr7ial.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_cr7ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_crx10ia_support/urdf/crx10ial.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_crx10ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200i_support/urdf/lrmate200i.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200i_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ib_support/urdf/lrmate200ib.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ib_support/urdf/lrmate200ib3l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ic_support/urdf/lrmate200ic.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ic_support/urdf/lrmate200ic5f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ic_support/urdf/lrmate200ic5h.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ic_support/urdf/lrmate200ic5hs.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200ic_support/urdf/lrmate200ic5l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id4s.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id4sc.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id4sh.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id7h.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id7l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_lrmate200id_support/urdf/lrmate200id7lc.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_lrmate200id_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m10ia_support/urdf/m10ia.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m10ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m10ia_support/urdf/m10ia7l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m10ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m16ib_support/urdf/m16ib20.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m16ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m20ia_support/urdf/m20ia.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m20ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m20ia_support/urdf/m20ia10l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m20ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m20ib_support/urdf/m20ib25.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m20ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m430ia_support/urdf/m430ia2f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m430ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m430ia_support/urdf/m430ia2p.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m430ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m6ib_support/urdf/m6ib.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m6ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m6ib_support/urdf/m6ib6s.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m6ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m710ic_support/urdf/m710ic45m.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m710ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m710ic_support/urdf/m710ic50.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m710ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m900ia_support/urdf/m900ia260l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m900ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_m900ib_support/urdf/m900ib700.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_m900ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r1000ia_support/urdf/r1000ia80f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r1000ia_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r2000ib_support/urdf/r2000ib210f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r2000ib_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r2000ic_support/urdf/r2000ic125l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r2000ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r2000ic_support/urdf/r2000ic165f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r2000ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r2000ic_support/urdf/r2000ic210f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r2000ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r2000ic_support/urdf/r2000ic210l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r2000ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/fanuc/fanuc_r2000ic_support/urdf/r2000ic270f.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    fanuc_r2000ic_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr10_support/urdf/kr10r1100sixx.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr10_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr10_support/urdf/kr10r1420.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr10_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr10_support/urdf/kr10r900_2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr10_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr150_support/urdf/kr150_2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr150_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr150_support/urdf/kr150r3100_2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr150_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr3_support/urdf/kr3r540.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr3_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr5_support/urdf/kr5_arc.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr5_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr6_support/urdf/kr6r700sixx.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr6_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr6_support/urdf/kr6r900_2.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: The files corresponding to the 'kuka_kr10_support' package were not found.
+  ros_package_paths:
+    kuka_kr10_support: null
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/kuka/kuka_kr6_support/urdf/kr6r900sixx.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    kuka_kr6_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/robotiq/robotiq_2f_140_gripper_visualization/urdf/robotiq_arg2f_140_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    robotiq_2f_140_gripper_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/robotiq/robotiq_2f_85_gripper_visualization/urdf/robotiq_arg2f_85_model.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    robotiq_2f_85_gripper_visualization: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/robotiq/robotiq_ft_sensor/urdf/example_use_robotiq_ft300.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    robotiq_ft_sensor: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx2_60_support/urdf/tx2_60.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: The files corresponding to the 'staubli_tx60_support' package were not found.
+  ros_package_paths:
+    staubli_tx2_60_support: ..
+    staubli_tx60_support: null
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx2_60_support/urdf/tx2_60l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: The files corresponding to the 'staubli_tx60_support' package were not found.
+  ros_package_paths:
+    staubli_tx2_60_support: ..
+    staubli_tx60_support: null
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx2_90_support/urdf/tx2_90.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx2_90_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx2_90_support/urdf/tx2_90l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx2_90_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx2_90_support/urdf/tx2_90xl.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx2_90_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx60_support/urdf/tx60.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx60_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx60_support/urdf/tx60l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx60_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx90_support/urdf/tx90.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx90_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx90_support/urdf/tx90l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx90_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/staubli/staubli_tx90_support/urdf/tx90xl.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    staubli_tx90_support: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur10.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur10e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur16e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur3e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur5.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'
+urdf_files/ros-industrial/xacro_generated/universal_robots/ur_description/urdf/ur5e.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: ros-industrial
+  notes: ''
+  ros_package_paths:
+    ur_description: ..
+  subgroup_name: xacro_generated
+  verified: 'No'

@@ -1,0 +1,234 @@
+# 'newton-assets' Manual Annotations
+# This file contains manual evaluation results for the 'newton-assets' benchmark
+#
+# Format:
+#   urdf_file_path:
+#     description: "Description of this URDF variant"
+#     evaluation_date: "YYYY/MM/DD" (asset-level evaluation date)
+#     evaluator: "Name or identifier of person who evaluated"
+#     group_name: "Directory names for classification"
+#     notes: "Additional notes about the evaluation"
+#     ros_package_paths: Array of ROS package names and paths
+#       package_name: package_path
+#     subgroup_name: "Directory names for sub classification"
+#     verified: "Yes" | "No" | "Unknown"
+#
+# Asset names correspond to directory names in the 'newton-assets' repository:
+# https://github.com/newton-physics/newton-assets
+anybotics_anymal_c/urdf/anymal.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: anybotics_anymal_c
+  notes: ''
+  ros_package_paths:
+    anybotics_anymal_c: ..
+  subgroup_name: ''
+  verified: 'No'
+franka_emika_panda/urdf/fr3.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: franka_emika_panda
+  notes: ''
+  ros_package_paths:
+    franka_emika_panda: ..
+  subgroup_name: ''
+  verified: 'No'
+franka_emika_panda/urdf/fr3_franka_hand.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: franka_emika_panda
+  notes: ''
+  ros_package_paths:
+    franka_emika_panda: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/mjcf/g1_29dof_rev_1_0_with_inspire_hand_FTP.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/dex3_1_l.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/dex3_1_r.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_23dof.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_23dof_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_lock_waist.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_lock_waist_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_lock_waist_with_hand_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_rev_1_0_with_inspire_hand_DFQ.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_with_hand.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_29dof_with_hand_rev_1_0.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_comp.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_g1/urdf/g1_dual_arm.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_g1
+  notes: ''
+  ros_package_paths:
+    unitree_g1: ..
+  subgroup_name: ''
+  verified: 'No'
+unitree_h1/urdf/h1.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_h1
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+unitree_h1/urdf/h1_with_hand.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: unitree_h1
+  notes: ''
+  ros_package_paths: {}
+  subgroup_name: ''
+  verified: 'No'
+wonik_allegro/urdf/allegro_hand_description_left.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: wonik_allegro
+  notes: ''
+  ros_package_paths:
+    wonik_allegro: ..
+  subgroup_name: ''
+  verified: 'No'
+wonik_allegro/urdf/allegro_hand_description_right.urdf:
+  description: ''
+  evaluation_date: ''
+  evaluator: ''
+  group_name: wonik_allegro
+  notes: ''
+  ros_package_paths:
+    wonik_allegro: ..
+  subgroup_name: ''
+  verified: 'No'

@@ -61,6 +61,30 @@ cmd = "coverage xml -o .coverage.xml"
 help = "Show coverage report in terminal"
 cmd = "coverage report -m"
 
+[tool.poe.tasks.benchmark]
+help = "Run urdf files benchmark"
+cmd = "python tools/benchmark_and_report.py"
+
+[tool.poe.tasks.benchmark-publish]
+help = "Run urdf files benchmark and output the markdown report so it overwrites the committed report"
+cmd = "python tools/benchmark_and_report.py --report-format md --report-output-dir ."
+
+[tool.poe.tasks.benchmark-csv]
+help = "Run urdf files benchmark and generate CSV report only"
+cmd = "python tools/benchmark_and_report.py --report-format csv"
+
+[tool.poe.tasks.annotations]
+help = "Show annotation summary"
+cmd = "python tools/manage_annotations.py"
+
+[tool.poe.tasks.annotations-validate]
+help = "Validate annotation file"
+cmd = "python tools/manage_annotations.py --validate"
+
+[tool.poe.tasks.annotations-update]
+help = "Update annotation file with new models from urdf repository"
+cmd = "python tools/manage_annotations.py --update"
+
 [tool.poe.tasks.lint]
 help = "Run all lint tools on the code base"
 sequence = ["uv-check", "lint-license", "lint-black", "lint-ruff"]
