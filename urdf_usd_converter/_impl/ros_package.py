@@ -73,7 +73,7 @@ def search_ros_packages(urdf_parser: URDFParser) -> dict[str]:
             package_filenames.append(filename)
 
     for material in materials:
-        filename = material[2]
+        filename = material["file_path"]
         if filename and filename.startswith("package://"):
             package_filenames.append(filename)
 

@@ -272,6 +272,9 @@ class ElementMaterial(ElementBase):
         # attributes.
         self.name: str | None = None
 
+        # This is the unique name to give to a material if name is empty after scanning all materials.
+        self.unique_name: str | None = None
+
         # elements.
         self.color: ElementColor | None = None
         self.texture: ElementTexture | None = None

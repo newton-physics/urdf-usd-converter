@@ -3,9 +3,6 @@
   <material name="red">
     <color rgba="1.0 0.0 0.0 1"/>
   </material>
-  <material name="green">
-    <color rgba="0.0 1.0 0.0 1"/>
-  </material>
   <material name="blue">
     <color rgba="0.0 0.0 1.0 1"/>
   </material>
@@ -44,7 +41,10 @@
       <geometry>
         <mesh filename="assets/box.obj" scale="0.5 0.6 1"/>
       </geometry>
-      <material name="green"/>
+      <!-- Directly specify unnamed materials. -->
+      <material>
+        <color rgba="0.0 1.0 0.0 1"/>
+      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0.5"/>
@@ -71,6 +71,18 @@
       <verbose value="verbose_data"/>
     </collision>
   </link>
+  <link name="link4">
+    <visual>
+      <geometry>
+        <cylinder radius="0.5" length="1"/>
+      </geometry>
+      <!-- Directly specify unnamed materials.  -->
+      <!-- Check for duplicates when there are multiple unnamed materials. -->
+      <material>
+        <color rgba="0.0 1.0 1.0 1"/>
+      </material>
+    </visual>
+  </link>
 
   <joint name="JointA" type="fixed">
     <parent link="BaseLink"/>
@@ -86,6 +98,11 @@
     <limit effort="30" velocity="1.0" lower="-2.2" upper="0.7" />
     <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.0" soft_upper_limit="0.5" />
     <mimic joint="JointA" multiplier="2.0" offset="1.0"/>
+  </joint>
+  <joint name="JointC" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 2"/>
+    <parent link="link3"/>
+    <child link="link4" />
   </joint>
 
   <transmission name="simple_trans">
