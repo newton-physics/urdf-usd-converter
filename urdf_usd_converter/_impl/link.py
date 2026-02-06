@@ -10,6 +10,7 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
 from .planar_joint import define_physics_planar_joint
+from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
@@ -46,6 +47,9 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
         usdex.core.setDisplayName(link_prim, link.name)
 
     data.references[Tokens.Physics][link.name] = link_prim
+
+    # Store custom attributes and custom elements for the specified element.
+    convert_undefined_elements(link, link_prim, data)
 
     # Apply RigidBodyAPI to a link.
     prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
@@ -215,3 +219,7 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
                 physics_joint.GetPrim().CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(limit_effort)
             if limit_velocity is not None:
                 physics_joint.GetPrim().CreateAttribute("urdf:limit:velocity", Sdf.ValueTypeNames.Float, custom=True).Set(limit_velocity)
+
+        if physics_joint:
+            # Store custom attributes and custom elements for the specified element.
+            convert_undefined_elements(joint, physics_joint.GetPrim(), data)

@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<robot name="undefined">
+  <!-- custom attribute -->
+  <material name="blue" custom_attr="blue_material">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+  </material>
+
+  <link name="link_box">
+    <!-- custom attribute -->
+    <visual custom_attr="visual">
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision name="collision_box" custom_attr="collision">
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+      <!-- custom element and body text -->
+      <collision_data>custom collision data</collision_data>
+    </collision>
+
+    <!-- custom elements -->
+    <custom>
+      <item1 name="data1" value="foo1"/>
+      <test-item name="data2" value="foo2"/>
+    </custom>
+
+    <!-- custom elements. Same name as "custom" -->
+    <custom>
+      <item3 name="data3" value="foo3"/>
+    </custom>
+  </link>
+  <link name="link_box2">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.dae"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_box" type="fixed" custom_attr="joint">
+    <origin rpy="0 0 0" xyz="1.5 0 0"/>
+    <parent link="link_box"/>
+    <child link="link_box2"/>
+
+    <!-- custom element -->
+    <data>joint data</data>
+  </joint>
+
+  <!-- transmission is currently not supported, so it is a custom element. -->
+  <transmission name="trans1">
+    <type>transmission_interface/SimpleTransmission</type>
+  </transmission>
+
+  <transmission name="trans2">
+    <type>transmission_interface/SimpleTransmission</type>
+  </transmission>
+
+  <!-- gazebo is currently not supported, so it is a custom element. -->
+  <gazebo>
+    <static>true</static>
+  </gazebo>
+
+</robot>

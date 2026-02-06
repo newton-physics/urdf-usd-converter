@@ -5,6 +5,7 @@ from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .material import bind_material, bind_mesh_material
+from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
     ElementBox,
     ElementCollision,
@@ -32,6 +33,9 @@ def convert_geometry(parent: Usd.Prim, name: str, safe_name: str, geometry: Elem
     if not prim:  # pragma: no cover
         # The process never gets here.
         Tf.RaiseRuntimeError(f"Invalid geometry: {geometry.geometry.shape.tag} for geometry '{name}'")
+
+    # Store custom attributes and custom elements for the specified element.
+    convert_undefined_elements(geometry, prim.GetPrim(), data)
 
     # When meshes are stored during preprocessing, there are cases where the displayName is already set for a mesh.
     # In this case, we need to check if the displayName is different from the name and safe_name.
