@@ -117,16 +117,16 @@ class MaterialCache:
         materials = data.urdf_parser.get_materials()
         for material in materials:
             material_data = MaterialData()
-            material_data.name = material[0]
-            material_data.diffuse_color = Gf.Vec3f(*material[1][:3])
-            material_data.opacity = material[1][3]
+            material_data.name = material["unique_name"]  # Unique name
+            material_data.diffuse_color = Gf.Vec3f(*material["color"][:3])
+            material_data.opacity = material["color"][3]
 
-            # material[2] is the path to the texture file.
-            if material[2]:
+            # material["file_path"] is the path to the texture file.
+            if material["file_path"]:
                 # Resolve the ROS package paths.
                 # If the path is not a ROS package, it will return the original path.
                 # It also converts the path to a relative path based on the urdf file.
-                material_data.diffuse_texture_path = resolve_ros_package_paths(material[2], data)
+                material_data.diffuse_texture_path = resolve_ros_package_paths(material["file_path"], data)
 
             material_data_list.append(material_data)
 

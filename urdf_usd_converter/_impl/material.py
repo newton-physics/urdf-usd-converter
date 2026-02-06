@@ -486,8 +486,8 @@ def bind_material(geom_prim: Usd.Prim, mesh_file_path: pathlib.Path | None, mate
         # Get the texture from the material.
         materials = data.urdf_parser.get_materials()
         for material in materials:
-            if material[0] == material_name:
-                if material[2]:
+            if material["unique_name"] == material_name:
+                if material["file_path"]:
                     Tf.Warn(f"Textures are not projection mapped for Cube, Sphere, and Cylinder: {geom_prim.GetPath()}")
                 break
 
