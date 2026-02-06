@@ -220,6 +220,7 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
             if limit_velocity is not None:
                 physics_joint.GetPrim().CreateAttribute("urdf:limit:velocity", Sdf.ValueTypeNames.Float, custom=True).Set(limit_velocity)
 
-        if physics_joint:
-            # Store custom attributes and custom elements for the specified element.
-            convert_undefined_elements(joint, physics_joint.GetPrim(), data)
+        # Store custom attributes and custom elements for the specified element.
+        if physics_joint and (joint.undefined_attributes or joint.undefined_elements or joint.undefined_text):
+            geom_over = data.content[Tokens.Geometry].OverridePrim(physics_joint.GetPrim().GetPath())
+            convert_undefined_elements(joint, geom_over, data)
