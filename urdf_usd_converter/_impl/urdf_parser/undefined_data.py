@@ -28,6 +28,7 @@ class UndefinedData:
         # Line numbers in XML.
         self.line_number = -1
 
+        self.element = element
         if element:
             self.tag = element.tag
             self.path = element.path

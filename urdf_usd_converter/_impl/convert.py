@@ -16,6 +16,7 @@ from .mesh import convert_meshes
 from .mesh_cache import MeshCache
 from .ros_package import search_ros_packages
 from .scene import convert_scene
+from .undefined import convert_undefined
 from .urdf_parser.elements import ElementRobot
 from .urdf_parser.parser import URDFParser
 from .utils import get_authoring_metadata
@@ -92,6 +93,7 @@ class Converter:
             resolved_file_paths={},
             material_data_list=[],
             mesh_material_references={},
+            undefined_elements=parser.get_undefined_elements(),
         )
 
         # setup the main output layer (which will become an asset interface later)
@@ -145,6 +147,9 @@ class Converter:
 
         # Joints and links are converted into a hierarchical structure
         convert_links(data)
+
+        # Convert undefined elements.
+        convert_undefined(data)
 
         # create the asset interface
         usdex.core.addAssetInterface(asset_stage, source=data.content[Tokens.Contents])
