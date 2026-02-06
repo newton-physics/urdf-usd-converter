@@ -43,17 +43,17 @@ class TestMaterial(ConverterTestCase):
         opacity = self.get_material_opacity(red_material)
         self.assertEqual(opacity, 1.0)
 
-        green_material_prim = material_scope_prim.GetChild("green")
-        self.assertTrue(green_material_prim.IsValid())
-        self.assertTrue(green_material_prim.IsA(UsdShade.Material))
+        unnamed_material_prim = material_scope_prim.GetChild("material_1")
+        self.assertTrue(unnamed_material_prim.IsValid())
+        self.assertTrue(unnamed_material_prim.IsA(UsdShade.Material))
 
-        green_material = UsdShade.Material(green_material_prim)
-        self.assertTrue(green_material)
-        self.assertTrue(green_material.GetPrim().HasAuthoredReferences())
+        unnamed_material = UsdShade.Material(unnamed_material_prim)
+        self.assertTrue(unnamed_material)
+        self.assertTrue(unnamed_material.GetPrim().HasAuthoredReferences())
 
-        diffuse_color = self.get_material_diffuse_color(green_material)
+        diffuse_color = self.get_material_diffuse_color(unnamed_material)
         self.assertEqual(diffuse_color, Gf.Vec3f(0, 1, 0))
-        opacity = self.get_material_opacity(green_material)
+        opacity = self.get_material_opacity(unnamed_material)
         self.assertEqual(opacity, 1.0)
 
         opacity_half_material_prim = material_scope_prim.GetChild("opacity_half")
@@ -92,7 +92,7 @@ class TestMaterial(ConverterTestCase):
         box_prim = link_box_green_prim.GetChild("box")
         self.assertTrue(box_prim.IsValid())
         self.assertTrue(box_prim.IsA(UsdGeom.Cube))
-        self.check_material_binding(box_prim, green_material)
+        self.check_material_binding(box_prim, unnamed_material)
 
         link_box_opacity_half_prim = link_box_green_prim.GetChild("link_box_opacity_half")
         self.assertTrue(link_box_opacity_half_prim.IsValid())

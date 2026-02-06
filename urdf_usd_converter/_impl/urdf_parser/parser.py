@@ -51,8 +51,9 @@ class URDFParser:
         self.meshes: list[tuple[str, tuple[float, float, float]]] = []
 
         # A list of material colors and file paths.
+        # The dictionary is {name: str, unique_name: str, color: tuple[float, float, float, float], file_path: str}.
         # However, this does not include materials used in mesh(dae, obj).
-        self.materials: list[tuple[str, tuple[float, float, float, float], str]] = []
+        self.materials: list[dict[str, str, tuple[float, float, float, float], str]] = []
 
         self.texture_paths: list[str] = []
 
@@ -123,12 +124,12 @@ class URDFParser:
         """
         return self.meshes
 
-    def get_materials(self) -> list[tuple[str, tuple[float, float, float, float], str]]:
+    def get_materials(self) -> list[dict[str, tuple[float, float, float, float], str]]:
         """
         Get the materials.
 
         Returns:
-            A list of tuples containing the material name, color, and file path.
+            A list of dictionaries containing the material name, unique name, color, and file path.
         """
         return self.materials
 
@@ -573,14 +574,25 @@ class URDFParser:
     def _store_materials(self):
         """
         Store the materials.
-        A material has a name, color, and file path.
+        A material has a name, unique name, color, and file path.
         """
+        _materials = []
+
         # Global material names are unique, so they are stored as is.
         for material in self.root_element.materials:
             color = material.color.get_with_default("rgba") if material.color else (1.0, 1.0, 1.0, 1.0)
             texture = material.texture.get_with_default("filename") if material.texture else None
-            self.materials.append((material.name, color, texture))
+            _materials.append(
+                {
+                    "name": material.name,
+                    "unique_name": material.name,
+                    "color": color,
+                    "file_path": texture,
+                    "line_number": material.line_number,
+                }
+            )
 
+        # If there is a material in link-visual.
         for link in self.root_element.links:
             for visual in link.visuals:
                 visual_material = visual.material
@@ -588,12 +600,52 @@ class URDFParser:
                     material_name = visual_material.name if visual_material.name is not None else ""
 
                     # If the material name is already stored, skip it.
-                    if material_name in [material[0] for material in self.materials]:
+                    if material_name and material_name in [material["name"] for material in _materials]:
                         continue
 
                     color = visual_material.color.get_with_default("rgba") if visual_material.color else (0.0, 0.0, 0.0, 0.0)
                     texture = visual_material.texture.get_with_default("filename") if visual_material.texture else None
-                    self.materials.append((material_name, color, texture))
+                    _materials.append(
+                        {
+                            "name": material_name,
+                            "unique_name": material_name,
+                            "color": color,
+                            "file_path": texture,
+                            "line_number": visual_material.line_number,
+                        }
+                    )
+
+        # Create a list of unique material names.
+        material_names = [m["name"] for m in _materials]
+        idx = 1
+        for i in range(len(material_names)):
+            if not material_names[i]:
+                while f"material_{idx}" in material_names:
+                    idx += 1
+                material_names[i] = f"material_{idx}"
+
+        # If there is a material in link-visual, set the unique name to the material.
+        for link in self.root_element.links:
+            for visual in link.visuals:
+                visual_material = visual.material
+                if visual_material:
+                    visual_material.unique_name = visual_material.name
+                    if not visual_material.name:
+                        # Search within materials for items matching visual_material.line_number and store their unique names.
+                        for i, material in enumerate(_materials):
+                            if material["line_number"] == visual_material.line_number:
+                                visual_material.unique_name = material_names[i]
+                                break
+
+        self.materials = [
+            {
+                "name": m["name"],
+                "unique_name": material_names[i],
+                "color": m["color"],
+                "file_path": m["file_path"],
+            }
+            for i, m in enumerate(_materials)
+        ]
 
     def _get_undefined_elements_nested(self, element: ElementBase, undefined_elements: list[UndefinedData]):
         """

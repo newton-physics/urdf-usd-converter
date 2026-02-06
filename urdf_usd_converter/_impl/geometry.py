@@ -50,8 +50,8 @@ def convert_geometry(parent: Usd.Prim, name: str, safe_name: str, geometry: Elem
     if isinstance(geometry, ElementVisual):
         if isinstance(geometry.geometry.shape, ElementMesh):
             bind_mesh_material(prim.GetPrim(), geometry.geometry.shape.filename, data)
-        if geometry.material and geometry.material.name:
-            bind_material(prim.GetPrim(), None, geometry.material.name, data)
+        if geometry.material and geometry.material.unique_name:
+            bind_material(prim.GetPrim(), None, geometry.material.unique_name, data)
 
     return prim
 
