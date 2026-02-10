@@ -30,7 +30,7 @@ def __check(files: list) -> tuple[list, list]:
     passed = []
     failed = []
     for path in files:
-        with pathlib.Path.open(path) as f:
+        with pathlib.Path.open(path, encoding="utf-8") as f:
             copyright = f.readline().strip()
             identifier = f.readline().strip()
         if not re.match(__copyright_regex, copyright) or identifier != __identifier:
@@ -44,7 +44,7 @@ def __fix(files: list) -> bool:
     current_year = datetime.now().year
     _, failed = __check(files)
     for path in failed:
-        with pathlib.Path.open(path) as f:
+        with pathlib.Path.open(path, encoding="utf-8") as f:
             content = f.readlines()
 
         # Find first non-comment line
@@ -69,7 +69,7 @@ def __fix(files: list) -> bool:
                     pass
 
         # Write file with correct headers
-        with pathlib.Path.open(path, "w") as f:
+        with pathlib.Path.open(path, "w", encoding="utf-8") as f:
             if start_year == current_year:
                 f.write(__copyright.replace("{years}", str(current_year)) + "\n")
             else:

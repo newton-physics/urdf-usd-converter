@@ -28,6 +28,8 @@
     <custom>
       <item1 name="data1" value="foo1"/>
       <test-item name="data2" value="foo2"/>
+      <japanese_text>日本語の文字列</japanese_text>
+      <korean_text>한글 문자열</korean_text>
     </custom>
 
     <!-- custom elements. Same name as "custom" -->

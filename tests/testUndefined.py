@@ -78,9 +78,8 @@ class TestUndefined(ConverterTestCase):
         attr = collision_box_prim.GetAttribute("urdf:custom_attr").Get()
         self.assertEqual(attr, "collision")
 
-        # Since "collision_box" is a Cube, it cannot have children.
-        # So the custom element is being moved to its parent.
-        collision_data_prim = link_box_prim.GetPrimAtPath(link_box_prim.GetPath().AppendChild("collision_data"))
+        # Custom element.
+        collision_data_prim = collision_box_prim.GetPrimAtPath(collision_box_prim.GetPath().AppendChild("collision_data"))
         self.assertTrue(collision_data_prim.IsValid())
         self.assertTrue(collision_data_prim.IsA(UsdGeom.Scope))
         self.assertTrue(collision_data_prim.GetAttribute("urdf:text").HasAuthoredValue())
@@ -110,6 +109,24 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(item_prim.IsValid())
         self.assertTrue(item_prim.IsA(UsdGeom.Scope))
         self.assertEqual(usdex.core.getDisplayName(item_prim), "test-item")
+
+        # Custom attributes in "test-item".
+        # Validates a UTF-8 string.
+        japanese_text_prim = undefined_custom_prim.GetPrimAtPath(undefined_custom_prim.GetPath().AppendChild("japanese_text"))
+        self.assertTrue(japanese_text_prim.IsValid())
+        self.assertTrue(japanese_text_prim.IsA(UsdGeom.Scope))
+        self.assertTrue(japanese_text_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        text = japanese_text_prim.GetAttribute("urdf:text").Get()
+        self.assertEqual(text, "日本語の文字列")
+
+        # Custom attributes in "test-item".
+        # Validates a UTF-8 string.
+        korean_text_prim = undefined_custom_prim.GetPrimAtPath(undefined_custom_prim.GetPath().AppendChild("korean_text"))
+        self.assertTrue(korean_text_prim.IsValid())
+        self.assertTrue(korean_text_prim.IsA(UsdGeom.Scope))
+        self.assertTrue(korean_text_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        text = korean_text_prim.GetAttribute("urdf:text").Get()
+        self.assertEqual(text, "한글 문자열")
 
         # Custom attributes in "test-item".
         self.assertTrue(item_prim.GetAttribute("urdf:name").HasAuthoredValue())

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import usdex.core
-from pxr import Sdf, Usd, UsdGeom
+from pxr import Sdf, Usd
 
 from .data import ConversionData, Tokens
 from .urdf_parser.elements import ElementBase
@@ -38,16 +38,10 @@ def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: Conve
         # Create a scope for each undefined and unsupported element.
         # This recursively creates a hierarchy of elements.
 
-        # If the prim is a geometry prim, get the parent.
-        # Geometry prim child prims cannot be placed.
-        target_prim = prim
-        if prim.IsA(UsdGeom.Mesh) or prim.IsA(UsdGeom.Cube) or prim.IsA(UsdGeom.Sphere) or prim.IsA(UsdGeom.Cylinder):
-            target_prim = prim.GetParent()
-
         # For unsupported elements, traverse and store all child elements.
         if force_store:
-            safe_name = data.name_cache.getPrimName(target_prim, element.tag)
-            _prim = usdex.core.defineScope(target_prim, safe_name).GetPrim()
+            safe_name = data.name_cache.getPrimName(prim, element.tag)
+            _prim = usdex.core.defineScope(prim, safe_name).GetPrim()
             if safe_name != element.tag:
                 usdex.core.setDisplayName(_prim, element.tag)
             checked_paths.append((element.path, element.line_number))
@@ -68,9 +62,9 @@ def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: Conve
                     checked_paths.extend(_checked_paths)
         else:
             names = [elem.tag for elem in element.undefined_elements]
-            safe_names = data.name_cache.getPrimNames(target_prim, names)
+            safe_names = data.name_cache.getPrimNames(prim, names)
             for elem, safe_name in zip(element.undefined_elements, safe_names):
-                _prim = usdex.core.defineScope(target_prim, safe_name).GetPrim()
+                _prim = usdex.core.defineScope(prim, safe_name).GetPrim()
                 if safe_name != elem.tag:
                     usdex.core.setDisplayName(_prim, elem.tag)
 
