@@ -71,6 +71,9 @@ class ElementBase:
         # Undefined text.
         self.undefined_text: str = None
 
+        # Unsupported elements.
+        self.unsupported = False
+
     def get_with_default(self, attr_name: str) -> Any:
         """Get the value of the attribute with the default value."""
         value = getattr(self, attr_name, None)
@@ -406,6 +409,9 @@ class ElementCalibration(ElementBase):
     def __init__(self):
         super().__init__()
 
+        # Unsupported elements.
+        self.unsupported = True
+
         # attributes.
         self.reference_position: float | None = None
         self.rising: float | None = None
@@ -423,6 +429,9 @@ class ElementDynamics(ElementBase):
 
     def __init__(self):
         super().__init__()
+
+        # Unsupported elements.
+        self.unsupported = True
 
         # attributes.
         self.damping: float | None = None
@@ -463,6 +472,9 @@ class ElementSafetyController(ElementBase):
     def __init__(self):
         super().__init__()
 
+        # Unsupported elements.
+        self.unsupported = True
+
         # attributes.
         self.soft_lower_limit: float | None = None
         self.soft_upper_limit: float | None = None
@@ -481,6 +493,9 @@ class ElementMimic(ElementBase):
 
     def __init__(self):
         super().__init__()
+
+        # Unsupported elements.
+        self.unsupported = True
 
         # attributes.
         self.joint: str = None

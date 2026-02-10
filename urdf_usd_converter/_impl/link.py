@@ -12,6 +12,7 @@ from .geometry import convert_geometry
 from .planar_joint import define_physics_planar_joint
 from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
+    ElementBase,
     ElementCollision,
     ElementInertia,
     ElementLink,
@@ -224,3 +225,10 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         if physics_joint and (joint.undefined_attributes or joint.undefined_elements or joint.undefined_text):
             geom_over = data.content[Tokens.Geometry].OverridePrim(physics_joint.GetPrim().GetPath())
             convert_undefined_elements(joint, geom_over, data)
+
+        # Check unsupported elements in the joint.
+        for attr in joint.__dict__:
+            _element = joint.__dict__[attr]
+            if isinstance(_element, ElementBase) and _element.unsupported:
+                geom_over = data.content[Tokens.Geometry].OverridePrim(physics_joint.GetPrim().GetPath())
+                convert_undefined_elements(_element, geom_over, data)

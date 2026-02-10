@@ -50,6 +50,15 @@
 
     <!-- custom element -->
     <data>joint data</data>
+
+    <!-- calibration is currently not supported, so it is a custom element. -->
+    <calibration rising="0.3" falling="0.2" reference_position="0.1"/>
+
+    <!-- dynamics is currently not supported, so it is a custom element. -->
+    <dynamics damping="0.0" friction="0.0"/>
+
+    <!-- safety_controller is currently not supported, so it is a custom element. -->
+    <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.0" soft_upper_limit="0.5" />
   </joint>
 
   <!-- transmission is currently not supported, so it is a custom element. -->
