@@ -48,6 +48,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "blue" Material.
         self.assertTrue(blue_prim.GetAttribute("urdf:custom_attr").HasAuthoredValue())
+        self.assertTrue(blue_prim.GetAttribute("urdf:custom_attr").IsCustom())
         attr = blue_prim.GetAttribute("urdf:custom_attr").Get()
         self.assertEqual(attr, "blue_material")
 
@@ -66,6 +67,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "box".
         self.assertTrue(box_prim.GetAttribute("urdf:custom_attr").HasAuthoredValue())
+        self.assertTrue(box_prim.GetAttribute("urdf:custom_attr").IsCustom())
         attr = box_prim.GetAttribute("urdf:custom_attr").Get()
         self.assertEqual(attr, "visual")
 
@@ -83,6 +85,7 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(collision_data_prim.IsValid())
         self.assertTrue(collision_data_prim.IsA(UsdGeom.Scope))
         self.assertTrue(collision_data_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(collision_data_prim.GetAttribute("urdf:text").IsCustom())
         text = collision_data_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "custom collision data")
 
@@ -98,9 +101,11 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "item1".
         self.assertTrue(item_prim.GetAttribute("urdf:name").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:name").IsCustom())
         name = item_prim.GetAttribute("urdf:name").Get()
         self.assertEqual(name, "data1")
         self.assertTrue(item_prim.GetAttribute("urdf:value").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:value").IsCustom())
         value = item_prim.GetAttribute("urdf:value").Get()
         self.assertEqual(value, "foo1")
 
@@ -116,6 +121,7 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(japanese_text_prim.IsValid())
         self.assertTrue(japanese_text_prim.IsA(UsdGeom.Scope))
         self.assertTrue(japanese_text_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(japanese_text_prim.GetAttribute("urdf:text").IsCustom())
         text = japanese_text_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "日本語の文字列")
 
@@ -125,14 +131,17 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(korean_text_prim.IsValid())
         self.assertTrue(korean_text_prim.IsA(UsdGeom.Scope))
         self.assertTrue(korean_text_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(korean_text_prim.GetAttribute("urdf:text").IsCustom())
         text = korean_text_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "한글 문자열")
 
         # Custom attributes in "test-item".
         self.assertTrue(item_prim.GetAttribute("urdf:name").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:name").IsCustom())
         name = item_prim.GetAttribute("urdf:name").Get()
         self.assertEqual(name, "data2")
         self.assertTrue(item_prim.GetAttribute("urdf:value").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:value").IsCustom())
         value = item_prim.GetAttribute("urdf:value").Get()
         self.assertEqual(value, "foo2")
 
@@ -149,9 +158,11 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "item3".
         self.assertTrue(item_prim.GetAttribute("urdf:name").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:name").IsCustom())
         name = item_prim.GetAttribute("urdf:name").Get()
         self.assertEqual(name, "data3")
         self.assertTrue(item_prim.GetAttribute("urdf:value").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:value").IsCustom())
         value = item_prim.GetAttribute("urdf:value").Get()
         self.assertEqual(value, "foo3")
 
@@ -166,6 +177,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "joint_box".
         self.assertTrue(joint_box_prim.GetAttribute("urdf:custom_attr").HasAuthoredValue())
+        self.assertTrue(joint_box_prim.GetAttribute("urdf:custom_attr").IsCustom())
         attr = joint_box_prim.GetAttribute("urdf:custom_attr").Get()
         self.assertEqual(attr, "joint")
 
@@ -176,6 +188,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "data".
         self.assertTrue(data_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(data_prim.GetAttribute("urdf:text").IsCustom())
         text = data_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "joint data")
 
@@ -184,12 +197,15 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(calibration_prim.IsValid())
         self.assertTrue(calibration_prim.IsA(UsdGeom.Scope))
         self.assertTrue(calibration_prim.GetAttribute("urdf:rising").HasAuthoredValue())
+        self.assertTrue(calibration_prim.GetAttribute("urdf:rising").IsCustom())
         rising = calibration_prim.GetAttribute("urdf:rising").Get()
         self.assertEqual(rising, "0.3")
         self.assertTrue(calibration_prim.GetAttribute("urdf:falling").HasAuthoredValue())
+        self.assertTrue(calibration_prim.GetAttribute("urdf:falling").IsCustom())
         falling = calibration_prim.GetAttribute("urdf:falling").Get()
         self.assertEqual(falling, "0.2")
         self.assertTrue(calibration_prim.GetAttribute("urdf:reference_position").HasAuthoredValue())
+        self.assertTrue(calibration_prim.GetAttribute("urdf:reference_position").IsCustom())
         reference_position = calibration_prim.GetAttribute("urdf:reference_position").Get()
         self.assertEqual(reference_position, "0.1")
 
@@ -198,9 +214,11 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(dynamics_prim.IsValid())
         self.assertTrue(dynamics_prim.IsA(UsdGeom.Scope))
         self.assertTrue(dynamics_prim.GetAttribute("urdf:damping").HasAuthoredValue())
+        self.assertTrue(dynamics_prim.GetAttribute("urdf:damping").IsCustom())
         damping = dynamics_prim.GetAttribute("urdf:damping").Get()
         self.assertEqual(damping, "0.0")
         self.assertTrue(dynamics_prim.GetAttribute("urdf:friction").HasAuthoredValue())
+        self.assertTrue(dynamics_prim.GetAttribute("urdf:friction").IsCustom())
         friction = dynamics_prim.GetAttribute("urdf:friction").Get()
         self.assertEqual(friction, "0.0")
 
@@ -209,15 +227,19 @@ class TestUndefined(ConverterTestCase):
         self.assertTrue(safety_controller_prim.IsValid())
         self.assertTrue(safety_controller_prim.IsA(UsdGeom.Scope))
         self.assertTrue(safety_controller_prim.GetAttribute("urdf:k_velocity").HasAuthoredValue())
+        self.assertTrue(safety_controller_prim.GetAttribute("urdf:k_velocity").IsCustom())
         k_velocity = safety_controller_prim.GetAttribute("urdf:k_velocity").Get()
         self.assertEqual(k_velocity, "10.0")
         self.assertTrue(safety_controller_prim.GetAttribute("urdf:k_position").HasAuthoredValue())
+        self.assertTrue(safety_controller_prim.GetAttribute("urdf:k_position").IsCustom())
         k_position = safety_controller_prim.GetAttribute("urdf:k_position").Get()
         self.assertEqual(k_position, "15.0")
         self.assertTrue(safety_controller_prim.GetAttribute("urdf:soft_lower_limit").HasAuthoredValue())
+        self.assertTrue(safety_controller_prim.GetAttribute("urdf:soft_lower_limit").IsCustom())
         soft_lower_limit = safety_controller_prim.GetAttribute("urdf:soft_lower_limit").Get()
         self.assertEqual(soft_lower_limit, "-2.0")
         self.assertTrue(safety_controller_prim.GetAttribute("urdf:soft_upper_limit").HasAuthoredValue())
+        self.assertTrue(safety_controller_prim.GetAttribute("urdf:soft_upper_limit").IsCustom())
         soft_upper_limit = safety_controller_prim.GetAttribute("urdf:soft_upper_limit").Get()
         self.assertEqual(soft_upper_limit, "0.5")
 
@@ -239,6 +261,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "transmission".
         self.assertTrue(transmission_prim.GetAttribute("urdf:name").HasAuthoredValue())
+        self.assertTrue(transmission_prim.GetAttribute("urdf:name").IsCustom())
         name = transmission_prim.GetAttribute("urdf:name").Get()
         self.assertEqual(name, "trans1")
 
@@ -249,6 +272,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "type".
         self.assertTrue(type_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(type_prim.GetAttribute("urdf:text").IsCustom())
         text = type_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "transmission_interface/SimpleTransmission")
 
@@ -260,6 +284,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "transmission_1".
         self.assertTrue(transmission_prim.GetAttribute("urdf:name").HasAuthoredValue())
+        self.assertTrue(transmission_prim.GetAttribute("urdf:name").IsCustom())
         name = transmission_prim.GetAttribute("urdf:name").Get()
         self.assertEqual(name, "trans2")
 
@@ -270,6 +295,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "type".
         self.assertTrue(type_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(type_prim.GetAttribute("urdf:text").IsCustom())
         text = type_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "transmission_interface/SimpleTransmission")
 
@@ -285,6 +311,7 @@ class TestUndefined(ConverterTestCase):
 
         # Custom attributes in "static".
         self.assertTrue(static_prim.GetAttribute("urdf:text").HasAuthoredValue())
+        self.assertTrue(static_prim.GetAttribute("urdf:text").IsCustom())
         text = static_prim.GetAttribute("urdf:text").Get()
         self.assertEqual(text, "true")
 
@@ -333,9 +360,11 @@ class TestUndefinedOthers(ConverterTestCase):
         self.assertTrue(item_prim.IsA(UsdGeom.Scope))
 
         self.assertTrue(item_prim.GetAttribute("urdf:name").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:name").IsCustom())
         name = item_prim.GetAttribute("urdf:name").Get()
         self.assertEqual(name, "data1")
         self.assertTrue(item_prim.GetAttribute("urdf:value").HasAuthoredValue())
+        self.assertTrue(item_prim.GetAttribute("urdf:value").IsCustom())
         value = item_prim.GetAttribute("urdf:value").Get()
         self.assertEqual(value, "foo1")
 
@@ -377,11 +406,14 @@ class TestUndefinedOthers(ConverterTestCase):
 
         # Custom attributes in "mimic".
         self.assertTrue(mimic_prim.GetAttribute("urdf:joint").HasAuthoredValue())
+        self.assertTrue(mimic_prim.GetAttribute("urdf:joint").IsCustom())
         joint = mimic_prim.GetAttribute("urdf:joint").Get()
         self.assertEqual(joint, "jointA")
         self.assertTrue(mimic_prim.GetAttribute("urdf:multiplier").HasAuthoredValue())
+        self.assertTrue(mimic_prim.GetAttribute("urdf:multiplier").IsCustom())
         multiplier = mimic_prim.GetAttribute("urdf:multiplier").Get()
         self.assertEqual(multiplier, "2.0")
         self.assertTrue(mimic_prim.GetAttribute("urdf:offset").HasAuthoredValue())
+        self.assertTrue(mimic_prim.GetAttribute("urdf:offset").IsCustom())
         offset = mimic_prim.GetAttribute("urdf:offset").Get()
         self.assertEqual(offset, "0.0")

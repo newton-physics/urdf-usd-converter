@@ -123,8 +123,7 @@ def convert_undefined(data: ConversionData):
 
     geo_scope = data.content[Tokens.Geometry].GetDefaultPrim().GetChild(Tokens.Geometry).GetPrim()
 
-    custom_prim = None
-    checked_paths = []
+    undefined_data_list = []
     for undefined_data in data.undefined_elements:
         # Undefined elements or attributes in link, joint, or material are already stored, so skip them.
         if (
@@ -133,21 +132,26 @@ def convert_undefined(data: ConversionData):
             or undefined_data.path.startswith("/robot/material")
         ):
             continue
+        undefined_data_list.append(undefined_data)
 
+    if not len(undefined_data_list):
+        return
+
+    # Custom elements are stored in "Geometry/custom".
+    prim_name = "custom"
+    safe_name = data.name_cache.getPrimName(geo_scope, prim_name)
+    custom_prim = usdex.core.defineScope(geo_scope, safe_name).GetPrim()
+    if safe_name != prim_name:
+        usdex.core.setDisplayName(custom_prim, prim_name)
+
+    checked_paths = []
+    for undefined_data in undefined_data_list:
         # If the element has already been checked, skip.
         if any(
             undefined_data.path == checked_path and undefined_data.line_number == checked_line_number
             for checked_path, checked_line_number in checked_paths
         ):
             continue
-
-        # Custom elements are stored in "Geometry/custom".
-        if not custom_prim:
-            prim_name = "custom"
-            safe_name = data.name_cache.getPrimName(geo_scope, prim_name)
-            custom_prim = usdex.core.defineScope(geo_scope, safe_name).GetPrim()
-            if safe_name != prim_name:
-                usdex.core.setDisplayName(custom_prim, prim_name)
 
         # Create a prim to store the custom element "undefined_data.tag".
         safe_name = data.name_cache.getPrimName(custom_prim, undefined_data.tag)
