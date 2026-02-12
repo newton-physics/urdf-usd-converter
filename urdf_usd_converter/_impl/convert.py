@@ -17,7 +17,6 @@ from .mesh_cache import MeshCache
 from .ros_package import search_ros_packages
 from .scene import convert_scene
 from .undefined import convert_undefined
-from .urdf_parser.elements import ElementRobot
 from .urdf_parser.parser import URDFParser
 from .utils import get_authoring_metadata
 
@@ -160,15 +159,4 @@ class Converter:
         else:
             usdex.core.saveStage(asset_stage, comment=self.params.comment)
 
-        # warn about known limitations
-        self.warn(parser)
-
         return Sdf.AssetPath(asset_identifier)
-
-    def warn(self, parser: URDFParser):
-        element_root: ElementRobot = parser.get_root_element()
-
-        for joint in element_root.joints:
-            if joint.mimic:
-                Tf.Warn("Mimic is not supported")
-                break

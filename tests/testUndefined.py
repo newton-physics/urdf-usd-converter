@@ -4,7 +4,7 @@ import pathlib
 
 import usdex.core
 import usdex.test
-from pxr import Tf, Usd, UsdGeom, UsdPhysics, UsdShade
+from pxr import Usd, UsdGeom, UsdPhysics, UsdShade
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -366,14 +366,7 @@ class TestUndefinedOthers(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Mimic is not supported.*"),
-            ],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
-            asset_path = converter.convert(input_path, output_dir)
+        asset_path = converter.convert(input_path, output_dir)
 
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())

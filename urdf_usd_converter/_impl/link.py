@@ -223,12 +223,10 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
 
         # Store custom attributes and custom elements for the specified element.
         if physics_joint and (joint.undefined_attributes or joint.undefined_elements or joint.undefined_text):
-            geom_over = data.content[Tokens.Geometry].OverridePrim(physics_joint.GetPrim().GetPath())
-            convert_undefined_elements(joint, geom_over, data)
+            convert_undefined_elements(joint, physics_joint.GetPrim(), data)
 
         # Check unsupported elements in the joint.
         for attr in joint.__dict__:
             _element = joint.__dict__[attr]
             if isinstance(_element, ElementBase) and _element.unsupported:
-                geom_over = data.content[Tokens.Geometry].OverridePrim(physics_joint.GetPrim().GetPath())
-                convert_undefined_elements(_element, geom_over, data)
+                convert_undefined_elements(_element, physics_joint.GetPrim(), data)

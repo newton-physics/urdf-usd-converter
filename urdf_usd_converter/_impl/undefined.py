@@ -17,7 +17,6 @@ URDF_CUSTOM_ATTRIBUTE_NAMESPACE = "urdf"
 def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: ConversionData, force_store: bool = False) -> list[tuple[str, int]]:
     """
     Store custom attributes and elements for the specified element.
-    Custom attributes or elements are stored on the Geometry layer.
     When "force_store" is True, all elements and attributes are recursively stored.
 
     Args:
@@ -96,12 +95,7 @@ def _convert_undefined_materials(data: ConversionData):
                 continue
 
             material_prim = data.references[Tokens.Materials][material_data.safe_name]
-
-            # Override the material prim in the geometry scope.
-            material_prim_path = material_prim.GetPath()
-            geom_default_prim_path = data.content[Tokens.Geometry].GetDefaultPrim().GetPath()
-            geom_over = data.content[Tokens.Geometry].OverridePrim(f"{geom_default_prim_path}{material_prim_path}")
-            convert_undefined_elements(material_element, geom_over, data)
+            convert_undefined_elements(material_element, material_prim.GetPrim(), data)
 
 
 def convert_undefined(data: ConversionData):
