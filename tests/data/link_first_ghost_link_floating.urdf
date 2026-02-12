@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot name="link_first_ghost_link_floating">
+  <!-- Ghost Link: Links that don't carry any information -->
+  <link name="BaseLink" />
+
+  <link name="link1">
+    <visual>
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint1" type="floating">
+    <origin rpy="0 0 0" xyz="0 0 1"/>
+    <parent link="BaseLink"/>
+    <child link="link1"/>
+  </joint>
+</robot>

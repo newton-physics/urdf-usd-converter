@@ -349,7 +349,13 @@ class TestAssetStructure(ConverterTestCase):
         # The Physics scope contains PhysicsJoints.
         physics_scope: Usd.Prim = physics_stage.GetDefaultPrim().GetChild("Physics")
         self.assertTrue(physics_scope.IsA(UsdGeom.Scope))
-        self.assertEqual(len(physics_scope.GetAllChildren()), 4)
+        self.assertEqual(len(physics_scope.GetAllChildren()), 5)
+
+        # This is a fixed joint connecting the world to the first link.
+        joint_root_prim: Usd.Prim = physics_scope.GetChild("root_joint")
+        self.assertTrue(joint_root_prim.IsValid())
+        self.assertTrue(joint_root_prim.IsA(UsdPhysics.FixedJoint))
+        self.assertEqual(joint_root_prim.GetSpecifier(), Sdf.SpecifierDef)
 
         joint_root_prim: Usd.Prim = physics_scope.GetChild("joint_root")
         self.assertTrue(joint_root_prim.IsValid())
