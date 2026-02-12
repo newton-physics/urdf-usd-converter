@@ -168,28 +168,7 @@ class Converter:
     def warn(self, parser: URDFParser):
         element_root: ElementRobot = parser.get_root_element()
 
-        if "transmission" in [element.tag for element in element_root.undefined_elements]:
-            Tf.Warn("Transmission is not supported")
-
-        if "gazebo" in [element.tag for element in element_root.undefined_elements]:
-            Tf.Warn("Gazebo is not supported")
-
-        for joint in element_root.joints:
-            if joint.calibration:
-                Tf.Warn("Calibration is not supported")
-                break
-
-        for joint in element_root.joints:
-            if joint.dynamics:
-                Tf.Warn("Dynamics is not supported")
-                break
-
         for joint in element_root.joints:
             if joint.mimic:
                 Tf.Warn("Mimic is not supported")
-                break
-
-        for joint in element_root.joints:
-            if joint.safety_controller:
-                Tf.Warn("Safety controller is not supported")
                 break

@@ -18,18 +18,7 @@ class TestUndefined(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Transmission is not supported.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Gazebo is not supported.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Calibration is not supported.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Dynamics is not supported.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Safety controller is not supported.*"),
-            ],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
-            asset_path = converter.convert(input_path, output_dir)
+        asset_path = converter.convert(input_path, output_dir)
 
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())

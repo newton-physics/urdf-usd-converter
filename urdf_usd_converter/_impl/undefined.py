@@ -53,13 +53,6 @@ def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: Conve
                 # If attr in element exists.
                 if check_element_attribute_name(element.tag, attr) and _child is not None:
                     _prim.CreateAttribute(f"{URDF_CUSTOM_ATTRIBUTE_NAMESPACE}:{attr}", Sdf.ValueTypeNames.String, custom=True).Set(str(_child))
-
-            # Search for ElementBase within the element and recursively call convert_undefined_elements.
-            for attr in element.__dict__:
-                _child = element.__dict__[attr]
-                if isinstance(_child, ElementBase):
-                    _checked_paths = convert_undefined_elements(_child, _prim, data, force_store)
-                    checked_paths.extend(_checked_paths)
         else:
             names = [elem.tag for elem in element.undefined_elements]
             safe_names = data.name_cache.getPrimNames(prim, names)
@@ -144,8 +137,11 @@ def convert_undefined(data: ConversionData):
     if safe_name != prim_name:
         usdex.core.setDisplayName(custom_prim, prim_name)
 
+    names = [undefined_data.tag for undefined_data in undefined_data_list]
+    safe_names = data.name_cache.getPrimNames(custom_prim, names)
+
     checked_paths = []
-    for undefined_data in undefined_data_list:
+    for undefined_data, safe_name in zip(undefined_data_list, safe_names):
         # If the element has already been checked, skip.
         if any(
             undefined_data.path == checked_path and undefined_data.line_number == checked_line_number
@@ -154,7 +150,6 @@ def convert_undefined(data: ConversionData):
             continue
 
         # Create a prim to store the custom element "undefined_data.tag".
-        safe_name = data.name_cache.getPrimName(custom_prim, undefined_data.tag)
         _prim = usdex.core.defineScope(custom_prim, safe_name).GetPrim()
         if safe_name != undefined_data.tag:
             usdex.core.setDisplayName(_prim, undefined_data.tag)
