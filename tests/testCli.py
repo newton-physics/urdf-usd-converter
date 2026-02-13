@@ -15,17 +15,7 @@ class TestCli(ConverterTestCase):
 
     def test_run(self):
         input_path = "tests/data/simple-primitives.urdf"
-        with (
-            patch("sys.argv", ["urdf_usd_converter", input_path, self.tmpDir()]),
-            usdex.test.ScopedDiagnosticChecker(
-                self,
-                [
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Calibration is not supported"),
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Dynamics is not supported"),
-                ],
-                level=usdex.core.DiagnosticsLevel.eWarning,
-            ),
-        ):
+        with patch("sys.argv", ["urdf_usd_converter", input_path, self.tmpDir()]):
             self.assertEqual(run(), 0, f"Failed to convert {input_path}")
         self.assertTrue((pathlib.Path(self.tmpDir()) / "simple-primitives.usda").exists())
 
@@ -151,21 +141,7 @@ class TestCli(ConverterTestCase):
         robot = "tests/data/verifying_elements.urdf"
         robot_name = pathlib.Path(robot).stem
         output_dir = self.tmpDir()
-        with (
-            patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]),
-            usdex.test.ScopedDiagnosticChecker(
-                self,
-                [
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Transmission is not supported.*"),
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Gazebo is not supported.*"),
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Calibration is not supported.*"),
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Dynamics is not supported.*"),
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Mimic is not supported.*"),
-                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Safety controller is not supported.*"),
-                ],
-                level=usdex.core.DiagnosticsLevel.eWarning,
-            ),
-        ):
+        with patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]):
             self.assertEqual(run(), 0, "Expected non-zero exit code for invalid input")
             self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
 

@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot name="undefined_same_name">
+  <!-- The link name is intentionally set to "custom" to allow duplicate names when creating custom elements.-->
+  <link name="custom">
+    <visual>
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <!-- custom elements -->
+  <foo>
+    <item1 name="data1" value="foo1"/>
+  </foo>
+</robot>
