@@ -38,6 +38,7 @@ class TestPhysics(ConverterTestCase):
         link_box_prim = self.stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link_box"))
         self.assertTrue(link_box_prim.IsValid())
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
 
         # Mass.
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.MassAPI))
@@ -63,6 +64,8 @@ class TestPhysics(ConverterTestCase):
 
         link_box_prim = self.stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link_box"))
         self.assertTrue(link_box_prim.IsValid())
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
 
         # Rigid body.
         link_cylinder_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("link_cylinder"))
@@ -86,6 +89,8 @@ class TestPhysics(ConverterTestCase):
 
         link_box_prim = self.stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link_box"))
         self.assertTrue(link_box_prim.IsValid())
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
 
         link_cylinder_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("link_cylinder"))
         self.assertTrue(link_cylinder_prim.IsValid())

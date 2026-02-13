@@ -33,14 +33,14 @@ def convert_links(data: ConversionData):
     root_link = data.link_hierarchy.get_root_link()
 
     # Creating a Link Hierarchy.
-    convert_link(parent=geo_scope, link=root_link, data=data)
+    convert_link(parent=geo_scope, having_articulation_root=False, link=root_link, data=data)
 
     # Create Physics joints
     physics_scope = data.content[Tokens.Physics].GetDefaultPrim().GetChild(Tokens.Physics).GetPrim()
     physics_joints(parent=physics_scope, link=root_link, data=data)
 
 
-def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> UsdGeom.Xform:
+def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: ElementLink, data: ConversionData) -> UsdGeom.Xform:
     link_safe_name = data.name_cache.getPrimName(parent, link.name)
     link_xform = usdex.core.defineXform(parent, link_safe_name)
     link_prim = link_xform.GetPrim()
@@ -52,13 +52,26 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
     # Store custom attributes and custom elements for the specified element.
     convert_undefined_elements(link, link_prim, data)
 
-    # Apply RigidBodyAPI to a link.
-    prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
-    UsdPhysics.RigidBodyAPI.Apply(prim_over)
+    children = data.link_hierarchy.get_link_children(link.name)
+    joints = data.link_hierarchy.get_link_joints(link.name)
 
-    if link == data.link_hierarchy.get_root_link():
-        # Set the root of the Link to ArticulationRoot.
+    # Determines if the link is the root link.
+    is_root_link = link == data.link_hierarchy.get_root_link()
+
+    # Determines if the root link is a ghost link (no inertia/colliders/visuals).
+    is_ghost_link = is_root_link and link.inertial is None and len(link.visuals) == 0 and len(link.collisions) == 0
+
+    # Apply RigidBodyAPI to a link.
+    # If it is a root link of a ghost link, no rigid body will be assigned.
+    if not is_root_link or not is_ghost_link:
+        prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
+        UsdPhysics.RigidBodyAPI.Apply(prim_over)
+
+    if not is_ghost_link and not having_articulation_root:
+        # Assign ArticulationRoot to the first link.
+        prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.ArticulationRootAPI.Apply(prim_over)
+        having_articulation_root = True
 
     # Assigning MassAPI to a Rigid Body.
     apply_inertial(link_prim, link, data)
@@ -82,12 +95,9 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
     for geometry, name, safe_name in zip(geometries, names, safe_names):
         convert_geometry(link_prim, name, safe_name, geometry, data)
 
-    children = data.link_hierarchy.get_link_children(link.name)
-    joints = data.link_hierarchy.get_link_joints(link.name)
-
     if len(children) > 0:
         for child, joint in zip(children, joints):
-            child_xform = convert_link(link_prim, child, data)
+            child_xform = convert_link(link_prim, having_articulation_root, child, data)
             set_transform(child_xform, joint)
 
     return link_xform
@@ -172,6 +182,23 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     """
     Create physics joints.
     """
+    # Determines if the root link is a ghost link (no inertia/colliders/visuals).
+    root_link = data.link_hierarchy.get_root_link()
+    is_ghost_link = root_link.inertial is None and len(root_link.visuals) == 0 and len(root_link.collisions) == 0
+
+    default_prim = parent.GetStage().GetDefaultPrim()
+
+    # If the first link does not have a ghost link, create a fixed joint connecting the first link to the world.
+    if not is_ghost_link:
+        joint_name = "root_joint"
+        joint_safe_name = data.name_cache.getPrimName(parent, joint_name)
+        body0 = default_prim
+        body1 = data.references[Tokens.Physics][root_link.name]
+        joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
+        physics_joint = usdex.core.definePhysicsFixedJoint(parent, joint_safe_name, body0, body1, joint_frame)
+        if physics_joint and joint_name != joint_safe_name:
+            usdex.core.setDisplayName(physics_joint.GetPrim(), joint_name)
+
     joints = data.urdf_parser.get_root_element().joints
     joint_names = [joint.name for joint in joints] if joints else []
     joint_safe_names = data.name_cache.getPrimNames(parent, joint_names)
@@ -180,7 +207,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     for joint, joint_safe_name in zip(joints, joint_safe_names):
         body0_link_name = joint.parent.get_with_default("link")
         body1_link_name = joint.child.get_with_default("link")
-        body0 = data.references[Tokens.Physics][body0_link_name]
+
+        body0 = data.references[Tokens.Physics][body0_link_name] if not is_ghost_link else default_prim
         body1 = data.references[Tokens.Physics][body1_link_name]
 
         # Specifies that the origin position of Body1 (the "child" of the joint in the URDF) is the center.

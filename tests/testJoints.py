@@ -29,6 +29,19 @@ class TestJoints(ConverterTestCase):
         physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertTrue(physics_scope_prim.IsValid())
 
+        # root_joint
+        # This is a fixed joint connecting the world to the first link.
+        physics_root_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("root_joint"))
+        self.assertTrue(physics_root_joint_prim.IsValid())
+        self.assertTrue(physics_root_joint_prim.IsA(UsdPhysics.FixedJoint))
+        root_joint = UsdPhysics.FixedJoint(physics_root_joint_prim)
+        self.assertEqual(root_joint.GetBody0Rel().GetTargets(), ["/revolute_joints"])
+        self.assertEqual(root_joint.GetBody1Rel().GetTargets(), ["/revolute_joints/Geometry/BaseLink"])
+        self.assertTrue(Gf.IsClose(root_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(root_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(root_joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(root_joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
         # Joint_root.
         physics_revolute_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertTrue(physics_revolute_joint_prim.IsValid())
@@ -513,6 +526,19 @@ class TestJoints(ConverterTestCase):
         physics_scope_prim = stage.GetPrimAtPath(default_prim_path.AppendChild("Physics"))
         self.assertTrue(physics_scope_prim.IsValid())
 
+        # root_joint
+        # This is a fixed joint connecting the world to the first link.
+        physics_root_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("root_joint"))
+        self.assertTrue(physics_root_joint_prim.IsValid())
+        self.assertTrue(physics_root_joint_prim.IsA(UsdPhysics.FixedJoint))
+        root_joint = UsdPhysics.FixedJoint(physics_root_joint_prim)
+        self.assertEqual(root_joint.GetBody0Rel().GetTargets(), ["/fixed_floating_joints"])
+        self.assertEqual(root_joint.GetBody1Rel().GetTargets(), ["/fixed_floating_joints/Geometry/BaseLink"])
+        self.assertTrue(Gf.IsClose(root_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(root_joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(root_joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(root_joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
         # Joint_root.
         physics_fixed_joint_prim = stage.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_root"))
         self.assertTrue(physics_fixed_joint_prim.IsValid())
@@ -525,8 +551,8 @@ class TestJoints(ConverterTestCase):
         self.assertRotationsAlmostEqual(fixed_joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
         self.assertRotationsAlmostEqual(fixed_joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
 
-        # The number of children of physics_scope_prim is 1.
-        self.assertEqual(len(physics_scope_prim.GetChildren()), 1)
+        # The number of children of physics_scope_prim is 2.
+        self.assertEqual(len(physics_scope_prim.GetChildren()), 2)
 
         # Confirm that Arm_2 is assigned as a rigid body.
         # This is a rigid body that is not participating in the joint structure.
