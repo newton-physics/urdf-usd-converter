@@ -6,7 +6,6 @@ from pxr import Sdf, Usd
 
 from .data import ConversionData, Tokens
 from .urdf_parser.elements import ElementBase
-from .urdf_parser.reserved_element_attribute_names import check_element_attribute_name
 
 __all__ = ["convert_undefined", "convert_undefined_elements"]
 
@@ -14,7 +13,7 @@ __all__ = ["convert_undefined", "convert_undefined_elements"]
 URDF_CUSTOM_ATTRIBUTE_NAMESPACE = "urdf"
 
 
-def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: ConversionData, force_store: bool = False) -> list[tuple[str, int]]:
+def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: ConversionData) -> list[tuple[str, int]]:
     """
     Store custom attributes and elements for the specified element.
     When "force_store" is True, all elements and attributes are recursively stored.
@@ -23,49 +22,30 @@ def convert_undefined_elements(element: ElementBase, prim: Usd.Prim, data: Conve
         element: Elements in URDF
         prim: USD prim
         data: The conversion data.
-        force_store: If True, the element is stored even if it is not undefined.
 
     Returns:
         The list of checked paths and line numbers.
     """
-    force_store = force_store or element.unsupported
-    if not force_store and not element.undefined_attributes and not element.undefined_elements and not element.undefined_text:
+    if not element.undefined_attributes and not element.undefined_elements and not element.undefined_text:
         return []
 
     checked_paths = []
-    if element.undefined_elements or force_store:
-        # Create a scope for each undefined and unsupported element.
+    if element.undefined_elements:
+        # Create a scope for each undefined element.
         # This recursively creates a hierarchy of elements.
-
-        # For unsupported elements, traverse and store all child elements.
-        if force_store:
-            safe_name = data.name_cache.getPrimName(prim, element.tag)
+        names = [elem.tag for elem in element.undefined_elements]
+        safe_names = data.name_cache.getPrimNames(prim, names)
+        for elem, safe_name in zip(element.undefined_elements, safe_names):
             _prim = usdex.core.defineScope(prim, safe_name).GetPrim()
-            if safe_name != element.tag:
-                usdex.core.setDisplayName(_prim, element.tag)
-            checked_paths.append((element.path, element.line_number))
+            if safe_name != elem.tag:
+                usdex.core.setDisplayName(_prim, elem.tag)
 
-            # Gets the attributes within an element.
-            # For example, ElementCalibration has attributes "reference_position", "rising", and "falling".
-            for attr in element.__dict__:
-                _child = element.__dict__[attr]
-                # If attr in element exists.
-                if check_element_attribute_name(element.tag, attr) and _child is not None:
-                    _prim.CreateAttribute(f"{URDF_CUSTOM_ATTRIBUTE_NAMESPACE}:{attr}", Sdf.ValueTypeNames.String, custom=True).Set(str(_child))
-        else:
-            names = [elem.tag for elem in element.undefined_elements]
-            safe_names = data.name_cache.getPrimNames(prim, names)
-            for elem, safe_name in zip(element.undefined_elements, safe_names):
-                _prim = usdex.core.defineScope(prim, safe_name).GetPrim()
-                if safe_name != elem.tag:
-                    usdex.core.setDisplayName(_prim, elem.tag)
-
-                checked_paths.append((elem.path, elem.line_number))
-                for undefined_data in data.undefined_elements:
-                    if undefined_data.path == elem.path and undefined_data.line_number == elem.line_number:
-                        _checked_paths = convert_undefined_elements(elem, _prim, data, force_store)
-                        checked_paths.extend(_checked_paths)
-                        break
+            checked_paths.append((elem.path, elem.line_number))
+            for undefined_data in data.undefined_elements:
+                if undefined_data.path == elem.path and undefined_data.line_number == elem.line_number:
+                    _checked_paths = convert_undefined_elements(elem, _prim, data)
+                    checked_paths.extend(_checked_paths)
+                    break
 
     if element.undefined_attributes:
         for key, value in element.undefined_attributes.items():
