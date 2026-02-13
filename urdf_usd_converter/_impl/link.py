@@ -33,14 +33,14 @@ def convert_links(data: ConversionData):
     root_link = data.link_hierarchy.get_root_link()
 
     # Creating a Link Hierarchy.
-    convert_link(parent=geo_scope, link=root_link, data=data)
+    convert_link(parent=geo_scope, having_articulation_root=False, link=root_link, data=data)
 
     # Create Physics joints
     physics_scope = data.content[Tokens.Physics].GetDefaultPrim().GetChild(Tokens.Physics).GetPrim()
     physics_joints(parent=physics_scope, link=root_link, data=data)
 
 
-def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> UsdGeom.Xform:
+def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: ElementLink, data: ConversionData) -> UsdGeom.Xform:
     link_safe_name = data.name_cache.getPrimName(parent, link.name)
     link_xform = usdex.core.defineXform(parent, link_safe_name)
     link_prim = link_xform.GetPrim()
@@ -67,9 +67,11 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.RigidBodyAPI.Apply(prim_over)
 
-        if is_root_link:
-            # Set the root of the Link to ArticulationRoot.
-            UsdPhysics.ArticulationRootAPI.Apply(prim_over)
+    if not is_ghost_link and not having_articulation_root:
+        # Assign ArticulationRoot to the first link.
+        prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
+        UsdPhysics.ArticulationRootAPI.Apply(prim_over)
+        having_articulation_root = True
 
     # Assigning MassAPI to a Rigid Body.
     apply_inertial(link_prim, link, data)
@@ -95,7 +97,7 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
 
     if len(children) > 0:
         for child, joint in zip(children, joints):
-            child_xform = convert_link(link_prim, child, data)
+            child_xform = convert_link(link_prim, having_articulation_root, child, data)
             set_transform(child_xform, joint)
 
     return link_xform
@@ -184,13 +186,15 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     root_link = data.link_hierarchy.get_root_link()
     is_ghost_link = root_link.inertial is None and len(root_link.visuals) == 0 and len(root_link.collisions) == 0
 
+    default_prim = parent.GetStage().GetDefaultPrim()
+
     # If the first link does not have a ghost link, create a fixed joint connecting the first link to the world.
     if not is_ghost_link:
         joint_name = "root_joint"
         joint_safe_name = data.name_cache.getPrimName(parent, joint_name)
-        body0 = Usd.Prim()
+        body0 = default_prim
         body1 = data.references[Tokens.Physics][root_link.name]
-        joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.World, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
+        joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
         physics_joint = usdex.core.definePhysicsFixedJoint(parent, joint_safe_name, body0, body1, joint_frame)
         if physics_joint and joint_name != joint_safe_name:
             usdex.core.setDisplayName(physics_joint.GetPrim(), joint_name)
@@ -204,12 +208,11 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         body0_link_name = joint.parent.get_with_default("link")
         body1_link_name = joint.child.get_with_default("link")
 
-        body0 = data.references[Tokens.Physics][body0_link_name] if not is_ghost_link else Usd.Prim()
+        body0 = data.references[Tokens.Physics][body0_link_name] if not is_ghost_link else default_prim
         body1 = data.references[Tokens.Physics][body1_link_name]
 
         # Specifies that the origin position of Body1 (the "child" of the joint in the URDF) is the center.
-        space = usdex.core.JointFrame.Space.Body1 if not is_ghost_link else usdex.core.JointFrame.Space.World
-        joint_frame = usdex.core.JointFrame(space, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
+        joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
 
         axis = Gf.Vec3f(joint.axis.get_with_default("xyz")) if joint.axis else Gf.Vec3f(1, 0, 0)
 

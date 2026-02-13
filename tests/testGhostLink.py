@@ -36,7 +36,7 @@ class TestGhostLink(ConverterTestCase):
         link1_prim = base_link_prim.GetChild("link1")
         self.assertTrue(link1_prim.IsValid())
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertFalse(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
 
         # Check physics joint.
         physics_scope_prim = default_prim.GetChild("Physics")
@@ -46,10 +46,10 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(joint1_prim.IsValid())
         self.assertTrue(joint1_prim.IsA(UsdPhysics.FixedJoint))
         joint = UsdPhysics.FixedJoint(joint1_prim)
-        self.assertEqual(joint.GetBody0Rel().GetTargets(), [])
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_first_ghost_link_fixed"])
         self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_first_ghost_link_fixed/Geometry/BaseLink/link1"])
-        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
-        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, -1), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 1), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
         self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
         self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
 
@@ -80,7 +80,7 @@ class TestGhostLink(ConverterTestCase):
         link1_prim = base_link_prim.GetChild("link1")
         self.assertTrue(link1_prim.IsValid())
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertFalse(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
 
         # The physics joint does not exist.
         physics_scope_prim = default_prim.GetChild("Physics")
