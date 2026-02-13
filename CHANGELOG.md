@@ -2,6 +2,7 @@
 
 ## Features
 
+- Calibration, Dynamics, Safety Controller, and Mimic are all converted as custom attributes on the Joint prim
 - Convert custom elements as Scopes and custom attributes with `custom` and `urdf:` namespace
 - Adapted link handling for URDF's "ghost link" convention, where the first link may be a
   purely used to identifiy fixed vs floating articulations
