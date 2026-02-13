@@ -16,7 +16,7 @@ from .mesh import convert_meshes
 from .mesh_cache import MeshCache
 from .ros_package import search_ros_packages
 from .scene import convert_scene
-from .urdf_parser.elements import ElementRobot
+from .undefined import convert_undefined
 from .urdf_parser.parser import URDFParser
 from .utils import get_authoring_metadata
 
@@ -92,6 +92,7 @@ class Converter:
             resolved_file_paths={},
             material_data_list=[],
             mesh_material_references={},
+            undefined_elements=parser.get_undefined_elements(),
         )
 
         # setup the main output layer (which will become an asset interface later)
@@ -146,6 +147,9 @@ class Converter:
         # Joints and links are converted into a hierarchical structure
         convert_links(data)
 
+        # Convert undefined elements.
+        convert_undefined(data)
+
         # create the asset interface
         usdex.core.addAssetInterface(asset_stage, source=data.content[Tokens.Contents])
 
@@ -155,36 +159,4 @@ class Converter:
         else:
             usdex.core.saveStage(asset_stage, comment=self.params.comment)
 
-        # warn about known limitations
-        self.warn(parser)
-
         return Sdf.AssetPath(asset_identifier)
-
-    def warn(self, parser: URDFParser):
-        element_root: ElementRobot = parser.get_root_element()
-
-        if "transmission" in [element.tag for element in element_root.undefined_elements]:
-            Tf.Warn("Transmission is not supported")
-
-        if "gazebo" in [element.tag for element in element_root.undefined_elements]:
-            Tf.Warn("Gazebo is not supported")
-
-        for joint in element_root.joints:
-            if joint.calibration:
-                Tf.Warn("Calibration is not supported")
-                break
-
-        for joint in element_root.joints:
-            if joint.dynamics:
-                Tf.Warn("Dynamics is not supported")
-                break
-
-        for joint in element_root.joints:
-            if joint.mimic:
-                Tf.Warn("Mimic is not supported")
-                break
-
-        for joint in element_root.joints:
-            if joint.safety_controller:
-                Tf.Warn("Safety controller is not supported")
-                break

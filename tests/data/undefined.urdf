@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<robot name="undefined">
+  <!-- custom attribute -->
+  <material name="blue" custom_attr="blue_material">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+  </material>
+
+  <link name="link_box">
+    <!-- custom attribute -->
+    <visual custom_attr="visual">
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision name="collision_box" custom_attr="collision">
+      <geometry>
+        <box size="1.0 1.0 1.0"/>
+      </geometry>
+      <!-- custom element and body text -->
+      <collision_data>custom collision data</collision_data>
+    </collision>
+
+    <!-- custom elements -->
+    <custom>
+      <item1 name="data1" value="foo1"/>
+      <test-item name="data2" value="foo2"/>
+      <japanese_text>日本語の文字列</japanese_text>
+      <korean_text>한글 문자열</korean_text>
+    </custom>
+
+    <!-- custom elements. Same name as "custom" -->
+    <custom>
+      <item3 name="data3" value="foo3"/>
+    </custom>
+  </link>
+  <link name="link_box2">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box.dae"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_box" type="fixed" custom_attr="joint">
+    <origin rpy="0 0 0" xyz="1.5 0 0"/>
+    <parent link="link_box"/>
+    <child link="link_box2"/>
+
+    <!-- custom element -->
+    <data>joint data</data>
+
+    <!-- calibration is currently not supported, so it is stored as custom attributes. -->
+    <calibration rising="0.3" falling="0.2" reference_position="0.1"/>
+
+    <!-- dynamics is currently not supported, so it is stored as custom attributes. -->
+    <dynamics damping="0.0" friction="0.0"/>
+
+    <!-- safety_controller is currently not supported, so it is stored as custom attributes. -->
+    <safety_controller k_velocity="10" k_position="15" soft_lower_limit="-2.0" soft_upper_limit="0.5" />
+  </joint>
+
+  <!-- transmission is currently not supported, so it is a custom element. -->
+  <transmission name="trans1">
+    <type>transmission_interface/SimpleTransmission</type>
+  </transmission>
+
+  <transmission name="trans2">
+    <type>transmission_interface/SimpleTransmission</type>
+  </transmission>
+
+  <!-- gazebo is currently not supported, so it is a custom element. -->
+  <gazebo>
+    <static>true</static>
+  </gazebo>
+
+</robot>

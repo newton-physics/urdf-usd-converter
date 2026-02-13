@@ -10,9 +10,11 @@ from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
 from .planar_joint import define_physics_planar_joint
+from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
+    ElementJoint,
     ElementLink,
     ElementMesh,
     ElementVisual,
@@ -232,11 +234,72 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         if physics_joint and joint.name != joint_safe_name:
             usdex.core.setDisplayName(physics_joint.GetPrim(), joint.name)
 
-        # Custom attributes.
-        if physics_joint and joint.limit:
-            limit_effort = joint.limit.get_with_default("effort")
-            limit_velocity = joint.limit.get_with_default("velocity")
-            if limit_effort is not None:
-                physics_joint.GetPrim().CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(limit_effort)
-            if limit_velocity is not None:
-                physics_joint.GetPrim().CreateAttribute("urdf:limit:velocity", Sdf.ValueTypeNames.Float, custom=True).Set(limit_velocity)
+        # Unsupported attributes and elements within the joint are stored as custom attributes of the PhysicsJoint.
+        if physics_joint:
+            convert_unsupported_attributes_and_elements(joint, physics_joint.GetPrim(), data)
+
+            # Store custom attributes and custom elements for the specified element.
+            if joint.undefined_attributes or joint.undefined_elements or joint.undefined_text:
+                convert_undefined_elements(joint, physics_joint.GetPrim(), data)
+
+
+def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, prim: Usd.Prim, data: ConversionData):
+    """
+    Unsupported attributes and elements within the joint are stored as custom attributes of the PhysicsJoint.
+
+    Args:
+        element_joint: ElementJoint in URDF
+        prim: PhysicsJoint in USD
+        data: ConversionData
+    """
+    if element_joint.limit:
+        effort = element_joint.limit.get_with_default("effort")
+        if effort is not None:
+            prim.CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(effort)
+        velocity = element_joint.limit.get_with_default("velocity")
+        if velocity is not None:
+            prim.CreateAttribute("urdf:limit:velocity", Sdf.ValueTypeNames.Float, custom=True).Set(velocity)
+
+    if element_joint.calibration:
+        rising = element_joint.calibration.get_with_default("rising")
+        if rising is not None:
+            prim.CreateAttribute("urdf:calibration:rising", Sdf.ValueTypeNames.Float, custom=True).Set(rising)
+        falling = element_joint.calibration.get_with_default("falling")
+        if falling is not None:
+            prim.CreateAttribute("urdf:calibration:falling", Sdf.ValueTypeNames.Float, custom=True).Set(falling)
+        reference_position = element_joint.calibration.get_with_default("reference_position")
+        if reference_position is not None:
+            prim.CreateAttribute("urdf:calibration:reference_position", Sdf.ValueTypeNames.Float, custom=True).Set(reference_position)
+
+    if element_joint.dynamics:
+        damping = element_joint.dynamics.get_with_default("damping")
+        if damping is not None:
+            prim.CreateAttribute("urdf:dynamics:damping", Sdf.ValueTypeNames.Float, custom=True).Set(damping)
+        friction = element_joint.dynamics.get_with_default("friction")
+        if friction is not None:
+            prim.CreateAttribute("urdf:dynamics:friction", Sdf.ValueTypeNames.Float, custom=True).Set(friction)
+
+    if element_joint.safety_controller:
+        k_velocity = element_joint.safety_controller.get_with_default("k_velocity")
+        if k_velocity is not None:
+            prim.CreateAttribute("urdf:safety_controller:k_velocity", Sdf.ValueTypeNames.Float, custom=True).Set(k_velocity)
+        k_position = element_joint.safety_controller.get_with_default("k_position")
+        if k_position is not None:
+            prim.CreateAttribute("urdf:safety_controller:k_position", Sdf.ValueTypeNames.Float, custom=True).Set(k_position)
+        soft_lower_limit = element_joint.safety_controller.get_with_default("soft_lower_limit")
+        if soft_lower_limit is not None:
+            prim.CreateAttribute("urdf:safety_controller:soft_lower_limit", Sdf.ValueTypeNames.Float, custom=True).Set(soft_lower_limit)
+        soft_upper_limit = element_joint.safety_controller.get_with_default("soft_upper_limit")
+        if soft_upper_limit is not None:
+            prim.CreateAttribute("urdf:safety_controller:soft_upper_limit", Sdf.ValueTypeNames.Float, custom=True).Set(soft_upper_limit)
+
+    if element_joint.mimic:
+        joint = element_joint.mimic.get_with_default("joint")
+        if joint is not None:
+            prim.CreateAttribute("urdf:mimic:joint", Sdf.ValueTypeNames.String, custom=True).Set(joint)
+        multiplier = element_joint.mimic.get_with_default("multiplier")
+        if multiplier is not None:
+            prim.CreateAttribute("urdf:mimic:multiplier", Sdf.ValueTypeNames.Float, custom=True).Set(multiplier)
+        offset = element_joint.mimic.get_with_default("offset")
+        if offset is not None:
+            prim.CreateAttribute("urdf:mimic:offset", Sdf.ValueTypeNames.Float, custom=True).Set(offset)
