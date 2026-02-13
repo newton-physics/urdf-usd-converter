@@ -1092,3 +1092,20 @@ def Scope "foo"
   def Scope "bar1"
     custom uniform string baz = "qux"
 ```
+
+It is recommended that parameters defined in the URDF but not supported in USD be stored as custom attributes on the parent `UsdPrim`.
+
+For example, parameters within a joint ([calibration](#element-calibration), [dynamics](#element-dynamics), [safety_controller](#element-safety_controller)) can be stored as custom attributes of `UsdPhysicsJoints`.
+
+```
+<joint name="foo" type="fixed">
+  <calibration rising="0.3" falling="0.2" reference_position="0.1"/>
+</joint>
+```
+
+```
+def PhysicsFixedJoint "foo"
+  custom float urdf:calibration:rising = 0.3
+  custom float urdf:calibration:falling = 0.2
+  custom float urdf:calibration:reference_position = 0.1
+```
