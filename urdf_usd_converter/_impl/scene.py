@@ -17,7 +17,11 @@ def convert_scene(data: ConversionData):
     safe_name = data.name_cache.getPrimName(asset_stage.GetPseudoRoot(), "PhysicsScene")
 
     # author the scene in the physics layer
-    UsdPhysics.Scene.Define(physics_stage, asset_stage.GetPseudoRoot().GetPath().AppendChild(safe_name))
+    scene: UsdPhysics.Scene = UsdPhysics.Scene.Define(physics_stage, asset_stage.GetPseudoRoot().GetPath().AppendChild(safe_name))
+    scene_prim: Usd.Prim = scene.GetPrim()
+
+    # apply the Newton scene APIs
+    scene_prim.ApplyAPI("NewtonSceneAPI")
 
     # reference the scene in the asset layer, but from the content layer
     content_scene: Usd.Prim = content_stage.GetPseudoRoot().GetChild(safe_name)
