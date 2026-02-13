@@ -49,6 +49,9 @@ def convert_link(parent: Usd.Prim, link: ElementLink, data: ConversionData) -> U
 
     data.references[Tokens.Physics][link.name] = link_prim
 
+    # Store custom attributes and custom elements for the specified element.
+    convert_undefined_elements(link, link_prim, data)
+
     children = data.link_hierarchy.get_link_children(link.name)
     joints = data.link_hierarchy.get_link_joints(link.name)
 
