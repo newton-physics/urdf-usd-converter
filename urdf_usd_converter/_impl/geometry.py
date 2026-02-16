@@ -74,10 +74,13 @@ def apply_physics_collision(prim: Usd.Prim, data: ConversionData):
         # Apply CollisionAPI
         UsdPhysics.CollisionAPI.Apply(geom_over)
 
+        geom_over.ApplyAPI("NewtonCollisionAPI")
+
         # If it's a mesh, apply MeshCollisionAPI with appropriate approximation
         if gprim.IsA(UsdGeom.Mesh):
             mesh_collider: UsdPhysics.MeshCollisionAPI = UsdPhysics.MeshCollisionAPI.Apply(geom_over)
             mesh_collider.GetApproximationAttr().Set(UsdPhysics.Tokens.convexHull)
+            geom_over.ApplyAPI("NewtonMeshCollisionAPI")
 
 
 def convert_box(parent: Usd.Prim, name: str, box: ElementBox, data: ConversionData) -> UsdGeom.Gprim:

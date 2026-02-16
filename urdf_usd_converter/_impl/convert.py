@@ -4,6 +4,8 @@ import pathlib
 import tempfile
 from dataclasses import dataclass, field
 
+# importing registers the Newton schema plugin with USD
+import newton_usd_schemas  # noqa: F401
 import usdex.core
 from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 

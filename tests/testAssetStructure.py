@@ -428,6 +428,7 @@ class TestAssetStructure(ConverterTestCase):
         self.assertIsValidUsd(stage)
         physics_scene: UsdPhysics.Scene = UsdPhysics.Scene(stage.GetPseudoRoot().GetChild("PhysicsScene"))
         self.assertTrue(physics_scene.GetPrim().IsValid())
+        self.assertEqual(physics_scene.GetPrim().GetAppliedSchemas(), ["NewtonSceneAPI"])
 
         # Gravity parameters are not specified because the default values are used.
         self.assertFalse(physics_scene.GetGravityDirectionAttr().HasAuthoredValue())

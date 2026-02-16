@@ -32,11 +32,13 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(base_link_prim.IsValid())
         self.assertFalse(base_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
         self.assertFalse(base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(base_link_prim.HasAPI("NewtonArticulationRootAPI"))
 
         link1_prim = base_link_prim.GetChild("link1")
         self.assertTrue(link1_prim.IsValid())
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.RigidBodyAPI))
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(link1_prim.HasAPI("NewtonArticulationRootAPI"))
 
         # Check physics joint.
         physics_scope_prim = default_prim.GetChild("Physics")
@@ -76,11 +78,13 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(base_link_prim.IsValid())
         self.assertFalse(base_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
         self.assertFalse(base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(base_link_prim.HasAPI("NewtonArticulationRootAPI"))
 
         link1_prim = base_link_prim.GetChild("link1")
         self.assertTrue(link1_prim.IsValid())
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.RigidBodyAPI))
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(link1_prim.HasAPI("NewtonArticulationRootAPI"))
 
         # The physics joint does not exist.
         physics_scope_prim = default_prim.GetChild("Physics")

@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 
+import newton_usd_schemas
 import usdex.core
 from pxr import Tf, Usd
 
@@ -45,6 +46,7 @@ def run() -> int:
     Tf.Status(f"Version: {__version__}")
     Tf.Status(f"USD Version: {Usd.GetVersion()}")
     Tf.Status(f"USDEX Version: {usdex.core.version()}")
+    Tf.Status(f"Newton USD Schemas Version: {newton_usd_schemas.__version__}")
 
     try:
         converter = Converter(
