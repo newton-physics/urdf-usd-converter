@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 import math
 import pathlib
+from typing import Any
 
 import usdex.core
-from pxr import Gf, UsdGeom
+from pxr import Gf, Tf, Usd, UsdGeom
 
 from .._version import __version__
 from .urdf_parser.elements import (
@@ -18,6 +19,7 @@ __all__ = [
     "float3_to_quatf",
     "get_authoring_metadata",
     "get_geometry_name",
+    "set_schema_attribute",
     "set_transform",
 ]
 
@@ -122,3 +124,13 @@ def multiply_transforms_preserve_scale(transform1: Gf.Transform, transform2: Gf.
     result.SetScale(combined_scale)
 
     return result
+
+
+def set_schema_attribute(prim: Usd.Prim, name: str, value: Any):
+    attr: Usd.Attribute = prim.GetAttribute(name)
+    if not attr.IsValid():
+        Tf.RaiseCodingError(f'Attribute "{name}" is not valid for prim <{prim.GetPath()}> with schemas {prim.GetAppliedSchemas()}')
+    # Only set the value if it is different from the schema default value
+    default = attr.Get()
+    if default is None or value != default:
+        attr.Set(value)

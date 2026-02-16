@@ -563,3 +563,40 @@ class TestJoints(ConverterTestCase):
         arm_2_prim = stage.GetPrimAtPath(arm2_prim_path)
         self.assertTrue(arm_2_prim.IsValid())
         self.assertTrue(arm_2_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+
+    def test_mimic_joints(self):
+        input_path = "tests/data/mimic_joint.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        physics_scope_prim = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Physics"))
+        self.assertTrue(physics_scope_prim.IsValid())
+
+        joint_b_prim = physics_scope_prim.GetChild("jointB")
+        self.assertTrue(joint_b_prim.IsValid())
+        self.assertTrue(joint_b_prim.IsA(UsdPhysics.RevoluteJoint))
+
+        self.assertTrue(joint_b_prim.HasAPI("NewtonMimicAPI"))
+
+        # 'newton:mimicEnabled', 'newton:mimicCoef0' return False because they have default values.
+        self.assertFalse(joint_b_prim.GetAttribute("newton:mimicEnabled").HasAuthoredValue())
+        self.assertFalse(joint_b_prim.GetAttribute("newton:mimicCoef0").HasAuthoredValue())
+
+        self.assertTrue(joint_b_prim.GetAttribute("newton:mimicCoef1").HasAuthoredValue())
+        self.assertTrue(joint_b_prim.GetAttribute("newton:mimicEnabled").Get())
+        self.assertAlmostEqual(joint_b_prim.GetAttribute("newton:mimicCoef1").Get(), 2.0)
+
+        self.assertTrue(joint_b_prim.HasRelationship("newton:mimicJoint"))
+        rel = joint_b_prim.GetRelationship("newton:mimicJoint")
+        self.assertEqual(len(rel.GetTargets()), 1)
+        ref_joint = rel.GetTargets()[0]
+        self.assertEqual(ref_joint, "/mimic_joint/Physics/jointA")
