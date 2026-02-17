@@ -1,3 +1,10 @@
+# 0.1.0rc1
+
+## Features
+
+- Applied all current Newton USD Schemas (v0.1.0rc2) alongside UsdPhysics schemas
+  - URDF joint mimics are now converted via `NewtonMimicAPI`
+
 # 0.1.0b1
 
 ## Features
@@ -109,7 +116,7 @@
 ## USD Data Conversion
 
 - **Joint Conversion**
-  - Calibration, Dynamics, Safety Controller, and Mimic have no equivalent in `UsdPhysics`
+  - Calibration, Dynamics, and Safety Controller have no equivalent in `UsdPhysics` nor `NewtonPhysics` schemas
   - These are all converted as custom attributes on the Joint prim
 - **Geometry Conversion**
   - No other file formats beyond OBJ/DAE/STL are supported
