@@ -1,3 +1,22 @@
+# 0.1.0b1
+
+## Features
+
+- Calibration, Dynamics, Safety Controller, and Mimic are all converted as custom attributes on the Joint prim
+- Convert custom elements as Scopes and custom attributes with `custom` and `urdf:` namespace
+- Adapted link handling for URDF's "ghost link" convention, where the first link may be a
+  purely used to identifiy fixed vs floating articulations
+
+## Fixes
+
+- Stopped triangulating OBJ meshes to support n-gons
+- Fixed handling of URDF materials with no material name
+
+## Documentation
+
+- Added benchmarks reporting for several URDF datasets
+- Added documentation on how to specify ROS packages
+
 # 0.1.0a2
 
 ## Features
@@ -90,10 +109,8 @@
 ## USD Data Conversion
 
 - **Joint Conversion**
-  - Calibration has no equivalent in `UsdPhysics` and is omitted
-  - Dynamics has no equivalent in `UsdPhysics` and is omitted
-  - Safety Controller has no equivalent in `UsdPhysics` and is omitted
-  - Mimic has no equivalent in `UsdPhysics` and is omitted
+  - Calibration, Dynamics, Safety Controller, and Mimic have no equivalent in `UsdPhysics`
+  - These are all converted as custom attributes on the Joint prim
 - **Geometry Conversion**
   - No other file formats beyond OBJ/DAE/STL are supported
   - For DAE files, only "TriangleSet", "Triangles", "Polylist", and "Polygons" are supported
@@ -102,9 +119,8 @@
   - Projection shaders for basic geometry primitives (box, cylinder, sphere) are not implemented
   - More accurate PBR materials (e.g. OpenPBR via UsdMtlx) are not implemented
 - **Other Elements**
-  - Transmission conversion is not implemented
-  - Gazebo conversion is not implemented
-  - Conversion of other out-of-spec URDF extensions are not implemented
+  - Transmission, Gazebo, and other out-of-spec URDF extensions have no equivalent in `UsdPhysics`
+  - These are all converted as Scope Prims with custom attributes to retain the data
 
 ## Using the USD Asset in other USD Ecosystem applications
 

@@ -72,6 +72,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
         # Assign ArticulationRoot to the first link.
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.ArticulationRootAPI.Apply(prim_over)
+        prim_over.ApplyAPI("NewtonArticulationRootAPI")
         having_articulation_root = True
 
     # Assigning MassAPI to a Rigid Body.
