@@ -22,6 +22,7 @@ from .urdf_parser.elements import (
 from .utils import (
     float3_to_quatf,
     get_geometry_name,
+    set_schema_attribute,
     set_transform,
 )
 
@@ -204,6 +205,11 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     joint_names = [joint.name for joint in joints] if joints else []
     joint_safe_names = data.name_cache.getPrimNames(parent, joint_names)
 
+    # Usd.Prim dict for joint name.
+    # This is used to reference mimic joints.
+    physics_joints_dict: dict[str, Usd.Prim] = {}
+    mimic_joints_names: list[str] = []
+
     # Create physics joints.
     for joint, joint_safe_name in zip(joints, joint_safe_names):
         body0_link_name = joint.parent.get_with_default("link")
@@ -243,11 +249,29 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
 
         # Unsupported attributes and elements within the joint are stored as custom attributes of the PhysicsJoint.
         if physics_joint:
+            # Stores information used by the mimic joint.
+            physics_joints_dict[joint.name] = physics_joint.GetPrim()
+            if joint.mimic and joint.mimic.joint:
+                mimic_joints_names.append(joint.name)
+
             convert_unsupported_attributes_and_elements(joint, physics_joint.GetPrim(), data)
 
             # Store custom attributes and custom elements for the specified element.
             if joint.undefined_attributes or joint.undefined_elements or joint.undefined_text:
                 convert_undefined_elements(joint, physics_joint.GetPrim(), data)
+
+    # Set mimic joints.
+    for mimic_joint_name in mimic_joints_names:
+        # USD prim associated with mimic_joint_name.
+        physics_joint_prim = physics_joints_dict[mimic_joint_name]
+
+        # Search for the mimic_joint_name among the joints.
+        joint = next((joint for joint in joints if joint.name == mimic_joint_name), None)
+        if joint:
+            # USD prim associated with the joint name referenced by mimic.
+            ref_joint_prim = physics_joints_dict[joint.mimic.joint]
+
+            set_physics_mimic_joint(joint, physics_joint_prim, ref_joint_prim)
 
 
 def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, prim: Usd.Prim, data: ConversionData):
@@ -300,13 +324,26 @@ def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, pri
         if soft_upper_limit is not None:
             prim.CreateAttribute("urdf:safety_controller:soft_upper_limit", Sdf.ValueTypeNames.Float, custom=True).Set(soft_upper_limit)
 
-    if element_joint.mimic:
-        joint = element_joint.mimic.get_with_default("joint")
-        if joint is not None:
-            prim.CreateAttribute("urdf:mimic:joint", Sdf.ValueTypeNames.String, custom=True).Set(joint)
-        multiplier = element_joint.mimic.get_with_default("multiplier")
-        if multiplier is not None:
-            prim.CreateAttribute("urdf:mimic:multiplier", Sdf.ValueTypeNames.Float, custom=True).Set(multiplier)
-        offset = element_joint.mimic.get_with_default("offset")
-        if offset is not None:
-            prim.CreateAttribute("urdf:mimic:offset", Sdf.ValueTypeNames.Float, custom=True).Set(offset)
+
+def set_physics_mimic_joint(element_joint: ElementJoint, prim: Usd.Prim, ref_prim: Usd.Prim):
+    """
+    Set the mimic joint.
+
+    Args:
+        element_joint: ElementJoint in URDF
+        prim: PhysicsJoint in USD
+        ref_prim: PhysicsJoint in USD referenced by mimic
+    """
+    # Both multiplier and offset have default values.
+    multiplier = element_joint.mimic.get_with_default("multiplier")
+    offset = element_joint.mimic.get_with_default("offset")
+
+    # URDF: joint0 = multiplier * joint1 + offset
+    # Newton USD Schemas: joint0 = coef1 * joint1 + coef0
+    prim.ApplyAPI("NewtonMimicAPI")
+    set_schema_attribute(prim, "newton:mimicEnabled", True)
+    set_schema_attribute(prim, "newton:mimicCoef0", offset)
+    set_schema_attribute(prim, "newton:mimicCoef1", multiplier)
+
+    rel = prim.CreateRelationship("newton:mimicJoint")
+    rel.AddTarget(ref_prim.GetPath())
