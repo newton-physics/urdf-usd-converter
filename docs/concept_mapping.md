@@ -23,7 +23,7 @@ To facilitate a shared understanding between subject matter experts of these com
 
 | Version | Reference Documents |
 | :---- | :---- |
-| 25.02 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v25.02a), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
+| 25.05 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v25.05), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
 
 ### General Assumptions and Constraints
 
@@ -716,7 +716,7 @@ In USD, these joints do have lower & upper limits, but do not have effort & velo
 
 The joint/mimic element indicates that this joint “mimics” the behavior of another joint. The value of this joint can be computed as `value = multiplier * other_joint_value + offset`.
 
-In USD there is no equivalent concept. However, in Newton USD Schemas there is `NewtonMimicAPI` which exactly matches a URDF mimic, although the formula is written differently, with the offset listed first and `coef` used to generalize the terms: `values = coef0 + coef1 * other_joint_value`.
+In USD there is no equivalent concept. However, in Newton USD Schemas there is `NewtonMimicAPI` which exactly matches a URDF mimic, although the formula is written differently, with the offset listed first and `coef` used to generalize the terms: `value = coef0 + coef1 * other_joint_value`.
 
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
