@@ -23,11 +23,13 @@ To facilitate a shared understanding between subject matter experts of these com
 
 | Version | Reference Documents |
 | :---- | :---- |
-| 25.02 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v25.02a), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html) |
+| 25.05 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v25.05), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
 
 ### General Assumptions and Constraints
 
 This URDF to OpenUSD data mapping describes the one-way conversion from URDF to USD. The expectation is that the majority of consumers interested in URDF/USD interchange prefer to migrate URDF robots to USD and continue iterating within the USD Ecosystem, rather than roundtrip back to ROS.
+
+Newton is an extensible physics engine focussed on robot learning and development, with native USD parsing support & its own USD schemas, extending OpenUSD's UsdPhysics specification for robotics use cases. Since URDF is a robotics format, we make use of Newton USD Schemas to improve fidelity of the resulting USD layers from this converter.
 
 ### Definitions, Acronyms, Abbreviations
 
@@ -53,6 +55,8 @@ This URDF to OpenUSD data mapping describes the one-way conversion from URDF to 
 | Composition | USD process of resolving layered opinions about the content into a definitive representation called a “stage”. The composed stage is not optimized for any runtime, but rather for navigability of the data. |
 | Asset | Data organization concept within content pipelines; a set of data that can be identified and located; e.g. each robot is an asset, each texture file is an asset. |
 | Component | An atomic asset/model representing one high-level element (e.g. prop, actor) in a 3D scene. |
+| Newton | An open-source, GPU-accelerated, and extensible physics engine to advance robot learning and development. |
+| Newton USD schemas | Extensions to OpenUSD's UsdPhysics specification, allowing USD layers to configure the Newton runtime data model. |
 
 ## Data and Serialization Concepts
 
@@ -144,7 +148,7 @@ The following table describes concept mappings between URDF and USD. All URDF co
 | [link/collision](#linkcollision) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes),<br>`UsdPhysicsCollisionAPI`,<br>`UsdPhysicsMeshCollisionAPI` | Defines collision geometry & physical properties of the link |
 | [geometry](#geometry) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes) | Defines the geometry for visuals and collisions |
 | [material](#material)  | `UsdShadeMaterial`,<br>`UsdShadeShaders`,<br>***GAP*** (projection shaders) | Defines the rendered appearance of the link (not the physical properties) |
-| [joint](#joint) | Various `UsdPhysicsJoints`,<br>`UsdGeomXformOps` (for the child link),<br>***GAP*** (calibration, friction, damping, soft limits, mimic) | A joint for connecting two links as well as 3D transformation for the child link. |
+| [joint](#joint) | Various `UsdPhysicsJoints`,<br>`UsdGeomXformOps` (for the child link),<br>`NewtonMimicAPI`,<br>***GAP*** (calibration, friction, damping, soft limits) | A joint for connecting two links as well as 3D transformation for the child link. |
 | [transmission](#transmission) | N/A<br>(could be `UsdPhysicsDriveAPI` if it was fully specified) | Defines the mechanical transmission mechanism between actuators and joints, but is not well specified in URDF and therefore cannot map to USD. See [Custom Elements](#custom-elements). |
 | [gazebo](#gazebo) | N/A | URDF extensions specific to the Gazebo simulator. Not a generalizable URDF element. See [Custom Elements](#custom-elements). |
 | sensor (deprecated) | N/A  | Implemented in URDF Dom but unsupported & unmaintained. See [urdf/XML/sensor](https://wiki.ros.org/urdf/XML/sensor) for details. See [Custom Elements](#custom-elements). |
@@ -645,10 +649,10 @@ URDF joints have several child elements, some of which are required while others
 | [origin](#element-origin-1) | `physics:localPos0`,<br>`physics:localPos1`,<br>`physics:localRot0`,<br>`physics:localRot1`,<br><br>Also affects XformOps of the child link | Position and orientation of the child link relative to the parent link |
 | [axis](#element-axis) | `physics:axis` | The joint's axis of motion. |
 | [limit](#element-limit) | `physics:lowerLimit`,<br>`physics:upperLimit` | Physical limits of certain joints |
+| [mimic](#element-mimic) | `NewtonMimicAPI` | Mimicking the behavior of other joints |
 | [calibration](#element-calibration) | ***GAP*** | Calibration information for the joint |
 | [dynamics](#element-dynamics) | ***GAP*** | Friction and damping for the joint |
 | [safety\_controller](#element-safety_controller) | ***GAP*** | Safety control of the joint |
-| [mimic](#element-mimic) | ***GAP*** | Mimicking the behavior of other joints |
 
 ##### Element: parent
 
@@ -708,6 +712,18 @@ In USD, these joints do have lower & upper limits, but do not have effort & velo
 | velocity | ***GAP*** | maximum velocity (rad/s or m/s) |
 | effort | ***GAP*** | maximum torque/force (Nm/N) |
 
+##### Element: mimic
+
+The joint/mimic element indicates that this joint “mimics” the behavior of another joint. The value of this joint can be computed as `value = multiplier * other_joint_value + offset`.
+
+In USD there is no equivalent concept. However, in Newton USD Schemas there is `NewtonMimicAPI` which exactly matches a URDF mimic, although the formula is written differently, with the offset listed first and `coef` used to generalize the terms: `value = coef0 + coef1 * other_joint_value`.
+
+| URDF | OpenUSD | Description |
+| :---- | :---- | :---- |
+| joint | `newton:target` | name of the joint to mimic. In USD this is a UsdRelationship attribute |
+| offset | `newton:mimicCoef0` | offset (default: 0.0) |
+| multiplier | `newton:mimicCoef1` | multiplier (default: 1.0) |
+
 ##### Element: calibration
 
 The reference positions of the joint, used to calibrate the absolute position of the joint.
@@ -742,18 +758,6 @@ In USD, joints do not have soft limits. See [Appendix C](#appendix-c-filling-con
 | soft\_upper\_limit | ***GAP*** | Soft upper limit for joint position |
 | k\_position | ***GAP*** | Position control gain for safety controller |
 | k\_velocity | ***GAP*** | Velocity control gain for safety controller |
-
-##### Element: mimic
-
-The joint/mimic element indicates that this joint “mimics” the behavior of another joint. The value of this joint can be computed as `value = multiplier * other_joint_value + offset`.
-
-In USD there is no equivalent concept. See [Appendix C](#appendix-c-filling-concept-gaps) for possible solutions.
-
-| URDF | OpenUSD | Description |
-| :---- | :---- | :---- |
-| joint | ***GAP*** | name of the joint to mimic |
-| multiplier | ***GAP*** | multiplier (default: 1.0) |
-| offset | ***GAP*** | offset (default: 0.0) |
 
 ### transmission
 
