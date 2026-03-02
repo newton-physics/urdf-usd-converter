@@ -132,6 +132,41 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
         mass_api.GetMassAttr().Set(mass)
 
 
+def _fix_degenerate_plane(eigenvectors: np.ndarray, unique_col: int, degen_col_a: int, degen_col_b: int):
+    """
+    Fix the degenerate plane.
+
+    Args:
+        eigenvectors: Eigenvector matrix
+        unique_col: Unique column index
+        degen_col_a: Degenerate column A index
+        degen_col_b: Degenerate column B index
+    """
+    axis = np.zeros(3, dtype=eigenvectors.dtype)
+    ref = np.array([1.0, 0.0, 0.0], dtype=eigenvectors.dtype)
+
+    axis[:] = eigenvectors[:, unique_col]
+    i_max = int(np.argmax(np.abs(axis)))
+    if axis[i_max] < 0:
+        axis = -axis
+
+    proj = ref - np.dot(ref, axis) * axis
+    n = np.linalg.norm(proj)
+    if n < 1e-10:
+        # If the projection is zero, use the second axis.
+        ref = np.array([0.0, 1.0, 0.0], dtype=eigenvectors.dtype)
+        proj = ref - np.dot(ref, axis) * axis
+        n = np.linalg.norm(proj)
+    if n >= 1e-10:
+        v1 = proj / n
+        if v1[np.argmax(np.abs(v1))] < 0:
+            v1 = -v1
+        v2 = np.cross(axis, v1)
+        eigenvectors[:, unique_col] = axis
+        eigenvectors[:, degen_col_a] = v1
+        eigenvectors[:, degen_col_b] = v2
+
+
 def _canonicalize_eigenvectors(eigenvalues: np.ndarray, eigenvectors: np.ndarray) -> None:
     """
     Make the eigenvector matrix deterministic for symmetric matrices.
@@ -144,52 +179,20 @@ def _canonicalize_eigenvectors(eigenvalues: np.ndarray, eigenvectors: np.ndarray
 
     Modifies eigenvectors in place.
     """
-    eq01 = Gf.IsClose(eigenvalues[0], eigenvalues[1], 1e-9)
-    eq12 = Gf.IsClose(eigenvalues[1], eigenvalues[2], 1e-9)
+    eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < 1e-9
+    eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < 1e-9
     if eq01 and eq12:
         # All three equal: use identity (canonical default).
         # Spherical symmetry, etc.
         eigenvectors[:, :] = np.eye(3, dtype=eigenvectors.dtype)
         return
 
-    axis = np.zeros(3, dtype=eigenvectors.dtype)
-    ref = np.array([1.0, 0.0, 0.0], dtype=eigenvectors.dtype)
     if eq01:
         # Degenerate pair (0, 1); unique axis is column 2.
-        axis[:] = eigenvectors[:, 2]
-        proj = ref - np.dot(ref, axis) * axis
-        n = np.linalg.norm(proj)
-        if n < 1e-10:
-            # If the projection is zero, use the second axis.
-            ref = np.array([0.0, 1.0, 0.0], dtype=eigenvectors.dtype)
-            proj = ref - np.dot(ref, axis) * axis
-            n = np.linalg.norm(proj)
-        if n >= 1e-10:
-            v1 = proj / n
-            if v1[np.argmax(np.abs(v1))] < 0:
-                v1 = -v1
-            v2 = np.cross(axis, v1)
-            eigenvectors[:, 0] = v1
-            eigenvectors[:, 1] = v2
-            eigenvectors[:, 2] = axis
+        _fix_degenerate_plane(eigenvectors, unique_col=2, degen_col_a=0, degen_col_b=1)
     elif eq12:
         # Degenerate pair (1, 2); unique axis is column 0.
-        axis[:] = eigenvectors[:, 0]
-        proj = ref - np.dot(ref, axis) * axis
-        n = np.linalg.norm(proj)
-        if n < 1e-10:
-            # If the projection is zero, use the second axis.
-            ref = np.array([0.0, 1.0, 0.0], dtype=eigenvectors.dtype)
-            proj = ref - np.dot(ref, axis) * axis
-            n = np.linalg.norm(proj)
-        if n >= 1e-10:
-            v1 = proj / n
-            if v1[np.argmax(np.abs(v1))] < 0:
-                v1 = -v1
-            v2 = np.cross(axis, v1)
-            eigenvectors[:, 0] = axis
-            eigenvectors[:, 1] = v1
-            eigenvectors[:, 2] = v2
+        _fix_degenerate_plane(eigenvectors, unique_col=0, degen_col_a=1, degen_col_b=2)
     else:
         # No degeneracy: only enforce sign convention and det = +1.
         for j in range(3):
@@ -228,7 +231,7 @@ def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
     eigenvalues, eigenvectors = np.linalg.eigh(mat)
 
     # In the case of two degenerate eigenvalues, the corresponding eigenvectors are not unique.
-    # Detect degeneracy with relative tolerance and canonicalize the eigenvector matrix.
+    # Detect degeneracy with absolute tolerance and canonicalize the eigenvector matrix.
     _canonicalize_eigenvectors(eigenvalues, eigenvectors)
 
     # Use eigenvalues as diagonal inertia
