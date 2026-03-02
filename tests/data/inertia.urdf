@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<robot name="inertia">
+  <link name="link_box1">
+    <inertial>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <!-- The diagonal elements are all the same and the off-diagonal elements are 0. -->
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_box2">
+    <inertial>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <!-- When the object is axisymmetric about the Z-axis and has two equal principal moments of inertia and one larger principal moment of inertia. -->
+      <inertia ixx="2.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>      
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="link_box3">
+    <inertial>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <!-- When the object is axisymmetric about the Z-axis and has two identical principal moments of inertia and one smaller principal moment of inertia -->
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="2.0" iyz="0.0" izz="2.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_box4">
+    <inertial>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <!-- Two equal eigenvalues with unique principal axis tilted from X; -->
+      <!-- exercises the in-plane canonicalization sign flip. -->
+      <inertia ixx="1.98" ixy="0.14" ixz="0.0" iyy="1.02" iyz="0.0" izz="1.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_box5">
+    <inertial>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <!-- Two equal larger eigenvalues with unique principal axis tilted from X; -->
+      <!-- exercises the in-plane canonicalization sign flip. -->
+      <inertia ixx="1.02" ixy="-0.14" ixz="0.0" iyy="1.98" iyz="0.0" izz="2.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_box6">
+    <inertial>
+      <origin xyz="0 0 0.5" rpy="0 0 0"/>
+      <mass value="0.8"/>
+      <!-- Three distinct eigenvalues (no degeneracy); -->
+      <!-- exercises the det < 0 branch so the eigenvector matrix is corrected to a proper rotation (det = +1). -->
+      <inertia ixx="2.0" ixy="0.5" ixz="0.0" iyy="1.0" iyz="0.0" izz="3.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 1.0"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="joint_box1_box2" type="fixed">
+    <origin xyz="0 0 1.2"/>
+    <parent link="link_box1"/>
+    <child link="link_box2"/>
+  </joint>
+  <joint name="joint_box2_box3" type="fixed">
+    <origin xyz="0 0 1.2"/>
+    <parent link="link_box2"/>
+    <child link="link_box3"/>
+  </joint>
+  <joint name="joint_box3_box4" type="fixed">
+    <origin xyz="0 0 1.2"/>
+    <parent link="link_box3"/>
+    <child link="link_box4"/>
+  </joint>
+  <joint name="joint_box4_box5" type="fixed">
+    <origin xyz="0 0 1.2"/>
+    <parent link="link_box4"/>
+    <child link="link_box5"/>
+  </joint>
+  <joint name="joint_box5_box6" type="fixed">
+    <origin xyz="0 0 1.2"/>
+    <parent link="link_box5"/>
+    <child link="link_box6"/>
+  </joint>
+</robot>
