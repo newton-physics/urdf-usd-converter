@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<robot name="external_reference_file">
+  <material name="texture_material">
+    <!-- Absolute path -->
+    <!-- In unit tests, this is verified by replacing the path with one appropriate for the environment. -->
+    <texture filename="file:///home/user/urdf/assets/grid.png"/>
+  </material>
+
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <!-- Relative path -->
+        <mesh filename="file://assets/box.obj"/>
+      </geometry>
+      <material name="texture_material"/>
+    </visual>
+  </link>
+</robot> 
