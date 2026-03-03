@@ -1,3 +1,18 @@
+# 0.1.0rc2
+
+## Features
+
+- Added support for the local `file://` protocol for external references (meshes and textures)
+
+## Fixes
+
+- Corrected inertia calculations to be consistent across platforms during eigenvector decomposition 
+
+## Dependencies
+
+- Updated to usd-exchange>=2.2.2
+- Updated to newton-usd-schemas>=0.1.0rc3
+
 # 0.1.0rc1
 
 ## Features
