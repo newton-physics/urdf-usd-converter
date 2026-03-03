@@ -153,5 +153,4 @@ def _get_file_path(uri: str) -> pathlib.Path:
         return pathlib.Path(file_path if ":" in file_path else f"/{file_path}")
 
     # Relative path.
-    file_path = pathlib.Path(uri.replace("file://", ""))
-    return pathlib.Path(file_path)
+    return pathlib.Path(uri.replace("file://", ""))
