@@ -14,6 +14,7 @@ __all__ = ["resolve_ros_package_paths", "search_ros_packages"]
 def resolve_ros_package_paths(uri: str, data: ConversionData) -> pathlib.Path:
     """
     Resolve the ROS package paths for the given filename.
+    "file://" specifications are also converted here.
 
     Args:
         uri: The path to resolve (Material textures, mesh paths).
@@ -25,11 +26,12 @@ def resolve_ros_package_paths(uri: str, data: ConversionData) -> pathlib.Path:
     if uri in data.resolved_file_paths:
         return data.resolved_file_paths[uri]
 
-    if "://" in uri and not uri.startswith("package://"):
+    if "://" in uri and not uri.startswith("package://") and not uri.startswith("file://"):
         protocol = uri.partition("://")[0]
         Tf.Warn(f"'{protocol}' is not supported: {uri}")
         resolved_path = pathlib.Path()
 
+    # if ros package URI, resolve the path.
     elif uri.startswith("package://"):
         package_name, relative_path = _split_package_name_and_path(uri)
         if not package_name or not relative_path:
@@ -41,6 +43,12 @@ def resolve_ros_package_paths(uri: str, data: ConversionData) -> pathlib.Path:
 
             if resolved_path != pathlib.Path(uri):
                 Tf.Status(f"Resolved ROS package path: {uri} -> {resolved_path}")
+
+    # if file URI, get the file path.
+    elif uri.startswith("file://"):
+        resolved_path = _get_file_path(uri)
+
+    # if other URI, use as-is.
     else:
         resolved_path = pathlib.Path(uri)
 
@@ -126,3 +134,24 @@ def _split_package_name_and_path(uri: str) -> tuple[str, pathlib.Path]:
     package_name = split_dirs[0]
     relative_path = pathlib.Path(*split_dirs[1:])
     return package_name, relative_path
+
+
+def _get_file_path(uri: str) -> pathlib.Path:
+    """
+    Get the file path from the URI.
+
+    Args:
+        uri: The URI to get the file path from.
+
+    Returns:
+        The file path.
+    """
+    # Absolute path (file:///).
+    # If drive letter (e.g. "C:") is present, use as-is; otherwise prepend "/".
+    if uri.startswith("file:///"):
+        file_path = uri.removeprefix("file:///")
+        return pathlib.Path(file_path if ":" in file_path else f"/{file_path}")
+
+    # Relative path.
+    file_path = pathlib.Path(uri.replace("file://", ""))
+    return pathlib.Path(file_path)
