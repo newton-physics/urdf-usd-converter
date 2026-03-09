@@ -1,8 +1,10 @@
-# 0.1.0rc2
+# 0.1.0
 
 ## Features
 
 - Added support for the local `file://` protocol for external references (meshes and textures)
+- Applied all current Newton USD Schemas (v0.1.0) alongside UsdPhysics schemas
+  - URDF joint mimics are now converted via `NewtonMimicAPI`
 
 ## Fixes
 
@@ -11,14 +13,7 @@
 ## Dependencies
 
 - Updated to usd-exchange>=2.2.2
-- Updated to newton-usd-schemas>=0.1.0rc3
-
-# 0.1.0rc1
-
-## Features
-
-- Applied all current Newton USD Schemas (v0.1.0rc2) alongside UsdPhysics schemas
-  - URDF joint mimics are now converted via `NewtonMimicAPI`
+- Updated to newton-usd-schemas>=0.1.0
 
 # 0.1.0b1
 
