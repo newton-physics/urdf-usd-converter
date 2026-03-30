@@ -1,3 +1,9 @@
+# 0.1.1
+
+## Fixes
+
+- Fixed incorrect joint body0 targets for URDF files containing a Ghost Link
+
 # 0.1.0
 
 ## Features
