@@ -40,9 +40,16 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
         self.assertTrue(link1_prim.HasAPI("NewtonArticulationRootAPI"))
 
+        link_box_prim = link1_prim.GetChild("link_box")
+        self.assertTrue(link_box_prim.IsValid())
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(link_box_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(link_box_prim.HasAPI("NewtonArticulationRootAPI"))
+
         # Check physics joint.
         physics_scope_prim = default_prim.GetChild("Physics")
         self.assertTrue(physics_scope_prim.IsValid())
+        self.assertEqual(len(physics_scope_prim.GetChildren()), 2)
 
         joint1_prim = physics_scope_prim.GetChild("joint1")
         self.assertTrue(joint1_prim.IsValid())
@@ -51,6 +58,17 @@ class TestGhostLink(ConverterTestCase):
         self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_first_ghost_link_fixed"])
         self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_first_ghost_link_fixed/Geometry/BaseLink/link1"])
         self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 1), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        joint_box_prim = physics_scope_prim.GetChild("joint_box")
+        self.assertTrue(joint_box_prim.IsValid())
+        self.assertTrue(joint_box_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(joint_box_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_first_ghost_link_fixed/Geometry/BaseLink/link1"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_first_ghost_link_fixed/Geometry/BaseLink/link1/link_box"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.8), 1e-6))
         self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
         self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
         self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
@@ -86,7 +104,25 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
         self.assertTrue(link1_prim.HasAPI("NewtonArticulationRootAPI"))
 
-        # The physics joint does not exist.
+        link_box_prim = link1_prim.GetChild("link_box")
+        self.assertTrue(link_box_prim.IsValid())
+        self.assertTrue(link_box_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(link_box_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(link_box_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # Check physics joint.
+        # There is only one physics joint, which is the joint between the link1 and the link_box.
         physics_scope_prim = default_prim.GetChild("Physics")
         self.assertTrue(physics_scope_prim.IsValid())
-        self.assertEqual(len(physics_scope_prim.GetChildren()), 0)
+        self.assertEqual(len(physics_scope_prim.GetChildren()), 1)
+
+        joint_box_prim = physics_scope_prim.GetChild("joint_box")
+        self.assertTrue(joint_box_prim.IsValid())
+        self.assertTrue(joint_box_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(joint_box_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_first_ghost_link_floating/Geometry/BaseLink/link1"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_first_ghost_link_floating/Geometry/BaseLink/link1/link_box"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.8), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))

@@ -291,7 +291,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         body0_link_name = joint.parent.get_with_default("link")
         body1_link_name = joint.child.get_with_default("link")
 
-        body0 = data.references[Tokens.Physics][body0_link_name] if not is_ghost_link else default_prim
+        has_ghost_link = is_ghost_link and root_link.name == body0_link_name
+        body0 = data.references[Tokens.Physics][body0_link_name] if not has_ghost_link else default_prim
         body1 = data.references[Tokens.Physics][body1_link_name]
 
         # Specifies that the origin position of Body1 (the "child" of the joint in the URDF) is the center.
