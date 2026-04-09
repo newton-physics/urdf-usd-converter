@@ -231,6 +231,85 @@ The advantage of this approach is compatibility throughout the USD Ecosystem, pa
 
 The disadvantage is that the kinematic hierarchy remains obfuscated (though it is in URDF as well) and that the child body frame needs to be computed into world (robot) space (in addition to the unit transformation).
 
+#### A link with no elements
+
+A URDF link may omit all of the usual child elements.  
+We refer to links that have no [inertial](#linkinertial), [visual](#linkvisual), or [collision](#linkcollision) elements as **Ghost Links**.  
+URDF does not assign a special type name to such links; the term is used here for clarity.  
+
+In URDF, a Ghost Link looks like this:
+
+```xml
+<link name="GhostLink" />
+```
+
+If a Ghost Link is referenced by a Fixed joint, it does not need to function as a rigid body.  
+Furthermore, the joint chain can be reduced to an equivalent model that omits those Ghost Links as joint bodies, while the Geometry hierarchy stays the same (see below).
+
+Consider the following URDF:
+
+```
+<robot>
+  <link name="BaseLink">
+    ...
+  </link>
+  <link name="GhostLink1" />
+  <link name="GhostLink2" />
+  <link name="TailLink">
+    ...
+  </link>
+
+  <joint name="joint1" type="fixed">
+    <origin ... />
+    <parent link="BaseLink"/>
+    <child link="GhostLink1"/>
+  </joint>
+  <joint name="joint2" type="fixed">
+    <origin ... />
+    <parent link="GhostLink1"/>
+    <child link="GhostLink2"/>
+  </joint>
+  <joint name="joint3" type="fixed">
+    <origin ... />
+    <parent link="GhostLink2"/>
+    <child link="TailLink"/>
+  </joint>
+</robot>
+```
+
+Converting this to USD using [Nested Bodies](#nested-bodies) might initially produce a layout like the following:
+
+```
+/Robot (Xform)
+  /Geometry (Scope)
+    /BaseLink (Xform) (with rigid body)
+      /GhostLink1 (Xform) (with rigid body)
+        /GhostLink2 (Xform) (with rigid body)
+          /TailLink (Xform) (with rigid body)
+  /Physics (Scope)
+    /Joint1 (Joint) (parent=BaseLink, child=GhostLink1)
+    /Joint2 (Joint) (parent=GhostLink1, child=GhostLink2)
+    /Joint3 (Joint) (parent=GhostLink2, child=TailLink)
+```
+
+Because `GhostLink1` and `GhostLink2` are Ghost Links on that Fixed chain, rigid bodies need not be assigned to them.  
+The two intermediate links between `BaseLink` and `TailLink` can be skipped when defining Physics joints.  
+The USD content can then be simplified to:
+
+```
+/Robot (Xform)
+  /Geometry (Scope)
+    /BaseLink (Xform) (with rigid body)
+      /GhostLink1 (Xform)
+        /GhostLink2 (Xform)
+          /TailLink (Xform) (with rigid body)
+  /Physics (Scope)
+    /Joint3 (Joint) (parent=BaseLink, child=TailLink)
+```
+
+The nested Geometry hierarchy is unchanged; only rigid-body assignment differs.  
+In Physics, only the joint with `parent=BaseLink` and `child=TailLink` remains.
+
 ### link/inertial
 
 The inertial element within a link defines the link’s mass, center of mass, and its central inertia properties. When not defined, it indicates zero mass and zero inertia.
