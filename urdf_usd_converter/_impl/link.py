@@ -84,7 +84,6 @@ def convert_link(
 
         if not has_root_ghost_link and not having_articulation_root:
             # Assign ArticulationRoot to the first link.
-            prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
             UsdPhysics.ArticulationRootAPI.Apply(prim_over)
             prim_over.ApplyAPI("NewtonArticulationRootAPI")
             having_articulation_root = True
