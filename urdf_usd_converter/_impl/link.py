@@ -282,8 +282,6 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     # Here, links that do not have inertial, visual, or collision properties are called 'Ghost Link'.
     # When a link is a Ghost Link, we apply special handling when converting physics joints to USD.
     #
-    # If the root link is a Ghost Link, we create a new fixed joint between the root link and the world.
-    #
     # If a child Ghost Link is connected by a fixed joint, we do not assign a rigid body to that link when building the prim hierarchy.
     # If the joint is fixed, and body1 is a Ghost Link without a rigid body, creation of this joint is skipped.
     # If body0 is a Ghost Link without a rigid body and body1 has a rigid body,
