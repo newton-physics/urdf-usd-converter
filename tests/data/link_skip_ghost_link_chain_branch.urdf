@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
-<robot name="link_skip_ghost_link_chain">
-  <!-- There is a `Ghost Link` among the chain of links. -->
-  <!-- In this case, it will be converted with the existing structure intact. -->
+<robot name="link_skip_ghost_link_chain_branch">
+  <!-- There are `Ghost Links` from the middle to the end of the link chain. -->
+  <!-- Also, in this URDF, the joints are branched. -->
+  <!-- In this case, the rigid body of the ghost link is deleted, and the joint referencing it is also deleted. -->
   <link name="BaseLink">
     <visual>
       <geometry>
@@ -29,6 +30,8 @@
       </geometry>
     </collision>
   </link>
+  <link name="ghost_link_4" />
+  <link name="ghost_link_5" />
 
   <joint name="joint1" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.1"/>
@@ -51,5 +54,15 @@
     <limit lower="-1.0" upper="1.0"/>
     <parent link="ghost_link_3"/>
     <child link="link_box"/>
+  </joint>
+  <joint name="joint4" type="fixed">
+    <origin rpy="0 0 0" xyz="0.5 0 0.1"/>
+    <parent link="ghost_link_2"/>
+    <child link="ghost_link_4"/>
+  </joint>
+  <joint name="joint5" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="ghost_link_4"/>
+    <child link="ghost_link_5"/>
   </joint>
 </robot>
