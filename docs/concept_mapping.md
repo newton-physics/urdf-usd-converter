@@ -233,8 +233,8 @@ The disadvantage is that the kinematic hierarchy remains obfuscated (though it i
 
 #### A link with no elements
 
-A URDF link may omit all of the usual child elements.  
-We refer to links that have no [inertial](#linkinertial), [visual](#linkvisual), or [collision](#linkcollision) elements as **Ghost Links**.  
+A URDF link may omit [inertial](#linkinertial), [visual](#linkvisual), and [collision](#linkcollision) elements entirely.  
+We call a link that has no inertial, visual, or collision child elements a Ghost Link.  
 URDF does not assign a special type name to such links; the term is used here for clarity.  
 
 In URDF, a Ghost Link looks like this:
@@ -243,8 +243,22 @@ In URDF, a Ghost Link looks like this:
 <link name="GhostLink" />
 ```
 
-If a Ghost Link is referenced by a Fixed joint, it does not need to function as a rigid body.  
-Furthermore, the joint chain can be reduced to an equivalent model that omits those Ghost Links as joint bodies, while the Geometry hierarchy stays the same (see below).
+##### Physics simplification (Ghost Links on Fixed chains)
+
+When a subtree satisfies the rules below, ghost links in that subtree need not act as separate rigid bodies for simulation.  
+The converter can omit assigning a rigid body to those links while still keeping their place in the kinematic hierarchy, and it can skip authoring physics joints whose child side would not be a rigid body (including joints that only connect ghost segments on such chains).
+
+That simplification applies only to maximal subtrees for which every link meets all of the following:
+
+1. The link is a Ghost Link (as defined above).  
+2. The joint from its parent link to this link is Fixed.  
+3. Every child link satisfies the same three conditions recursively; if a link has several children, each branch is checked separately.
+
+If any child is not a Ghost Link, connects with a non-Fixed joint, or heads into a subtree that fails these rules, links on the path above that point keep rigid bodies and the corresponding physics joints are still emitted.  
+A different child branch that does satisfy the rules end-to-end may still be simplified on its own, omitting rigid bodies and internal Fixed joints along that branch—for example, a side branch of only Ghost Links on Fixed joints to the tips while another branch continues to articulated, non-Ghost links.
+
+The nested Geometry Xform hierarchy is not removed; only rigid-body assignment and redundant physics joints change.  
+
 
 Consider the following URDF:
 
@@ -253,26 +267,26 @@ Consider the following URDF:
   <link name="BaseLink">
     ...
   </link>
-  <link name="GhostLink1" />
-  <link name="GhostLink2" />
-  <link name="TailLink">
+  <link name="BoxLink">
     ...
   </link>
+  <link name="GhostLink1" />
+  <link name="GhostLink2" />
 
   <joint name="joint1" type="fixed">
     <origin ... />
     <parent link="BaseLink"/>
-    <child link="GhostLink1"/>
+    <child link="BoxLink"/>
   </joint>
   <joint name="joint2" type="fixed">
     <origin ... />
-    <parent link="GhostLink1"/>
-    <child link="GhostLink2"/>
+    <parent link="BoxLink"/>
+    <child link="GhostLink1"/>
   </joint>
   <joint name="joint3" type="fixed">
     <origin ... />
-    <parent link="GhostLink2"/>
-    <child link="TailLink"/>
+    <parent link="GhostLink1"/>
+    <child link="GhostLink2"/>
   </joint>
 </robot>
 ```
@@ -283,32 +297,31 @@ Converting this to USD using [Nested Bodies](#nested-bodies) might initially pro
 /Robot (Xform)
   /Geometry (Scope)
     /BaseLink (Xform) (with rigid body)
-      /GhostLink1 (Xform) (with rigid body)
-        /GhostLink2 (Xform) (with rigid body)
-          /TailLink (Xform) (with rigid body)
+      /BoxLink (Xform) (with rigid body)
+        /GhostLink1 (Xform) (with rigid body)
+          /GhostLink2 (Xform) (with rigid body)
   /Physics (Scope)
-    /Joint1 (Joint) (parent=BaseLink, child=GhostLink1)
-    /Joint2 (Joint) (parent=GhostLink1, child=GhostLink2)
-    /Joint3 (Joint) (parent=GhostLink2, child=TailLink)
+    /Joint1 (Joint) (parent=BaseLink, child=BoxLink)
+    /Joint2 (Joint) (parent=BoxLink, child=GhostLink1)
+    /Joint3 (Joint) (parent=GhostLink1, child=GhostLink2)
 ```
 
-Because `GhostLink1` and `GhostLink2` are Ghost Links on that Fixed chain, rigid bodies need not be assigned to them.  
-The two intermediate links between `BaseLink` and `TailLink` can be skipped when defining Physics joints.  
+Because `GhostLink1` and `GhostLink2` are Ghost Links and the chain from `BoxLink` to the leaves is only Fixed joints between Ghost Links, rigid bodies need not be assigned to `GhostLink1` or `GhostLink2`.  
+The Fixed joints whose child is a Ghost Link without a rigid body (`joint2`, `joint3`) are not authored in Physics.  
 The USD content can then be simplified to:
 
 ```
 /Robot (Xform)
   /Geometry (Scope)
     /BaseLink (Xform) (with rigid body)
-      /GhostLink1 (Xform)
-        /GhostLink2 (Xform)
-          /TailLink (Xform) (with rigid body)
+      /BoxLink (Xform) (with rigid body)
+        /GhostLink1 (Xform)
+          /GhostLink2 (Xform)
   /Physics (Scope)
-    /Joint3 (Joint) (parent=BaseLink, child=TailLink)
+    /Joint1 (Joint) (parent=BaseLink, child=BoxLink)
 ```
 
-The nested Geometry hierarchy is unchanged; only rigid-body assignment differs.  
-In Physics, only the joint with `parent=BaseLink` and `child=TailLink` remains.
+In Physics, only the joint with `parent=BaseLink` and `child=BoxLink` remains (in addition to any world/root joint policy used elsewhere in this converter).
 
 ### link/inertial
 
