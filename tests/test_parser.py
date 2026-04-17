@@ -213,6 +213,14 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*mimic: Joint is required \(line: 26\).*"):
             parser.parse()
 
+    def test_load_error_incorrect_mimic_joint(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_incorrect_mimic_joint.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*mimic: Mimic joint 'foo' not found \(line: 26\).*"):
+            parser.parse()
+
     def test_load_error_invalid_joint_type(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_incorrect_joint_type.urdf")

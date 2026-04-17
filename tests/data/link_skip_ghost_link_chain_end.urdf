@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<robot name="link_skip_ghost_link_chain_end">
+  <!-- There are `Ghost Links` from the middle to the end of the link chain. -->
+  <!-- In this case, the rigid body of the ghost link is deleted, and the joint referencing it is also deleted. -->
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <box size="1.0 1.0 0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1.0 1.0 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="ghost_link" />
+  <link name="ghost_link_2" />
+  <link name="ghost_link_3" />
+
+  <joint name="joint1" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="BaseLink"/>
+    <child link="ghost_link"/>
+  </joint>
+  <joint name="joint2" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="ghost_link"/>
+    <child link="ghost_link_2"/>
+  </joint>
+  <joint name="joint3" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="ghost_link_2"/>
+    <child link="ghost_link_3"/>
+  </joint>
+</robot>
