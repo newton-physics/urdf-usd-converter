@@ -84,7 +84,7 @@
     </visual>
   </link>
 
-  <joint name="JointA" type="revolute">
+  <joint name="JointA" type="fixed">
     <parent link="BaseLink"/>
     <child link="link2" />
   </joint>
