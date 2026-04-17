@@ -498,3 +498,105 @@ class TestGhostLink(ConverterTestCase):
 
         joint5_prim = physics_scope_prim.GetChild("joint5")
         self.assertFalse(joint5_prim.IsValid())
+
+    def test_link_skip_ghost_link_with_mimic(self):
+        input_path = "tests/data/link_skip_ghost_link_with_mimic.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        self.assertTrue(default_prim.IsValid())
+
+        geometry_scope_prim = default_prim.GetChild("Geometry")
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        # Check physics rigid bodies. This is a root link, and Articulation has been assigned to it.
+        base_link_a_prim = geometry_scope_prim.GetChild("BaseLinkA")
+        self.assertTrue(base_link_a_prim.IsValid())
+        self.assertTrue(base_link_a_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(base_link_a_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(base_link_a_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        base_link_b_prim = base_link_a_prim.GetChild("BaseLinkB")
+        self.assertTrue(base_link_b_prim.IsValid())
+        self.assertTrue(base_link_b_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(base_link_b_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(base_link_b_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # "linkA" is a Ghost Link, but since it is referenced from a mimic joint, the rigid body will not be deleted.
+        link_a_prim = base_link_a_prim.GetChild("linkA")
+        self.assertTrue(link_a_prim.IsValid())
+        self.assertTrue(link_a_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(link_a_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(link_a_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        link_b_prim = base_link_b_prim.GetChild("linkB")
+        self.assertTrue(link_b_prim.IsValid())
+        self.assertTrue(link_b_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(link_b_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(link_b_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # Check physics joint.
+        # "root_joint" is created.
+        physics_scope_prim = default_prim.GetChild("Physics")
+        self.assertTrue(physics_scope_prim.IsValid())
+        self.assertEqual(len(physics_scope_prim.GetChildren()), 4)
+
+        root_joint_prim = physics_scope_prim.GetChild("root_joint")
+        self.assertTrue(root_joint_prim.IsValid())
+        self.assertTrue(root_joint_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(root_joint_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        joint_base_prim = physics_scope_prim.GetChild("joint_base")
+        self.assertTrue(joint_base_prim.IsValid())
+        self.assertTrue(joint_base_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(joint_base_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA/BaseLinkB"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0.4, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        joint_a_prim = physics_scope_prim.GetChild("jointA")
+        self.assertTrue(joint_a_prim.IsValid())
+        self.assertTrue(joint_a_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(joint_a_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA/linkA"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        joint_b_prim = physics_scope_prim.GetChild("jointB")
+        self.assertTrue(joint_b_prim.IsValid())
+        self.assertTrue(joint_b_prim.IsA(UsdPhysics.RevoluteJoint))
+        joint = UsdPhysics.RevoluteJoint(joint_b_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA/BaseLinkB"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_skip_ghost_link_with_mimic/Geometry/BaseLinkA/BaseLinkB/linkB"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertTrue(joint_b_prim.HasAPI("NewtonMimicAPI"))
+        self.assertTrue(joint_b_prim.GetAttribute("newton:mimicEnabled").Get())
+        self.assertAlmostEqual(joint_b_prim.GetAttribute("newton:mimicCoef0").Get(), 0.0)
+        self.assertAlmostEqual(joint_b_prim.GetAttribute("newton:mimicCoef1").Get(), 2.0)
+        self.assertTrue(joint_b_prim.HasRelationship("newton:mimicJoint"))
+        rel = joint_b_prim.GetRelationship("newton:mimicJoint")
+        self.assertEqual(len(rel.GetTargets()), 1)
+        ref_joint = rel.GetTargets()[0]
+        self.assertEqual(ref_joint, "/link_skip_ghost_link_with_mimic/Physics/jointA")

@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot name="link_skip_ghost_link_with_mimic">
+    <link name="BaseLinkA">
+        <visual>
+            <origin rpy="0 0 0" xyz="-0.12 0 0"/>
+            <geometry>
+                <box size="0.2 0.2 0.2"/>
+            </geometry>
+        </visual>
+    </link>
+    <link name="BaseLinkB">
+        <visual>
+            <origin rpy="0 0 0" xyz="-0.12 0 0"/>
+            <geometry>
+                <box size="0.2 0.2 0.2"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <!-- A link referenced by a mimic joint must not be a candidate for ghost link removal. -->
+    <link name="linkA"/>
+    <link name="linkB">
+        <visual>
+            <origin rpy="0 0 0" xyz="0.27 0 0"/>
+            <geometry>
+                <box size="0.5 0.2 0.2"/>
+            </geometry>
+        </visual>
+    </link>
+
+    <joint name="joint_base" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0.4 0"/>
+        <parent link="BaseLinkA"/>
+        <child link="BaseLinkB"/>
+    </joint>
+    <joint name="jointA" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <parent link="BaseLinkA"/>
+        <child link="linkA"/>
+    </joint>
+    <joint name="jointB" type="revolute">
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <parent link="BaseLinkB"/>
+        <child link="linkB"/>
+        <axis xyz="0 1 0"/>
+        <limit lower="-0.7" upper="0.5"/>
+        <mimic joint="jointA" multiplier="2.0" offset="0.0"/>
+    </joint>
+</robot>
+

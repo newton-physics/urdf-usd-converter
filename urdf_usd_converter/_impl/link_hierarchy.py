@@ -25,7 +25,14 @@ class LinkHierarchy:
         # Store data for Ghost Link.
         self.links: dict[str, dict[str, Any]] = {}
 
+        # A list of link names that are referenced by mimic joints.
+        self.referenced_link_names_by_mimic_joint: list[str] = []
+
+        # Create a hierarchy of links and their children from the joints.
         self._create_link_hierarchy()
+
+        # Store the link names that are referenced by mimic joints.
+        self._store_referenced_link_names_by_mimic_joint()
 
         # Preprocessing is performed to identify Ghost Links.
         # If the end of a link is a Ghost Link, the rigid body associated with that link will be removed.
@@ -59,6 +66,16 @@ class LinkHierarchy:
                 "children": [],
             }
 
+    def _store_referenced_link_names_by_mimic_joint(self):
+        """
+        Store the link names that are referenced by mimic joints.
+        """
+        for joint in self.root_element.joints:
+            if joint.mimic and joint.mimic.joint:
+                ref_joint = next((j for j in self.root_element.joints if j.name == joint.mimic.joint), None)
+                if ref_joint and ref_joint.type == "fixed":
+                    self.referenced_link_names_by_mimic_joint.append(ref_joint.child.get_with_default("link"))
+
     def _ghost_links_chain(self, parent_link: ElementLink | None, link: ElementLink):
         """
         Store data for Ghost Link.
@@ -68,6 +85,7 @@ class LinkHierarchy:
 
         # Determines if the link belongs to a fixed joint.
         belongs_to_fixed_joint = False
+        belongs_to_mimic_joint = False
         if parent_link:
             parent_joints = self.get_link_joints(parent_link.name)
             if parent_joints:
@@ -76,9 +94,15 @@ class LinkHierarchy:
                         belongs_to_fixed_joint = True
                         break
 
+                # Determines if the link belongs to a mimic joint.
+                # A link referenced by a mimic joint must not be a candidate for ghost link removal.
+                if belongs_to_fixed_joint and link.name in self.referenced_link_names_by_mimic_joint:
+                    belongs_to_mimic_joint = True
+
         self.links[link.name] = {
             "ghost_link": has_ghost_link,
             "belongs_to_fixed_joint": belongs_to_fixed_joint,
+            "belongs_to_mimic_joint": belongs_to_mimic_joint,
             "remove_rigid_body": False,
         }
 
@@ -116,8 +140,9 @@ class LinkHierarchy:
         """
         ghost_link = self.links[link.name]["ghost_link"]
         belongs_to_fixed_joint = self.links[link.name]["belongs_to_fixed_joint"]
+        belongs_to_mimic_joint = self.links[link.name]["belongs_to_mimic_joint"]
 
-        if not ghost_link or not belongs_to_fixed_joint:
+        if not ghost_link or not belongs_to_fixed_joint or belongs_to_mimic_joint:
             return False
 
         checked = True
