@@ -510,6 +510,16 @@ class URDFParser:
                 raise ValueError(self._get_error_message(f"Parent link '{joint.parent.link}' not found", joint.parent))
             if joint.child and joint.child.link not in [link.name for link in self.root_element.links]:
                 raise ValueError(self._get_error_message(f"Child link '{joint.child.link}' not found", joint.child))
+            if joint.mimic and joint.mimic.joint:
+                if joint.mimic.joint not in [joint.name for joint in self.root_element.joints]:
+                    raise ValueError(self._get_error_message(f"Mimic joint '{joint.mimic.joint}' not found", joint.mimic))
+                else:
+                    # Raise an error if the joint referenced by joint.mimic.joint is fixed.
+                    referenced_joint = next((j for j in self.root_element.joints if j.name == joint.mimic.joint), None)
+                    if referenced_joint and referenced_joint.type == "fixed":
+                        raise ValueError(
+                            self._get_error_message(f"Mimic joint '{joint.mimic.joint}' is fixed. Mimic joints cannot be fixed.", joint.mimic)
+                        )
 
         # If no elements exist within the geometry tab of the link, an error occurs.
         for link in self.root_element.links:

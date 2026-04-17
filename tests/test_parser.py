@@ -213,6 +213,22 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*mimic: Joint is required \(line: 26\).*"):
             parser.parse()
 
+    def test_load_error_incorrect_mimic_joint(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_incorrect_mimic_joint.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*mimic: Mimic joint 'foo' not found \(line: 26\).*"):
+            parser.parse()
+
+    def test_load_error_incorrect_mimic_joint_fixed(self):
+        # Load the specified URDF file.
+        model_path = pathlib.Path("tests/data/error_incorrect_mimic_joint_fixed.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*mimic: Mimic joint 'JointB' is fixed. Mimic joints cannot be fixed. \(line: 51\).*"):
+            parser.parse()
+
     def test_load_error_invalid_joint_type(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/error_incorrect_joint_type.urdf")
@@ -468,7 +484,7 @@ class TestURDFParser(ConverterTestCase):
         # joints[0]
         joint = root_element.joints[0]
         self.assertEqual(joint.name, "JointA")
-        self.assertEqual(joint.type, "fixed")
+        self.assertEqual(joint.type, "revolute")
         self.assertTrue(joint.parent)
         self.assertEqual(joint.parent.link, "BaseLink")
         self.assertTrue(joint.child)
