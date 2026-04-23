@@ -542,14 +542,11 @@ class URDFBenchmarks:
             f"{failed} ({failed/total_models*100:.1f}%) | {total_warnings} | {total_errors} | "
             f"{avg_time:.2f}s | {self._format_time_duration(total_time)} | {total_file_size:.2f} MB |"
         )
-        md_content += (
-            summary_row
-            + """
+        md_content += summary_row + """
 
 ## Detailed Results
 
 """
-        )
 
         # Add table header (split to avoid long line)
         table_header = (
@@ -873,7 +870,7 @@ class URDFBenchmark:
         start_time = time.time()
 
         # Run conversion via subprocess to capture diagnostics properly
-        stdout, stderr, return_code = self.diagnostics.capture_subprocess_output(
+        _, stderr, return_code = self.diagnostics.capture_subprocess_output(
             [
                 "uv",
                 "run",
