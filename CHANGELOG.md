@@ -1,3 +1,11 @@
+# 0.1.2
+
+## Fixes
+
+- Changed interpretation for leaf ghost links
+  - When a chain of fixed joints connects links with no visual/collision/intertia data, those joints are ignored & those links are considered non-physics Xform prims in USD (i.e. no `RigidBodyAPI` will be applied).
+- Enhanced error checking for mimic joints
+
 # 0.1.1
 
 ## Fixes
