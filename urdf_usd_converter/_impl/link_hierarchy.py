@@ -3,6 +3,7 @@
 from typing import Any
 
 from .urdf_parser.elements import (
+    ElementInertial,
     ElementJoint,
     ElementLink,
     ElementRobot,
@@ -76,12 +77,28 @@ class LinkHierarchy:
                 if ref_joint and ref_joint.type == "fixed":
                     self.referenced_link_names_by_mimic_joint.append(ref_joint.child.get_with_default("link"))
 
+    def _is_zero_inertial(self, inertial: ElementInertial) -> bool:
+        """
+        Check if the inertial is zero.
+        """
+        if inertial is None:
+            return True
+        mass_attr = getattr(inertial, "mass", None)
+        mass = mass_attr.get_with_default("value") if mass_attr is not None else None
+        if mass is None or mass > 0.0:
+            return mass is None
+        inertia = getattr(inertial, "inertia", None)
+        if inertia is None:
+            return True
+        diag = (inertia.get_with_default("ixx"), inertia.get_with_default("iyy"), inertia.get_with_default("izz"))
+        return all(v == 0.0 or v is None for v in diag)
+
     def _ghost_links_chain(self, parent_link: ElementLink | None, link: ElementLink):
         """
         Store data for Ghost Link.
         """
         # Determines if the link is a ghost link.
-        has_ghost_link = link.inertial is None and len(link.visuals) == 0 and len(link.collisions) == 0
+        has_ghost_link = self._is_zero_inertial(link.inertial) and len(link.visuals) == 0 and len(link.collisions) == 0
 
         # Determines if the link belongs to a fixed joint.
         belongs_to_fixed_joint = False
@@ -209,3 +226,17 @@ class LinkHierarchy:
         belongs to a Fixed Joint, the rigid body can be removed.
         """
         return self.links[link_name]["remove_rigid_body"] if link_name in self.links else False
+
+    def check_ghost_link_with_fixed_joint(self, link: ElementLink) -> bool:
+        """
+        Check if a link is a ghost link.
+        """
+        ghost_link = self.links[link.name]["ghost_link"]
+        belongs_to_fixed_joint = self.links[link.name]["belongs_to_fixed_joint"]
+        belongs_to_mimic_joint = self.links[link.name]["belongs_to_mimic_joint"]
+
+        # For root links, only 'ghost_link' is used for identification.
+        if link.name == self.get_root_link().name:
+            return ghost_link
+
+        return ghost_link and belongs_to_fixed_joint and not belongs_to_mimic_joint
