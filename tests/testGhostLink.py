@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-from pxr import Gf, Usd, UsdPhysics
+import omni.asset_validator
+import usdex.core
+from pxr import Gf, Tf, Usd, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -550,3 +552,77 @@ class TestGhostLink(ConverterTestCase):
         self.assertEqual(len(rel.GetTargets()), 1)
         ref_joint = rel.GetTargets()[0]
         self.assertEqual(ref_joint, "/link_skip_ghost_link_with_mimic/Physics/jointA")
+
+    def test_link_ghost_link_inertial_zero(self):
+        input_path = "tests/data/link_ghost_link_inertial_zero.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, "zero-mass:.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, "no-inertia:.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(
+            stage,
+            issuePredicates=[
+                omni.asset_validator.IssuePredicates.ContainsMessage("MassAPI can only be applied to a rigid body or collision prim"),
+                omni.asset_validator.IssuePredicates.ContainsMessage("If principalAxes or diagonalInertia is authored on rigid body"),
+            ],
+        )
+
+        default_prim = stage.GetDefaultPrim()
+        self.assertTrue(default_prim.IsValid())
+
+        geometry_scope_prim = default_prim.GetChild("Geometry")
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        # Check physics rigid bodies.
+        base_link_prim = geometry_scope_prim.GetChild("BaseLink")
+        self.assertTrue(base_link_prim.IsValid())
+        self.assertTrue(base_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(base_link_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # This ghost link does not have a rigid body.
+        ghost_link_zero_mass_prim = base_link_prim.GetChild("ghost_link_zero_mass")
+        self.assertTrue(ghost_link_zero_mass_prim.IsValid())
+        self.assertFalse(ghost_link_zero_mass_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(ghost_link_zero_mass_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(ghost_link_zero_mass_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # This ghost link does not have a rigid body.
+        ghost_link_no_inertia_prim = base_link_prim.GetChild("ghost_link_no_inertia")
+        self.assertTrue(ghost_link_no_inertia_prim.IsValid())
+        self.assertFalse(ghost_link_no_inertia_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(ghost_link_no_inertia_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(ghost_link_no_inertia_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # Check physics joint.
+        physics_scope_prim = default_prim.GetChild("Physics")
+        self.assertTrue(physics_scope_prim.IsValid())
+
+        root_joint_prim = physics_scope_prim.GetChild("root_joint")
+        self.assertTrue(root_joint_prim.IsValid())
+        self.assertTrue(root_joint_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(root_joint_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_ghost_link_inertial_zero"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_ghost_link_inertial_zero/Geometry/BaseLink"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        joint_zero_mass_prim = physics_scope_prim.GetChild("joint_zero_mass")
+        self.assertFalse(joint_zero_mass_prim.IsValid())
+
+        joint_no_inertia_prim = physics_scope_prim.GetChild("joint_no_inertia")
+        self.assertFalse(joint_no_inertia_prim.IsValid())

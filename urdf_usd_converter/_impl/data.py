@@ -42,3 +42,4 @@ class ConversionData:
     material_data_list: list[MaterialData]  # Store all material parameters.
     mesh_material_references: dict[pathlib.Path, dict[str, list[str]]]  # [mesh_file_path, [mesh_safe_name, material_name_list]]
     undefined_elements: list[UndefinedData]  # Store all undefined elements.
+    warnings: list[str, str]  # Store all warnings. [warning_type, warning_message]

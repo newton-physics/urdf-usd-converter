@@ -82,7 +82,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
             having_articulation_root = True
 
     # Assigning MassAPI to a Rigid Body.
-    apply_inertial(link_prim, link, data)
+    apply_inertial(link_prim, link, has_ghost_link, data)
 
     # Create visual or collision geometry.
     geometries: list[ElementVisual | ElementCollision] = [
@@ -111,7 +111,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     return link_xform
 
 
-def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
+def apply_inertial(prim: Usd.Prim, link: ElementLink, has_ghost_link: bool, data: ConversionData):
     """
     Set the inertial parameters of a link.
     """
@@ -133,9 +133,23 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
         axes = mass_api.GetPrincipalAxesAttr().Get()
         mass_api.GetPrincipalAxesAttr().Set(orientation * axes)
 
+    # If the inertia is zero, add a warning.
+    if link.inertial and not link.inertial.inertia:
+        warning_type = "no-inertia"
+        message = f"{data.warnings[warning_type]}\n" if warning_type in data.warnings else ""
+        message += f'Link "{link.name}" is a ghost link and has no inertia.' if has_ghost_link else f'Link "{link.name}" has no inertia.'
+        data.warnings[warning_type] = message
+
     if link.inertial.mass:
         mass = link.inertial.mass.get_with_default("value")
         mass_api.GetMassAttr().Set(mass)
+
+        # If the mass is zero, add a warning.
+        if mass == 0.0:
+            warning_type = "zero-mass"
+            message = f"{data.warnings[warning_type]}\n" if warning_type in data.warnings else ""
+            message += f'Link "{link.name}" is a ghost link and has zero mass.' if has_ghost_link else f'Link "{link.name}" has zero mass.'
+            data.warnings[warning_type] = message
 
 
 def _fix_degenerate_plane(eigenvectors: np.ndarray, unique_col: int, degen_col_a: int, degen_col_b: int):

@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<robot name="link_ghost_link_inertial_zero">
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <box size="1.0 1.0 0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1.0 1.0 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="ghost_link_zero_mass">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0"/>
+      <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+    </inertial>
+  </link>
+  <link name="ghost_link_no_inertia">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_zero_mass" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="BaseLink"/>
+    <child link="ghost_link_zero_mass"/>
+  </joint>
+  <joint name="joint_no_inertia" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="BaseLink"/>
+    <child link="ghost_link_no_inertia"/>
+  </joint>
+
+</robot>
