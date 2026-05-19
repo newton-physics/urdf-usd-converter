@@ -12,6 +12,19 @@
       </geometry>
     </collision>
   </link>
+  <link name="boxLink">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
   <link name="ghost_link_zero_mass">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -22,17 +35,24 @@
   <link name="ghost_link_no_inertia">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.0"/>
     </inertial>
   </link>
 
-  <joint name="joint_zero_mass" type="fixed">
+  <joint name="joint1" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.1"/>
     <parent link="BaseLink"/>
+    <child link="boxLink"/>
+  </joint>
+
+  <joint name="joint_zero_mass" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0.1"/>
+    <parent link="boxLink"/>
     <child link="ghost_link_zero_mass"/>
   </joint>
   <joint name="joint_no_inertia" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0.1"/>
-    <parent link="BaseLink"/>
+    <parent link="boxLink"/>
     <child link="ghost_link_no_inertia"/>
   </joint>
 
