@@ -243,19 +243,47 @@ In URDF, a Ghost Link looks like this:
 <link name="GhostLink" />
 ```
 
+The following are also ghost links.  
+
+```xml
+<link name="GhostLink">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0"/>
+    <inertia ixx="0.0" ixy="0.0" ixz="0.0" iyy="0.0" iyz="0.0" izz="0.0"/>
+  </inertial>
+</link>
+```
+
+```xml
+<link name="GhostLink">
+  <inertial>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <mass value="0.0"/>
+  </inertial>
+</link>
+```
+
+If a [mass](#element-mass) element exists but its value is 0.0, and if an [inertia](#element-inertia) element exists but both values ​​are 0.0, it will be considered a ghost link.  
+
 ##### Physics simplification (Ghost Links on Fixed chains)
 
-When a subtree satisfies the rules below, ghost links in that subtree need not act as separate rigid bodies for simulation.  
-The converter can omit assigning a rigid body to those links while still keeping their place in the kinematic hierarchy, and it can skip authoring physics joints whose child side would not be a rigid body (including joints that only connect ghost segments on such chains).
+Ghost links without meaningful inertia cause warnings or errors in USD physics and can produce incorrect simulator behavior.  
+The converter therefore omits rigid-body assignment on a **per-link** basis when a link meets the conditions below, while keeping its place in the kinematic hierarchy.  
+It also skips authoring physics joints whose child (`body1`) prim would not have a rigid body.
 
-That simplification applies only to maximal subtrees for which every link meets all of the following:
+A link prim does not receive a rigid body when all of the following hold:
 
 1. The link is a Ghost Link (as defined above).  
-2. The joint from its parent link to this link is Fixed.  
-3. Every child link satisfies the same three conditions recursively; if a link has several children, each branch is checked separately.
+2. The joint from its parent link to this link is Fixed. (For the kinematic root link, only criterion 1 is evaluated.)  
+3. The link is not the child of a Fixed joint that is referenced by a [mimic joint](#element-mimic).
 
-If any child is not a Ghost Link, connects with a non-Fixed joint, or heads into a subtree that fails these rules, links on the path above that point keep rigid bodies and the corresponding physics joints are still emitted.  
-A different child branch that does satisfy the rules end-to-end may still be simplified on its own, omitting rigid bodies and internal Fixed joints along that branch—for example, a side branch of only Ghost Links on Fixed joints to the tips while another branch continues to articulated, non-Ghost links.
+This is evaluated independently for each link.  
+A Ghost Link on a Fixed joint still has its rigid body removed even when a descendant branch continues to a non-Ghost, articulated link—for example, a run of Ghost Links on Fixed joints followed by a Revolute joint to a link with collision geometry.  
+
+Physics joints whose child link has no rigid body are not authored in the Physics scope.  
+In USD `PhysicsJoint`, `body0` may reference a prim without a rigid body, but `body1` must reference a prim that has one; joints that would place a rigid-body-less child on `body1` are omitted.  
+Fixed joints that only connect Ghost Links without rigid bodies are therefore dropped, while joints whose child still has a rigid body (for example, a Revolute joint to the first non-Ghost descendant) remain.
 
 The nested Geometry Xform hierarchy is not removed; only rigid-body assignment and redundant physics joints change.  
 
@@ -306,7 +334,7 @@ Converting this to USD using [Nested Bodies](#nested-bodies) might initially pro
     /Joint3 (Joint) (parent=GhostLink1, child=GhostLink2)
 ```
 
-Because `GhostLink1` and `GhostLink2` are Ghost Links and the chain from `BoxLink` to the leaves is only Fixed joints between Ghost Links, rigid bodies need not be assigned to `GhostLink1` or `GhostLink2`.  
+Because `GhostLink1` and `GhostLink2` are Ghost Links connected by Fixed joints and are not referenced by a mimic joint, rigid bodies are not assigned to those link prims.  
 The Fixed joints whose child is a Ghost Link without a rigid body (`joint2`, `joint3`) are not authored in Physics.  
 The USD content can then be simplified to:
 
@@ -322,6 +350,9 @@ The USD content can then be simplified to:
 ```
 
 In Physics, only the joint with `parent=BaseLink` and `child=BoxLink` remains (in addition to any world/root joint policy used elsewhere in this converter).
+
+When Ghost Links on Fixed joints appear **before** an articulated, non-Ghost descendant, the same per-link rule applies.  
+For example, with `BaseLink → ghost_link → ghost_link_2 → ghost_link_3 → link_box` (three Fixed joints, then a Revolute joint to `link_box`), rigid bodies are omitted on `ghost_link`, `ghost_link_2`, and `ghost_link_3`, the three internal Fixed joints are not authored, and only `joint_box` (Revolute, parent `ghost_link_3`, child `link_box`) remains among the joints along that chain.  
 
 ### link/inertial
 
