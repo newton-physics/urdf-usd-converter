@@ -2,9 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-import omni.asset_validator
-import usdex.core
-from pxr import Gf, Tf, Usd, UsdPhysics
+from pxr import Gf, Usd, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
