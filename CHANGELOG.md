@@ -1,3 +1,11 @@
+# 0.1.3
+
+## Fixes
+
+- Changed interpretation for ghost links
+  - Intermediate links with explicit 0 mass, 0 inertia, no visual/collision shapes, and connected via fixed joints are now also treated as Ghost Links (previously only leaf links were considered)
+  - Ghost links with explicit 0 mass & 0 inertia no longer have PhysicsMassAPI applied
+
 # 0.1.2
 
 ## Fixes
