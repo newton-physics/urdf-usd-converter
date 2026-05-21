@@ -95,7 +95,6 @@ class Converter:
             material_data_list=[],
             mesh_material_references={},
             undefined_elements=parser.get_undefined_elements(),
-            warnings={},
         )
 
         # setup the main output layer (which will become an asset interface later)
@@ -155,10 +154,6 @@ class Converter:
 
         # create the asset interface
         usdex.core.addAssetInterface(asset_stage, source=data.content[Tokens.Contents])
-
-        # Print warnings.
-        for warning_type, message in data.warnings.items():
-            Tf.Warn(f"{warning_type}: {message}")
 
         # optionally flatten the asset
         if not self.params.layer_structure:

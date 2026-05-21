@@ -558,26 +558,12 @@ class TestGhostLink(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, "zero-mass:.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, "no-inertia:.*"),
-            ],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
-            asset_path = converter.convert(input_path, output_dir)
+        asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
         stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
-        self.assertIsValidUsd(
-            stage,
-            issuePredicates=[
-                omni.asset_validator.IssuePredicates.ContainsMessage("MassAPI can only be applied to a rigid body or collision prim"),
-                omni.asset_validator.IssuePredicates.ContainsMessage("If principalAxes or diagonalInertia is authored on rigid body"),
-            ],
-        )
+        self.assertIsValidUsd(stage)
 
         default_prim = stage.GetDefaultPrim()
         self.assertTrue(default_prim.IsValid())
