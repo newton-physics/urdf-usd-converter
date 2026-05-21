@@ -68,9 +68,10 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     remove_rigid_body = data.link_hierarchy.get_link_remove_rigid_body(link.name)
 
     # Apply RigidBodyAPI to a link.
-    # If it is a root link of a ghost link, no rigid body will be assigned.
+    # If it is a link of a ghost link, no rigid body will be assigned.
     # Additionally, if the link referencing Ghost link is a Fixed Joint, rigid body assignment will not be performed.
-    if (not is_root_link or not has_root_ghost_link) and not remove_rigid_body:
+    has_ghost_link_with_fixed_joint = data.link_hierarchy.check_ghost_link_with_fixed_joint(link)
+    if not has_ghost_link_with_fixed_joint and not remove_rigid_body:
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.RigidBodyAPI.Apply(prim_over)
 
@@ -80,8 +81,8 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
             prim_over.ApplyAPI("NewtonArticulationRootAPI")
             having_articulation_root = True
 
-    # Assigning MassAPI to a Rigid Body.
-    apply_inertial(link_prim, link, data)
+        # Assigning MassAPI to a Rigid Body.
+        apply_inertial(link_prim, link, data)
 
     # Create visual or collision geometry.
     geometries: list[ElementVisual | ElementCollision] = [
@@ -366,7 +367,7 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
 
         # Search for the mimic_joint_name among the joints.
         joint = next((joint for joint in joints if joint.name == mimic_joint_name), None)
-        if joint:
+        if joint and joint.mimic.joint in physics_joints_dict:
             # USD prim associated with the joint name referenced by mimic.
             ref_joint_prim = physics_joints_dict[joint.mimic.joint]
 
