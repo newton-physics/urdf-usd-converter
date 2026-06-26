@@ -9,6 +9,13 @@ from tests.util.ConverterTestCase import ConverterTestCase
 
 
 class TestPhysicsInertia(ConverterTestCase):
+    def _assert_newton_inertia(self, prim, ixx, iyy, izz, ixy, ixz, iyz):
+        self.assertTrue(prim.HasAPI("NewtonMassAPI"))
+        inertia = prim.GetAttribute("newton:inertia").Get()
+        expected = [ixx, iyy, izz, ixy, ixz, iyz]
+        for actual, expected_value in zip(inertia, expected):
+            self.assertAlmostEqual(actual, expected_value, places=6)
+
     def test_physics_inertia(self):
         input_path = "tests/data/inertia.urdf"
         output_dir = self.tmpDir()
@@ -42,6 +49,7 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(1, 1, 1), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self._assert_newton_inertia(link_box1_prim, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0)
 
         # link_box2
         link_box2_prim = stage.GetPrimAtPath(link_box1_prim.GetPath().AppendChild("link_box2"))
@@ -55,6 +63,7 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(1, 1, 2), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(-0.5, 0.5, 0.5, 0.5))
+        self._assert_newton_inertia(link_box2_prim, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0)
 
         # link_box3
         link_box3_prim = stage.GetPrimAtPath(link_box2_prim.GetPath().AppendChild("link_box3"))
@@ -68,6 +77,7 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(1, 2, 2), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self._assert_newton_inertia(link_box3_prim, 1.0, 2.0, 2.0, 0.0, 0.0, 0.0)
 
         # link_box4
         link_box4_prim = stage.GetPrimAtPath(link_box3_prim.GetPath().AppendChild("link_box4"))
@@ -81,6 +91,7 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(1, 1, 2), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(-0.4632976, 0.4632976, 0.5341866, 0.5341866))
+        self._assert_newton_inertia(link_box4_prim, 1.98, 1.02, 1.0, 0.14, 0.0, 0.0)
 
         # link_box5
         link_box5_prim = stage.GetPrimAtPath(link_box4_prim.GetPath().AppendChild("link_box5"))
@@ -94,6 +105,7 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(1, 2, 2), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0.9974842, 0, 0, -0.07088902))
+        self._assert_newton_inertia(link_box5_prim, 1.02, 1.98, 2.0, -0.14, 0.0, 0.0)
 
         # link_box6
         link_box6_prim = stage.GetPrimAtPath(link_box5_prim.GetPath().AppendChild("link_box6"))
@@ -107,3 +119,4 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0.79289323, 2.2071068, 3), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0, 0.55557024, 0.8314696, 0))
+        self._assert_newton_inertia(link_box6_prim, 2.0, 1.0, 3.0, 0.5, 0.0, 0.0)

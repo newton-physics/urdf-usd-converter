@@ -43,11 +43,13 @@ class TestPhysics(ConverterTestCase):
 
         # Mass.
         self.assertTrue(link_box_prim.HasAPI(UsdPhysics.MassAPI))
+        self.assertTrue(link_box_prim.HasAPI("NewtonMassAPI"))
         mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(link_box_prim)
         self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(100, 100, 100), 1e-6))
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertEqual(list(link_box_prim.GetAttribute("newton:inertia").Get()), [100.0, 100.0, 100.0, 0.0, 0.0, 0.0])
 
         # Collision.
         collision_link_box_prim = self.stage.GetPrimAtPath(link_box_prim.GetPath().AppendChild("box_1"))

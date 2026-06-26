@@ -119,12 +119,26 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
         return
 
     prim_over = data.content[Tokens.Physics].OverridePrim(prim.GetPath())
-    mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI.Apply(prim_over)
+    prim_over.ApplyAPI("NewtonMassAPI")
+    mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(prim_over)
 
     if link.inertial and link.inertial.inertia:
-        orientation, diag_inertia = extract_inertia(link.inertial.inertia)
+        inertia = link.inertial.inertia
+        orientation, diag_inertia = extract_inertia(inertia)
         mass_api.GetPrincipalAxesAttr().Set(orientation)
         mass_api.GetDiagonalInertiaAttr().Set(diag_inertia)
+        set_schema_attribute(
+            prim_over,
+            "newton:inertia",
+            [
+                inertia.get_with_default("ixx"),
+                inertia.get_with_default("iyy"),
+                inertia.get_with_default("izz"),
+                inertia.get_with_default("ixy"),
+                inertia.get_with_default("ixz"),
+                inertia.get_with_default("iyz"),
+            ],
+        )
 
     if link.inertial.origin:
         position = Gf.Vec3f(link.inertial.origin.get_with_default("xyz"))
