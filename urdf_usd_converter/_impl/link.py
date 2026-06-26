@@ -119,8 +119,8 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
         return
 
     prim_over = data.content[Tokens.Physics].OverridePrim(prim.GetPath())
+    mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI.Apply(prim_over)
     prim_over.ApplyAPI("NewtonMassAPI")
-    mass_api: UsdPhysics.MassAPI = UsdPhysics.MassAPI(prim_over)
 
     if link.inertial and link.inertial.inertia:
         inertia = link.inertial.inertia
