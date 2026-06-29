@@ -143,7 +143,7 @@ The following table describes concept mappings between URDF and USD. All URDF co
 | :---- | :---- | :---- |
 | [robot](#robot) | `assetInfo.name`,<br>`UsdGeomXform` (defaultPrim) | Root of the asset / dataset |
 | [link](#link) | `UsdGeomXform`,<br>`UsdPhysicsRigidBodyAPI` | A rigid body within the robot |
-| [link/inertial](#linkinertial) | `UsdPhysicsMassAPI` | Explicit mass and inertial properties |
+| [link/inertial](#linkinertial) | `UsdPhysicsMassAPI`,<br>`NewtonMassAPI` | Explicit mass and inertial properties |
 | [link/visual](#linkvisual) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes) | Defines the appearance of the link |
 | [link/collision](#linkcollision) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes),<br>`UsdPhysicsCollisionAPI`,<br>`UsdPhysicsMeshCollisionAPI` | Defines collision geometry & physical properties of the link |
 | [geometry](#geometry) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes) | Defines the geometry for visuals and collisions |
@@ -358,7 +358,7 @@ For example, with `BaseLink → ghost_link → ghost_link_2 → ghost_link_3 →
 
 The inertial element within a link defines the link’s mass, center of mass, and its central inertia properties. When not defined, it indicates zero mass and zero inertia.
 
-In USD, this maps to the `UsdPhysicsMassAPI` schema applied to the link Prim, with properties set as described in the table below.
+In USD, this maps to the `UsdPhysicsMassAPI` schema applied to the link Prim, with `NewtonMassAPI` additionally applied to author Newton-specific mass attributes, with properties set as described in the table below.
 
 While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD.
 
@@ -368,7 +368,7 @@ While both inertial & MassAPI are considered optional, the semantics of omission
 | :---- | :---- | :---- |
 | [origin](#element-origin) | `physics:centerOfMass`,<br>`physics:principalAxes` (see also [inertia](#element-inertia)) | Position and (non-aligned) orientation of the link's center of mass |
 | [mass](#element-mass) | `physics:mass` | Explicit mass of the link in [mass units](#mass-units) |
-| [inertia](#element-inertia) | `physics:principalAxes`,<br>`physics:diagonalInertia` | The 6 unique values of an Inertia Matrix |
+| [inertia](#element-inertia) | `physics:principalAxes`,<br>`physics:diagonalInertia`,<br>`newton:inertia` | The 6 unique values of an Inertia Matrix |
 
 ##### Element: origin
 
@@ -408,6 +408,17 @@ The inertia element contains 6 named properties, which can be used to construct 
 ```
 
 In USD, this maps to `physics:principalAxes` & `physics:diagonalInertia`, so must be computed via eigenvalue decomposition.
+
+However, in Newton USD Schemas there is `NewtonMassAPI` which provides a `newton:inertia` attribute that exactly matches the layout of the URDF inertia element as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`. Both representations are authored: `physics:principalAxes` and `physics:diagonalInertia` for UsdPhysics consumers, and `newton:inertia` for the symmetric inertia tensor in URDF layout.
+
+| URDF | OpenUSD | Description |
+| :---- | :---- | :---- |
+| ixx | `newton:inertia[0]` | moment of inertia about the x axis |
+| iyy | `newton:inertia[1]` | moment of inertia about the y axis |
+| izz | `newton:inertia[2]` | moment of inertia about the z axis |
+| ixy | `newton:inertia[3]` | product of inertia |
+| ixz | `newton:inertia[4]` | product of inertia |
+| iyz | `newton:inertia[5]` | product of inertia |
 
 ### link/visual
 
