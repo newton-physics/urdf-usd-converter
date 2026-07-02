@@ -1,3 +1,14 @@
+# 0.2.0
+
+## Features
+
+- Inertia is now exported as a double[6] tensor via `NewtonMassAPI`, allowing exact URDF inertia to be round-tripped without decomposition.
+  - The traditional `PhysicsMassAPI` principal axes & diagonal inertia are also exported for applications that do not read the `newton:inertia` attribute.
+
+## Dependencies
+
+- Updated to newton-usd-schemas>=0.3.1
+
 # 0.1.3
 
 ## Fixes
