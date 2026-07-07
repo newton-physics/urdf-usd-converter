@@ -368,6 +368,7 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
             if joint.mimic and joint.mimic.joint:
                 mimic_joints_names.append(joint.name)
 
+            apply_newton_joint_api(joint, physics_joint.GetPrim())
             convert_unsupported_attributes_and_elements(joint, physics_joint.GetPrim(), data)
 
             # Store custom attributes and custom elements for the specified element.
@@ -388,6 +389,66 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
             set_physics_mimic_joint(joint, physics_joint_prim, ref_joint_prim)
 
 
+def _convert_joint_damping(joint_type: str, damping: float) -> float:
+    """
+    Convert URDF joint damping to NewtonJointAPI units.
+
+    Revolute and continuous joints use N·m·s/rad in URDF and effort·s/deg in
+    NewtonJointAPI, so the per-radian coefficient is rescaled to per-degree.
+    Prismatic joints use N·s/m in URDF and effort·s/distance in NewtonJointAPI,
+    which need no conversion.
+    """
+    if joint_type in ("revolute", "continuous"):
+        # Scale a per-radian coefficient to per-degree; not math.radians(), which converts angle values.
+        return damping * math.pi / 180.0
+    return damping
+
+
+def _convert_joint_velocity_limit(joint_type: str, velocity: float) -> float:
+    """
+    Convert URDF joint velocity limit to NewtonJointAPI units.
+
+    Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI.
+    Prismatic joints use m/s in URDF and distance/s in NewtonJointAPI, which need
+    no conversion.
+    """
+    if joint_type in ("revolute", "continuous"):
+        return math.degrees(velocity)
+    return velocity
+
+
+def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
+    """
+    Map URDF joint dynamics and velocity limits to NewtonJointAPI.
+
+    Args:
+        element_joint: ElementJoint in URDF
+        prim: PhysicsJoint in USD
+    """
+    damping = None
+    friction = None
+    velocity_limit = None
+
+    if element_joint.dynamics:
+        damping = _convert_joint_damping(element_joint.type, element_joint.dynamics.get_with_default("damping"))
+        friction = element_joint.dynamics.get_with_default("friction")
+
+    if element_joint.limit and element_joint.type in ("revolute", "continuous", "prismatic"):
+        velocity_limit = _convert_joint_velocity_limit(element_joint.type, element_joint.limit.get_with_default("velocity"))
+
+    if damping is None and friction is None and velocity_limit is None:
+        return
+
+    prim.ApplyAPI("NewtonJointAPI")
+
+    if damping is not None:
+        set_schema_attribute(prim, "newton:damping", damping)
+    if friction is not None:
+        set_schema_attribute(prim, "newton:friction", friction)
+    if velocity_limit is not None:
+        set_schema_attribute(prim, "newton:velocityLimit", velocity_limit)
+
+
 def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, prim: Usd.Prim, data: ConversionData):
     """
     Unsupported attributes and elements within the joint are stored as custom attributes of the PhysicsJoint.
@@ -401,9 +462,6 @@ def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, pri
         effort = element_joint.limit.get_with_default("effort")
         if effort is not None:
             prim.CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(effort)
-        velocity = element_joint.limit.get_with_default("velocity")
-        if velocity is not None:
-            prim.CreateAttribute("urdf:limit:velocity", Sdf.ValueTypeNames.Float, custom=True).Set(velocity)
 
     if element_joint.calibration:
         rising = element_joint.calibration.get_with_default("rising")
@@ -415,14 +473,6 @@ def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, pri
         reference_position = element_joint.calibration.get_with_default("reference_position")
         if reference_position is not None:
             prim.CreateAttribute("urdf:calibration:reference_position", Sdf.ValueTypeNames.Float, custom=True).Set(reference_position)
-
-    if element_joint.dynamics:
-        damping = element_joint.dynamics.get_with_default("damping")
-        if damping is not None:
-            prim.CreateAttribute("urdf:dynamics:damping", Sdf.ValueTypeNames.Float, custom=True).Set(damping)
-        friction = element_joint.dynamics.get_with_default("friction")
-        if friction is not None:
-            prim.CreateAttribute("urdf:dynamics:friction", Sdf.ValueTypeNames.Float, custom=True).Set(friction)
 
     if element_joint.safety_controller:
         k_velocity = element_joint.safety_controller.get_with_default("k_velocity")

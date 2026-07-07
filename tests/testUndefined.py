@@ -195,17 +195,7 @@ class TestUndefined(ConverterTestCase):
         reference_position = joint_box_prim.GetAttribute("urdf:calibration:reference_position").Get()
         self.assertAlmostEqual(reference_position, 0.1)
 
-        # Unsupported parameters: Cutstom attributes in "dynamics".
-        self.assertTrue(joint_box_prim.GetAttribute("urdf:dynamics:damping").HasAuthoredValue())
-        self.assertTrue(joint_box_prim.GetAttribute("urdf:dynamics:damping").IsCustom())
-        damping = joint_box_prim.GetAttribute("urdf:dynamics:damping").Get()
-        self.assertAlmostEqual(damping, 0.0)
-        self.assertTrue(joint_box_prim.GetAttribute("urdf:dynamics:friction").HasAuthoredValue())
-        self.assertTrue(joint_box_prim.GetAttribute("urdf:dynamics:friction").IsCustom())
-        friction = joint_box_prim.GetAttribute("urdf:dynamics:friction").Get()
-        self.assertAlmostEqual(friction, 0.0)
-
-        # Unsupported parameters: Cutstom attributes in "safety_controller".
+        # Unsupported parameters: Custom attributes in "safety_controller".
         self.assertTrue(joint_box_prim.GetAttribute("urdf:safety_controller:k_velocity").HasAuthoredValue())
         self.assertTrue(joint_box_prim.GetAttribute("urdf:safety_controller:k_velocity").IsCustom())
         k_velocity = joint_box_prim.GetAttribute("urdf:safety_controller:k_velocity").Get()
