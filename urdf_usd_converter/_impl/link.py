@@ -399,7 +399,8 @@ def _convert_joint_damping(joint_type: str, damping: float) -> float:
     which need no conversion.
     """
     if joint_type in ("revolute", "continuous"):
-        # Scale a per-radian coefficient to per-degree; not math.radians(), which converts angle values.
+        # Convert a per-radian coefficient (effort·s/rad) to per-degree (effort·s/deg) by multiplying by
+        # radians-per-degree (pi/180). Not an angle conversion, so math.radians() is intentionally avoided.
         return damping * math.pi / 180.0
     return damping
 
