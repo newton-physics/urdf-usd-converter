@@ -148,7 +148,7 @@ The following table describes concept mappings between URDF and USD. All URDF co
 | [link/collision](#linkcollision) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes),<br>`UsdPhysicsCollisionAPI`,<br>`UsdPhysicsMeshCollisionAPI` | Defines collision geometry & physical properties of the link |
 | [geometry](#geometry) | Various `UsdGeomGPrims`,<br>`UsdReference` (for meshes) | Defines the geometry for visuals and collisions |
 | [material](#material)  | `UsdShadeMaterial`,<br>`UsdShadeShaders`,<br>***GAP*** (projection shaders) | Defines the rendered appearance of the link (not the physical properties) |
-| [joint](#joint) | Various `UsdPhysicsJoints`,<br>`UsdGeomXformOps` (for the child link),<br>`NewtonMimicAPI`,<br>***GAP*** (calibration, friction, damping, soft limits) | A joint for connecting two links as well as 3D transformation for the child link. |
+| [joint](#joint) | Various `UsdPhysicsJoints`,<br>`UsdGeomXformOps` (for the child link),<br>`NewtonMimicAPI`,<br>`NewtonJointAPI`,<br>***GAP*** (calibration, effort, soft limits) | A joint for connecting two links as well as 3D transformation for the child link. |
 | [transmission](#transmission) | N/A<br>(could be `UsdPhysicsDriveAPI` if it was fully specified) | Defines the mechanical transmission mechanism between actuators and joints, but is not well specified in URDF and therefore cannot map to USD. See [Custom Elements](#custom-elements). |
 | [gazebo](#gazebo) | N/A | URDF extensions specific to the Gazebo simulator. Not a generalizable URDF element. See [Custom Elements](#custom-elements). |
 | sensor (deprecated) | N/A  | Implemented in URDF Dom but unsupported & unmaintained. See [urdf/XML/sensor](https://wiki.ros.org/urdf/XML/sensor) for details. See [Custom Elements](#custom-elements). |
@@ -746,6 +746,8 @@ In USD the two concepts are separated. The 3D frame of the child link needs to b
 
 It is important to maintain the order of link relationships for consistent conversion of the URDF kinematic tree to USD. It is recommended to author the parent link as the “Body0” relationship, and the child link as the “Body1” relationship. This 0/1 naming will correspond to various other attributes of `UsdPhysicsJoint`.
 
+When converting URDF to USD with Newton USD Schemas, `NewtonJointAPI` may additionally be applied to `PhysicsJoint` prims to author passive joint dynamics (`newton:damping`, `newton:friction`) and velocity limits (`newton:velocityLimit`). See [dynamics](#element-dynamics) and [limit](#element-limit) for unit conversion details.
+
 #### Joint Hierarchy
 
 As joints in USD are not expressed hierarchically, they can be authored anywhere within the USD prim hierarchy. For legibility & navigability, it is recommended to author the joints under a common Scope prim within the default prim (e.g. /Robot/Physics/Joint1) rather than alongside the bodies.
@@ -782,10 +784,10 @@ URDF joints have several child elements, some of which are required while others
 | [child](#element-child) | `physics:body1` | Child link |
 | [origin](#element-origin-1) | `physics:localPos0`,<br>`physics:localPos1`,<br>`physics:localRot0`,<br>`physics:localRot1`,<br><br>Also affects XformOps of the child link | Position and orientation of the child link relative to the parent link |
 | [axis](#element-axis) | `physics:axis` | The joint's axis of motion. |
-| [limit](#element-limit) | `physics:lowerLimit`,<br>`physics:upperLimit` | Physical limits of certain joints |
+| [limit](#element-limit) | `physics:lowerLimit`,<br>`physics:upperLimit`,<br>`NewtonJointAPI` (`newton:velocityLimit`) | Physical limits of certain joints |
 | [mimic](#element-mimic) | `NewtonMimicAPI` | Mimicking the behavior of other joints |
 | [calibration](#element-calibration) | ***GAP*** | Calibration information for the joint |
-| [dynamics](#element-dynamics) | ***GAP*** | Friction and damping for the joint |
+| [dynamics](#element-dynamics) | `NewtonJointAPI` | Friction and damping for the joint |
 | [safety\_controller](#element-safety_controller) | ***GAP*** | Safety control of the joint |
 
 ##### Element: parent
@@ -837,13 +839,13 @@ To account for the arbitrary axis, it is necessary to also author `physics:local
 
 The joint/limit element specifies hard limits for revolute and prismatic joints, but is not used for the other types of joints. See also [safety\_controller](#element-safety_controller) for soft limits.
 
-In USD, these joints do have lower & upper limits, but do not have effort & velocity limits. See [Appendix C](#appendix-c-filling-concept-gaps) for possible solutions.
+In USD, these joints have lower and upper position limits via UsdPhysics. The velocity attribute has no UsdPhysics equivalent, but maps to `NewtonJointAPI` `newton:velocityLimit` on the `PhysicsJoint` prim. The effort attribute remains a ***GAP***.
 
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
 | lower | `physics:lowerLimit` | minimum position/angle |
 | upper | `physics:upperLimit` | maximum position/angle |
-| velocity | ***GAP*** | maximum velocity (rad/s or m/s) |
+| velocity | `newton:velocityLimit` | maximum joint velocity. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)). |
 | effort | ***GAP*** | maximum torque/force (Nm/N) |
 
 ##### Element: mimic
@@ -873,12 +875,12 @@ This concept does not exist in USD. See [Appendix C](#appendix-c-filling-concept
 
 The joint/dynamics element defines friction and damping values for the joint, similar to a passive spring on the joint.
 
-In USD, joints do not have any passive spring mechanism. See [Appendix C](#appendix-c-filling-concept-gaps) for possible solutions.
+In USD, UsdPhysics joints do not have passive damping or friction. In Newton USD Schemas, `NewtonJointAPI` applied to the `PhysicsJoint` prim maps these attributes.
 
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
-| damping | ***GAP*** | motion damping of the joint ( N∙m∙s/rad or N∙s/m) |
-| friction | ***GAP*** | static friction of the joint (N∙m or N) |
+| damping | `newton:damping` | velocity-proportional damping. Revolute and continuous joints use N·m·s/rad in URDF; NewtonJointAPI uses effort·s/deg, so the per-radian coefficient is rescaled to per-degree. Prismatic joints use N·s/m in URDF and effort·s/distance in NewtonJointAPI with no conversion. |
+| friction | `newton:friction` | Coulomb friction effort opposing joint motion (N·m for revolute joints, N for prismatic joints) |
 
 ##### Element: safety\_controller
 
@@ -1034,7 +1036,7 @@ All of the UsdPhysics schemas are applied API Schemas. For example, to author a 
 
 ```
 def Cube "MyCube" (
-  prepend apiSchemas = [“PhysicsRigidBodyAPI”, “PhysicsMassAPI”]
+  prepend apiSchemas = ["PhysicsRigidBodyAPI", "PhysicsMassAPI"]
 )
 {
   float physics:mass = 10.0
@@ -1233,7 +1235,7 @@ def Scope "foo"
 
 It is recommended that parameters defined in the URDF but not supported in USD be stored as custom attributes on the parent `UsdPrim`.
 
-For example, parameters within a joint ([calibration](#element-calibration), [dynamics](#element-dynamics), [safety_controller](#element-safety_controller)) can be stored as custom attributes of `UsdPhysicsJoints`.
+For example, parameters within a joint ([calibration](#element-calibration), [safety_controller](#element-safety_controller), [limit](#element-limit) effort) can be stored as custom attributes of `UsdPhysicsJoints`.
 
 ```
 <joint name="foo" type="fixed">
