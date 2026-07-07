@@ -114,6 +114,20 @@ class TestPhysics(ConverterTestCase):
         self.assertFalse(child_prims[0].HasAPI(UsdPhysics.CollisionAPI))
         self.assertFalse(child_prims[0].HasAPI("NewtonCollisionAPI"))
 
+    def test_physics_joint_dynamics(self):
+        default_prim = self.stage.GetDefaultPrim()
+        physics_scope_prim = self.stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Physics"))
+        self.assertTrue(physics_scope_prim.IsValid())
+
+        joint_prim = physics_scope_prim.GetPrimAtPath(physics_scope_prim.GetPath().AppendChild("joint_cylinder_sphere"))
+        self.assertTrue(joint_prim.IsValid())
+        self.assertTrue(joint_prim.IsA(UsdPhysics.FixedJoint))
+        self.assertTrue(joint_prim.HasAPI("NewtonJointAPI"))
+        self.assertTrue(joint_prim.GetAttribute("newton:damping").HasAuthoredValue())
+        self.assertAlmostEqual(joint_prim.GetAttribute("newton:damping").Get(), 0.01, places=6)
+        self.assertTrue(joint_prim.GetAttribute("newton:friction").HasAuthoredValue())
+        self.assertAlmostEqual(joint_prim.GetAttribute("newton:friction").Get(), 0.02, places=6)
+
 
 class TestPhysicsMesh(ConverterTestCase):
     def test_physics_mesh_collision(self):

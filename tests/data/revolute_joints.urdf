@@ -69,6 +69,7 @@
     <parent link="Arm_3"/>
     <child link="Arm_4"/>
     <axis xyz="0 1 0"/>
+    <dynamics damping="1.0" friction="0.5"/>
     <limit lower="-0.3" upper="0.5" effort="0.01" velocity="0.02"/>
   </joint>
 
