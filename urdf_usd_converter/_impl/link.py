@@ -259,15 +259,19 @@ def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
 
     # Convert eigenvector matrix (rotation matrix) to quaternion
     # Use Gf.Matrix3d to extract quaternion from rotation matrix
+    # np.linalg.eigh returns the principal axes as the *columns* of the matrix,
+    # while Gf matrices use the row-vector convention, so the Gf.Matrix3d must be
+    # filled with the transpose for ExtractRotation to yield the rotation that
+    # maps the principal frame to the link frame (I = R * diag * R^T).
     rotation_matrix = Gf.Matrix3d(
         eigenvectors[0, 0],
-        eigenvectors[0, 1],
-        eigenvectors[0, 2],
         eigenvectors[1, 0],
-        eigenvectors[1, 1],
-        eigenvectors[1, 2],
         eigenvectors[2, 0],
+        eigenvectors[0, 1],
+        eigenvectors[1, 1],
         eigenvectors[2, 1],
+        eigenvectors[0, 2],
+        eigenvectors[1, 2],
         eigenvectors[2, 2],
     )
 
