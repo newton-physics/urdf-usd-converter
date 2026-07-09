@@ -1,3 +1,18 @@
+# 0.3.0
+
+## Features
+
+- Added conversion support for `<dynamics>` friction & damping as well as `<limits>` velocity via `NewtonJointAPI`
+
+## Fixes
+
+- Fixed principal axes orientation extracted from the URDF inertia tensor with non-zero products of inertia
+  - Previouly, the authored `physics:principalAxes` did not correctly reconstruct the URDF inertia tensor via `R * diag * R^T`, it had the correct eigenvalues, but the wrong orientation.
+
+## Dependencies
+
+- Updated to newton-usd-schemas>=0.4.0
+
 # 0.2.0
 
 ## Features
@@ -159,7 +174,7 @@
 ## USD Data Conversion
 
 - **Joint Conversion**
-  - Calibration, Dynamics, and Safety Controller have no equivalent in `UsdPhysics` nor `NewtonPhysics` schemas
+  - Calibration and Safety Controller have no equivalent in `UsdPhysics` nor `NewtonPhysics` schemas
   - These are all converted as custom attributes on the Joint prim
 - **Geometry Conversion**
   - No other file formats beyond OBJ/DAE/STL are supported
