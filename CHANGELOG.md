@@ -1,3 +1,10 @@
+# Unreleased
+
+## Fixes
+
+- Fixed single-link URDF assets (no joints) being incorrectly marked as articulations
+  - `ArticulationRootAPI` and `NewtonArticulationRootAPI` are no longer applied to a lone rigid body. They are now only authored when the asset has at least one joint, so a single-body prop is converted as a free rigid body instead of a one-link articulation.
+
 # 0.3.0
 
 ## Features
