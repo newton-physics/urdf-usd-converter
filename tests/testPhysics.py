@@ -229,3 +229,38 @@ class TestPhysicsMesh(ConverterTestCase):
         self.assertTrue(collision_box_prim.HasAPI("NewtonMeshCollisionAPI"))
         mesh_collision_api: UsdPhysics.MeshCollisionAPI = UsdPhysics.MeshCollisionAPI(collision_box_prim)
         self.assertEqual(mesh_collision_api.GetApproximationAttr().Get(), UsdPhysics.Tokens.convexHull)
+
+
+class TestPhysicsSingleRigidBody(ConverterTestCase):
+    def test_single_link_is_not_marked_as_articulation(self):
+        input_path = "tests/data/simple_box.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        self.assertTrue(default_prim.IsValid())
+
+        geometry_scope_prim = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        link_prim = stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link1"))
+        self.assertTrue(link_prim.IsValid())
+
+        # It is a rigid body.
+        self.assertTrue(link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+
+        # It is not an articulation root.
+        self.assertFalse(link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(link_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # No prim anywhere in the asset should be an articulation root.
+        for prim in stage.TraverseAll():
+            self.assertFalse(prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+            self.assertFalse(prim.HasAPI("NewtonArticulationRootAPI"))

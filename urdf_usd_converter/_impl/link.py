@@ -75,7 +75,10 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.RigidBodyAPI.Apply(prim_over)
 
-        if not has_root_ghost_link and not having_articulation_root:
+        # A single rigid body should not be marked as an articulation root or it will
+        # be treated as a one-link articulation instead of a free rigid body.
+        has_articulated_joints = len(data.urdf_parser.get_root_element().joints) > 0
+        if has_articulated_joints and not has_root_ghost_link and not having_articulation_root:
             # Assign ArticulationRoot to the first link.
             UsdPhysics.ArticulationRootAPI.Apply(prim_over)
             prim_over.ApplyAPI("NewtonArticulationRootAPI")
