@@ -157,7 +157,11 @@ class URDFParser:
         # Separated by one or more spaces or tabs.
         values = re.split(r"\s+", attr_value)
         if len(values) != 3:
-            raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
+            raise ValueError(
+                self._get_error_message(
+                    f"{name}: Invalid value: Parser found {len(values)} elements but 3 expected while parsing vector [{attr_value}]", element
+                )
+            )
         return (float(values[0]), float(values[1]), float(values[2]))
 
     def _convert_attribute_float4(self, element: ElementBase, name: str) -> tuple[float, float, float, float]:
@@ -171,7 +175,11 @@ class URDFParser:
         # Separated by one or more spaces or tabs.
         values = re.split(r"\s+", attr_value)
         if len(values) != 4:
-            raise ValueError(self._get_error_message(f"{name}: Invalid value: {attr_value}", element))
+            raise ValueError(
+                self._get_error_message(
+                    f"{name}: Invalid value: Parser found {len(values)} elements but 4 expected while parsing vector [{attr_value}]", element
+                )
+            )
         return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
     def _get_error_message(self, message: str, element: ElementBase | ET.Element) -> str:

@@ -52,7 +52,7 @@ class TestURDFParser(ConverterTestCase):
         model_path = pathlib.Path("tests/data/error_incorrect_vec3.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*xyz: Invalid value: -2.2 0.0 0.5 1.0 \(line: 6\).*"):
+        with self.assertRaisesRegex(RuntimeError, r".*xyz: Invalid value: Parser found 4 elements.*\[-2.2 0.0 0.5 1.0\] \(line: 6\).*"):
             parser.parse()
 
     def test_load_error_incorrect_vec4(self):
@@ -60,7 +60,7 @@ class TestURDFParser(ConverterTestCase):
         model_path = pathlib.Path("tests/data/error_incorrect_vec4.urdf")
         parser = URDFParser(model_path)
 
-        with self.assertRaisesRegex(RuntimeError, r".*rgba: Invalid value: 0.0 1.0 \(line: 5\).*"):
+        with self.assertRaisesRegex(RuntimeError, r".*rgba: Invalid value: Parser found 2 elements.*\[0.0 1.0\] \(line: 5\).*"):
             parser.parse()
 
     def test_load_error_no_material_name(self):
