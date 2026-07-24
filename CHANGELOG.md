@@ -1,3 +1,11 @@
+# 0.3.1
+
+## Fixes
+
+- Stopped assigning an articulation root when there are no joints. Jointless URDFs are unarticulated props
+- Improved error messages for invalid float3/float4 attributes in the source data
+- Fixed a load error that occurred when material names or material ids are missing in Collada (DAE) files
+
 # 0.3.0
 
 ## Features
