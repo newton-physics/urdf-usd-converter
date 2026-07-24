@@ -85,3 +85,35 @@ class TestMeshDae(ConverterTestCase):
                 omni.asset_validator.IssuePredicates.IsRule(omni.asset_validator.NormalsExistChecker),
             ],
         )
+
+    def test_dae_no_material_id(self):
+        input_path = "tests/data/dae_no_material_id.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*could not be parsed. A material cannot be identified because it has no valid ID.*",
+                ),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
+
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope_prim = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        mesh_prim = stage.GetPrimAtPath(geometry_scope_prim.GetPath().AppendChild("link1").AppendChild("no_material_id"))
+        self.assertTrue(mesh_prim.IsValid())
+        self.assertTrue(mesh_prim.IsA(UsdGeom.Xform))
+        self.assertEqual(len(mesh_prim.GetChildren()), 0)

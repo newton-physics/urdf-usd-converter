@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot name="dae_no_material_id">
+  <link name="link1">
+    <visual>
+      <geometry>
+        <mesh filename="assets/no_material_id.dae"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

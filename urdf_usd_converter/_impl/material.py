@@ -356,6 +356,10 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         material_data = MaterialData()
         material_data.mesh_file_path = mesh_file_path
 
+        # Check if the material has a valid ID.
+        if not material.id:
+            raise ValueError("A material cannot be identified because it has no valid ID.")
+
         # If use_material_id is True, the material ID is used as the identification name.
         # If use_material_id is False, the material name is used as the identification name.
         # For the displayName of USD, use material.name when present.
