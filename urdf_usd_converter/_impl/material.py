@@ -347,18 +347,22 @@ def store_dae_material_data(mesh_file_path: pathlib.Path, _collada: collada.Coll
         data: The conversion data.
     """
 
-    # Check for duplicate material names.
-    # If duplicate material names are found, the material ID will be used as the distinguishing identifier.
+    # Check for duplicate or missing material names.
+    # If names are duplicated or any material is unnamed, the material ID is used as the identifier.
     material_name_counts = Counter(material.name for material in _collada.materials)
-    use_material_id = any(count > 1 for count in material_name_counts.values())
+    use_material_id = any(count > 1 for count in material_name_counts.values()) or any(not material.name for material in _collada.materials)
 
     for material in _collada.materials:
         material_data = MaterialData()
         material_data.mesh_file_path = mesh_file_path
 
-        # If use_material_id is True, the "material name" is used as the material identification name.
-        # If use_material_id is False, the "material ID" is used as the material identification name.
-        # For the displayName of USD, use material.name.
+        # Check if the material has a valid ID.
+        if not material.id:
+            raise ValueError("A material cannot be identified because it has no valid ID.")
+
+        # If use_material_id is True, the material ID is used as the identification name.
+        # If use_material_id is False, the material name is used as the identification name.
+        # For the displayName of USD, use material.name when present.
         material_data.name = material.id if use_material_id else material.name
         material_data.material_name = material.name
         material_data.use_material_id = use_material_id

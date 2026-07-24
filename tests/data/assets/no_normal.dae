@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><up_axis>Z_UP</up_axis></asset>
+  <library_effects>
+    <effect id="effect0"><profile_COMMON><technique sid="common"><lambert>
+      <diffuse><color>0.2 0.8 0.2 1</color></diffuse>
+    </lambert></technique></profile_COMMON></effect>
+  </library_effects>
+  <library_materials>
+    <material id="material0" name="material0"><instance_effect url="#effect0"/></material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="mesh0"><mesh>
+      <source id="pos"><float_array id="posarr" count="9">0 0 0 1 0 0 0 1 0</float_array>
+        <technique_common><accessor source="#posarr" count="3" stride="3">
+          <param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/>
+        </accessor></technique_common></source>
+      <source id="norm"><float_array id="normarr" count="9">0 0 1 0 0 1 0 0 1</float_array>
+        <technique_common><accessor source="#normarr" count="3" stride="3">
+          <param name="X" type="float"/><param name="Y" type="float"/><param name="Z" type="float"/>
+        </accessor></technique_common></source>
+      <vertices id="verts"><input semantic="POSITION" source="#pos"/></vertices>
+      <triangles material="mat0" count="1">
+        <input semantic="VERTEX" source="#verts" offset="0"/>
+        <!-- The normal vector is not specified here. -->
+        <p>0 1 2</p>
+      </triangles>
+    </mesh></geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="scene0"><node id="node0">
+      <instance_geometry url="#mesh0"><bind_material><technique_common>
+        <instance_material symbol="mat0" target="#material0"/>
+      </technique_common></bind_material></instance_geometry>
+    </node></visual_scene>
+  </library_visual_scenes>
+  <scene><instance_visual_scene url="#scene0"/></scene>
+</COLLADA>
