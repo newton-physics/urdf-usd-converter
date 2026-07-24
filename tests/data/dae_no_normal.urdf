@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot name="dae_no_normal">
+  <link name="link1">
+    <visual>
+      <geometry>
+        <mesh filename="assets/no_normal.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

@@ -935,3 +935,37 @@ class TestMaterial(ConverterTestCase):
         family_type = subset.GetFamilyType(mesh, family_name)
         self.assertEqual(family_type, UsdGeom.Tokens.partition)
         self.assertTrue(subset.ValidateFamily(mesh, element_type, family_name))
+
+    def test_dae_unnamed_material(self):
+        """COLLADA materials without a name attribute should use the material id."""
+        input_path = "tests/data/unnamed_mat.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        material_scope_prim = default_prim.GetChild("Materials")
+        self.assertTrue(material_scope_prim.IsValid())
+
+        material_prim = material_scope_prim.GetChild("material0")
+        self.assertTrue(material_prim.IsValid())
+        self.assertTrue(material_prim.IsA(UsdShade.Material))
+        material = UsdShade.Material(material_prim)
+
+        diffuse_color = self.get_material_diffuse_color(material)
+        diffuse_color = usdex.core.linearToSrgb(diffuse_color)
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0.8, 0.2, 0.2), 1e-6))
+
+        geometry_scope_prim = default_prim.GetChild("Geometry")
+        base_link_prim = geometry_scope_prim.GetChild("base_link")
+        mesh_prim = base_link_prim.GetChild("unnamed_material")
+        self.assertTrue(mesh_prim.IsValid())
+        self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
+        self.check_material_binding(mesh_prim, material)

@@ -130,7 +130,7 @@ def _convert_mesh(
         face_material_names.append(material_name)
 
         # normals.
-        if hasattr(primitive, "normal") and len(primitive.normal) > 0:
+        if hasattr(primitive, "normal") and primitive.normal is not None and len(primitive.normal) > 0:
             primitive_normals = np.array(primitive.normal, dtype=np.float32).reshape(-1, 3)
             all_normals_list.append(primitive_normals)
             normal_indices = primitive.normal_index
@@ -148,13 +148,13 @@ def _convert_mesh(
             current_normal_offset += len(primitive_normals)
 
         # uvs.
-        if hasattr(primitive, "texcoordset") and len(primitive.texcoordset) > 0:
+        if hasattr(primitive, "texcoordset") and primitive.texcoordset is not None and len(primitive.texcoordset) > 0:
             uv_data = np.array(primitive.texcoordset[0], dtype=np.float32).reshape(-1, 2)
             all_uvs_list.append(uv_data)
 
             uv_indices = (
                 primitive.texcoord_indexset[0]
-                if hasattr(primitive, "texcoord_indexset") and len(primitive.texcoord_indexset) > 0
+                if hasattr(primitive, "texcoord_indexset") and primitive.texcoord_indexset is not None and len(primitive.texcoord_indexset) > 0
                 else np.arange(len(uv_data), dtype=np.int32)
             )
 
