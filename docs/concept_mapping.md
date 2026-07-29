@@ -377,7 +377,7 @@ The origin of an inertial element is the position and orientation of the link’
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
 | [xyz](#property-xyz) | `physics:centerOfMass` | Position |
-| [rpy](#property-rpy) | `physics:principalAxes` (see also [inertia](#element-inertia)) | Orientation of the principal axes of inertia, represented as roll, pitch, yaw Euler rotations in radians |
+| [rpy](#property-rpy) | `physics:principalAxes`,<br>`newton:inertia` (see also [inertia](#element-inertia)) | Orientation of the inertial frame relative to the link, represented as roll, pitch, yaw Euler rotations in radians |
 
 ###### *Property: xyz*
 
@@ -385,9 +385,9 @@ The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`
 
 ###### *Property: rpy*
 
-The `origin.rpy` of an inertial element is an additional rotation to the principal axes for the moment of inertia. They are stored in URDF as roll, pitch, yaw Euler rotations in radians.
+The `origin.rpy` of an inertial element is the orientation of the inertial frame (in which the URDF inertia tensor is expressed) relative to the link frame. They are stored in URDF as roll, pitch, yaw Euler rotations in radians.
 
-This concept is not directly representable in UsdPhysics as a separate attribute, so it must be baked into the `physics:principalAxes` attribute. See [inertia](#element-inertia) for details on obtaining the aligned `physics:principalAxes`. Once the aligned axes are obtained, the rpy should be used to rotate them as follows:
+This concept is not directly representable in UsdPhysics as a separate attribute, so it must be baked into both `physics:principalAxes` and `newton:inertia`. See [inertia](#element-inertia) for details. For `physics:principalAxes`, once the aligned axes are obtained from eigenvalue decomposition of the URDF inertia tensor, the rpy should be used to rotate them as follows:
 
 1. Convert rpy from Euler rotation radians to a Quaternion  
 2. `quatf orientedAxes = orientation * principalAxis  `
@@ -407,18 +407,24 @@ The inertia element contains 6 named properties, which can be used to construct 
 [ ixz  iyz  izz ]
 ```
 
-In USD, this maps to `physics:principalAxes` & `physics:diagonalInertia`, so must be computed via eigenvalue decomposition.
+In URDF, this tensor is expressed in the inertial frame defined by [`origin`](#element-origin). In USD, both of the following representations are authored on the link Prim:
 
-However, in Newton USD Schemas there is `NewtonMassAPI` which provides a `newton:inertia` attribute that exactly matches the layout of the URDF inertia element as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`. Both representations are authored: `physics:principalAxes` and `physics:diagonalInertia` for UsdPhysics consumers, and `newton:inertia` for the symmetric inertia tensor in URDF layout.
+- `physics:principalAxes` and `physics:diagonalInertia` — computed via eigenvalue decomposition of the URDF inertia tensor, then composing `origin.rpy` into `physics:principalAxes` as described above.
+- `newton:inertia` (`NewtonMassAPI`) — the full symmetric inertia tensor as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]` **in the body's local (link) frame**.
 
-| URDF | OpenUSD | Description |
+Because `newton:inertia` must be in the body frame, the URDF values must not be copied verbatim when `origin.rpy` is non-identity.  
+Rotate the URDF tensor into the link frame as `I_body = R * I_urdf * R^T`, then author `newton:inertia` from `I_body` as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`.  
+When `origin` is omitted or `rpy` is identity, `I_body = I_urdf` and the component mapping below matches the URDF attributes directly.  
+`origin.xyz` affects only `physics:centerOfMass`; it does not change the inertia tensor.
+
+| Body-frame component | OpenUSD | Description |
 | :---- | :---- | :---- |
-| ixx | `newton:inertia[0]` | moment of inertia about the x axis |
-| iyy | `newton:inertia[1]` | moment of inertia about the y axis |
-| izz | `newton:inertia[2]` | moment of inertia about the z axis |
-| ixy | `newton:inertia[3]` | product of inertia |
-| ixz | `newton:inertia[4]` | product of inertia |
-| iyz | `newton:inertia[5]` | product of inertia |
+| Ixx | `newton:inertia[0]` | moment of inertia about the x axis |
+| Iyy | `newton:inertia[1]` | moment of inertia about the y axis |
+| Izz | `newton:inertia[2]` | moment of inertia about the z axis |
+| Ixy | `newton:inertia[3]` | product of inertia |
+| Ixz | `newton:inertia[4]` | product of inertia |
+| Iyz | `newton:inertia[5]` | product of inertia |
 
 ### link/visual
 
