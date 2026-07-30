@@ -425,6 +425,20 @@ def _convert_joint_velocity_limit(joint_type: str, velocity: float) -> float:
     return velocity
 
 
+def _convert_mimic_offset(joint_type: str, offset: float) -> float:
+    """
+    Convert a URDF mimic offset to NewtonMimicAPI units.
+
+    URDF authors ``<mimic offset>`` in the follower joint's position units, so revolute
+    and continuous joints use radians while NewtonMimicAPI documents ``newton:mimicCoef0``
+    in degrees. Prismatic joints use distance in both and need no conversion. The
+    multiplier is dimensionless.
+    """
+    if joint_type in ("revolute", "continuous"):
+        return math.degrees(offset)
+    return offset
+
+
 def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
     """
     Map URDF joint dynamics and velocity limits to NewtonJointAPI.
@@ -514,7 +528,7 @@ def set_physics_mimic_joint(element_joint: ElementJoint, prim: Usd.Prim, ref_pri
     # Newton USD Schemas: joint0 = coef1 * joint1 + coef0
     prim.ApplyAPI("NewtonMimicAPI")
     set_schema_attribute(prim, "newton:mimicEnabled", True)
-    set_schema_attribute(prim, "newton:mimicCoef0", offset)
+    set_schema_attribute(prim, "newton:mimicCoef0", _convert_mimic_offset(element_joint.type, offset))
     set_schema_attribute(prim, "newton:mimicCoef1", multiplier)
 
     rel = prim.CreateRelationship("newton:mimicJoint")
