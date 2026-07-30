@@ -599,12 +599,16 @@ class TestJoints(ConverterTestCase):
 
         self.assertTrue(joint_b_prim.HasAPI("NewtonMimicAPI"))
 
-        # 'newton:mimicEnabled', 'newton:mimicCoef0' return False because they have default values.
+        # 'newton:mimicEnabled' returns False because it has a default value.
         self.assertFalse(joint_b_prim.GetAttribute("newton:mimicEnabled").HasAuthoredValue())
-        self.assertFalse(joint_b_prim.GetAttribute("newton:mimicCoef0").HasAuthoredValue())
 
+        self.assertTrue(joint_b_prim.GetAttribute("newton:mimicCoef0").HasAuthoredValue())
         self.assertTrue(joint_b_prim.GetAttribute("newton:mimicCoef1").HasAuthoredValue())
         self.assertTrue(joint_b_prim.GetAttribute("newton:mimicEnabled").Get())
+        # URDF authors the offset in the follower's position units -- radians for a
+        # revolute joint -- while NewtonMimicAPI documents coef0 in degrees.
+        self.assertAlmostEqual(joint_b_prim.GetAttribute("newton:mimicCoef0").Get(), math.degrees(0.5), places=4)
+        # The multiplier is dimensionless and is authored unscaled.
         self.assertAlmostEqual(joint_b_prim.GetAttribute("newton:mimicCoef1").Get(), 2.0)
 
         self.assertTrue(joint_b_prim.HasRelationship("newton:mimicJoint"))
@@ -612,3 +616,11 @@ class TestJoints(ConverterTestCase):
         self.assertEqual(len(rel.GetTargets()), 1)
         ref_joint = rel.GetTargets()[0]
         self.assertEqual(ref_joint, "/mimic_joint/Physics/jointA")
+
+        # A prismatic follower carries distance units, so the offset is not converted.
+        joint_d_prim = physics_scope_prim.GetChild("jointD")
+        self.assertTrue(joint_d_prim.IsValid())
+        self.assertTrue(joint_d_prim.IsA(UsdPhysics.PrismaticJoint))
+        self.assertTrue(joint_d_prim.HasAPI("NewtonMimicAPI"))
+        self.assertAlmostEqual(joint_d_prim.GetAttribute("newton:mimicCoef0").Get(), 0.25, places=6)
+        self.assertAlmostEqual(joint_d_prim.GetAttribute("newton:mimicCoef1").Get(), 2.0)
