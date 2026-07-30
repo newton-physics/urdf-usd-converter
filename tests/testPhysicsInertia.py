@@ -11,12 +11,38 @@ from tests.util.ConverterTestCase import ConverterTestCase
 
 
 class TestPhysicsInertia(ConverterTestCase):
-    def _assert_newton_inertia(self, prim, ixx, iyy, izz, ixy, ixz, iyz):
+    def _rotation_from_rpy(self, rpy):
+        """
+        Build the rotation matrix for a URDF `origin.rpy`, which is a fixed-axis
+        (extrinsic) XYZ rotation: R = Rz(yaw) @ Ry(pitch) @ Rx(roll).
+        """
+        roll, pitch, yaw = rpy
+        cr, sr = math.cos(roll), math.sin(roll)
+        cp, sp = math.cos(pitch), math.sin(pitch)
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        rotation_x = np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]])
+        rotation_y = np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]])
+        rotation_z = np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]])
+        return rotation_z @ rotation_y @ rotation_x
+
+    def _assert_newton_inertia(self, prim, ixx, iyy, izz, ixy, ixz, iyz, rpy=(0.0, 0.0, 0.0)):
+        """
+        `newton:inertia` must be the URDF tensor expressed in the body/link frame,
+        so it is compared against `I_body = R(rpy) @ I_urdf @ R(rpy)^T` rebuilt here
+        from the URDF values. Deriving the expectation rather than hardcoding the
+        rotated components keeps a flipped transform direction reported as a
+        convention mismatch. The attribute is `double[]`, so the tolerance is tight
+        enough to catch a rotation built in single precision.
+        """
         self.assertTrue(prim.HasAPI("NewtonMassAPI"))
+        tensor = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]])
+        rotation = self._rotation_from_rpy(rpy)
+        i_body = rotation @ tensor @ rotation.T
+
         inertia = prim.GetAttribute("newton:inertia").Get()
-        expected = [ixx, iyy, izz, ixy, ixz, iyz]
+        expected = [i_body[0, 0], i_body[1, 1], i_body[2, 2], i_body[0, 1], i_body[0, 2], i_body[1, 2]]
         for actual, expected_value in zip(inertia, expected):
-            self.assertAlmostEqual(actual, expected_value, places=6)
+            self.assertAlmostEqual(actual, expected_value, places=12)
 
     def _assert_inertia_reconstructs(self, prim, ixx, iyy, izz, ixy, ixz, iyz, rpy=(0.0, 0.0, 0.0)):
         """
@@ -39,15 +65,7 @@ class TestPhysicsInertia(ConverterTestCase):
         reconstructed = rotation @ np.diag(mass_api.GetDiagonalInertiaAttr().Get()) @ rotation.T
 
         tensor = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]])
-        # URDF rpy is a fixed-axis (extrinsic) XYZ rotation: R = Rz(yaw) @ Ry(pitch) @ Rx(roll)
-        roll, pitch, yaw = rpy
-        cr, sr = math.cos(roll), math.sin(roll)
-        cp, sp = math.cos(pitch), math.sin(pitch)
-        cy, sy = math.cos(yaw), math.sin(yaw)
-        rotation_x = np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]])
-        rotation_y = np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]])
-        rotation_z = np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]])
-        rotation_rpy = rotation_z @ rotation_y @ rotation_x
+        rotation_rpy = self._rotation_from_rpy(rpy)
         expected = rotation_rpy @ tensor @ rotation_rpy.T
 
         self.assertTrue(
@@ -178,5 +196,6 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0.77679752, 2.1640169, 3.0591856), 1e-6))
         self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(-0.0463736, 0.2748650, 0.9481796, 0.1524932))
-        self._assert_newton_inertia(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1)
+        # `newton:inertia` is in the body/link frame (URDF inertia rotated by origin.rpy).
+        self._assert_newton_inertia(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
         self._assert_inertia_reconstructs(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
