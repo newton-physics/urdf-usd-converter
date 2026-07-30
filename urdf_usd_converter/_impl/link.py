@@ -21,6 +21,7 @@ from .urdf_parser.elements import (
     ElementVisual,
 )
 from .utils import (
+    float3_to_quatd,
     float3_to_quatf,
     get_geometry_name,
     set_schema_attribute,
@@ -122,8 +123,12 @@ def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose |
     URDF `inertia` is expressed in the inertial frame defined by `origin`.
     `newton:inertia` requires the symmetric tensor in the body/link frame, so
     when `origin.rpy` is non-identity the tensor is rotated as
-    `I_body = R^T * I_urdf * R` using `Gf`'s row-vector matrix convention
-    (`R = Gf.Matrix3d(quat)`).
+    `I_body = R * I_urdf * R^T`, where `R` is built from URDF's fixed-axis
+    (extrinsic) XYZ convention, `R = Rz(yaw) * Ry(pitch) * Rx(roll)`.
+
+    In `Gf`'s row-vector convention `Gf.Matrix3d(quat)` is the transpose of the
+    column-convention `R`, so the `R_gf.GetTranspose() * I * R_gf` below
+    evaluates to the standard `R * I * R^T`.
     """
     ixx = inertia.get_with_default("ixx")
     ixy = inertia.get_with_default("ixy")
@@ -134,7 +139,7 @@ def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose |
     # Gf.Matrix3d is row-major: (r0c0, r0c1, r0c2, r1c0, ...)
     mat = Gf.Matrix3d(ixx, ixy, ixz, ixy, iyy, iyz, ixz, iyz, izz)
     if origin:
-        rotation = Gf.Matrix3d(float3_to_quatf(origin.get_with_default("rpy")))
+        rotation = Gf.Matrix3d(float3_to_quatd(origin.get_with_default("rpy")))
         mat = rotation.GetTranspose() * mat * rotation
     return [mat[0, 0], mat[1, 1], mat[2, 2], mat[0, 1], mat[0, 2], mat[1, 2]]
 

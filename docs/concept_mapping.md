@@ -414,8 +414,11 @@ In URDF, this tensor is expressed in the inertial frame defined by [`origin`](#e
 
 Because `newton:inertia` must be in the body frame, the URDF values must not be copied verbatim when `origin.rpy` is non-identity.  
 Rotate the URDF tensor into the link frame as `I_body = R * I_urdf * R^T`, then author `newton:inertia` from `I_body` as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`.  
+`R` is built from `origin.rpy` using URDF's fixed-axis (extrinsic) XYZ convention, `R = Rz(yaw) * Ry(pitch) * Rx(roll)`, which is the assumption the whole transform rests on.  
 When `origin` is omitted or `rpy` is identity, `I_body = I_urdf` and the component mapping below matches the URDF attributes directly.  
 `origin.xyz` affects only `physics:centerOfMass`; it does not change the inertia tensor.
+
+`newton:inertia` is a `double[]`, so `R` should be built in double precision. Deriving it from a single-precision quaternion loses roughly 7 significant digits, which defeats the purpose of an attribute whose schema documentation states that *"Double precision prevents lossy conversion from source data that already represents the full tensor"*.
 
 | Body-frame component | OpenUSD | Description |
 | :---- | :---- | :---- |
