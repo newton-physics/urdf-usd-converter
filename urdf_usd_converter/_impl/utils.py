@@ -35,12 +35,7 @@ def float3_to_quatf(rpy: tuple[float, float, float]) -> Gf.Quatf:
     The roll, pitch, yaw angles are in radians.
     USD converts this to degrees.
     """
-    rotation = (
-        Gf.Rotation(Gf.Vec3d(1, 0, 0), math.degrees(rpy[0]))
-        * Gf.Rotation(Gf.Vec3d(0, 1, 0), math.degrees(rpy[1]))
-        * Gf.Rotation(Gf.Vec3d(0, 0, 1), math.degrees(rpy[2]))
-    )
-    return Gf.Quatf(rotation.GetQuat())
+    return Gf.Quatf(float3_to_quatd(rpy))
 
 
 def float3_to_quatd(rpy: tuple[float, float, float]) -> Gf.Quatd:
