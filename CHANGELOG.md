@@ -1,3 +1,15 @@
+# 0.3.2
+
+## Fixes
+
+- Fixed `newton:inertia` body-frame transform to account for inertial `origin.rpy`
+- Fixed `newton:mimicCoef0` authoring to be in degrees for angular followers
+  - URDF authors `<mimic offset>` in the follower joint's position units (radians for revolute and continuous)
+  - NewtonMimicAPI documents coef0 in degrees, so angular need to be converted
+  - Prismatic followers were already correct as were coef1, which is dimensionless.
+  - Important: Newton 1.4 and older fail to handle the degrees-to-radians conversion for `coef0` when loading USD assets
+    - This is fixed in Newton 1.5 and newer
+
 # 0.3.1
 
 ## Fixes
