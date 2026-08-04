@@ -387,11 +387,7 @@ The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`
 
 The `origin.rpy` of an inertial element is the orientation of the inertial frame (in which the URDF inertia tensor is expressed) relative to the link frame. They are stored in URDF as roll, pitch, yaw Euler rotations in radians.
 
-This concept is not directly representable in UsdPhysics as a separate attribute, so it must be baked into both `physics:principalAxes` and `newton:inertia`. See [inertia](#element-inertia) for details. For `physics:principalAxes`, once the aligned axes are obtained from eigenvalue decomposition of the URDF inertia tensor, the rpy should be used to rotate them as follows:
-
-1. Convert rpy from Euler rotation radians to a Quaternion  
-2. `quatf orientedAxes = orientation * principalAxis  `
-3. `physics:principalAxes = orientedAxes`
+This concept is not directly representable in UsdPhysics as a separate attribute, so it must be baked into both `physics:principalAxes` and `newton:inertia`. See [inertia](#element-inertia) for details. In short, `origin.rpy` is used to form the body-frame tensor `I_body = R * I_urdf * R^T`; both USD representations are then derived from that single `I_body`, rather than composing `rpy` onto principal axes after decomposing the unrotated URDF tensor.
 
 ##### Element: mass
 
@@ -407,13 +403,13 @@ The inertia element contains 6 named properties, which can be used to construct 
 [ ixz  iyz  izz ]
 ```
 
-In URDF, this tensor is expressed in the inertial frame defined by [`origin`](#element-origin). In USD, both of the following representations are authored on the link Prim:
+In URDF, this tensor is expressed in the inertial frame defined by [`origin`](#element-origin). In USD, two equivalent representations are authored on the link Prim — the full body-frame tensor (`newton:inertia`) and the principal form (`physics:diagonalInertia` with `physics:principalAxes`) — using that body-frame tensor as the single source of truth:
 
-- `physics:principalAxes` and `physics:diagonalInertia` — computed via eigenvalue decomposition of the URDF inertia tensor, then composing `origin.rpy` into `physics:principalAxes` as described above.
-- `newton:inertia` (`NewtonMassAPI`) — the full symmetric inertia tensor as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]` **in the body's local (link) frame**.
+1. Rotate the URDF tensor into the link frame as `I_body = R * I_urdf * R^T`.
+2. Author `newton:inertia` (`NewtonMassAPI`) from `I_body` as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]` **in the body's local (link) frame**.
+3. Author `physics:diagonalInertia` and `physics:principalAxes` from the eigenvalue decomposition of that same `I_body` (eigenvalues and eigenvectors respectively).
 
-Because `newton:inertia` must be in the body frame, the URDF values must not be copied verbatim when `origin.rpy` is non-identity.  
-Rotate the URDF tensor into the link frame as `I_body = R * I_urdf * R^T`, then author `newton:inertia` from `I_body` as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`.  
+Because both representations must describe inertia in the body frame, the URDF values must not be copied verbatim when `origin.rpy` is non-identity, and `physics:principalAxes` must not be derived by eigendecomposing the unrotated URDF tensor and then composing `origin.rpy` afterward.  
 `R` is built from `origin.rpy` using URDF's fixed-axis (extrinsic) XYZ convention, `R = Rz(yaw) * Ry(pitch) * Rx(roll)`, which is the assumption the whole transform rests on.  
 When `origin` is omitted or `rpy` is identity, `I_body = I_urdf` and the component mapping below matches the URDF attributes directly.  
 `origin.xyz` affects only `physics:centerOfMass`; it does not change the inertia tensor.

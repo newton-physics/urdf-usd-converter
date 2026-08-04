@@ -195,7 +195,8 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0.77679752, 2.1640169, 3.0591856), 1e-6))
-        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(-0.0463736, 0.2748650, 0.9481796, 0.1524932))
+        # principalAxes come from eigendecomposition of I_body (not I_urdf composed with rpy).
+        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0.9481796, 0.15249318, 0.04637361, -0.27486506))
         # `newton:inertia` is in the body/link frame (URDF inertia rotated by origin.rpy).
         self._assert_newton_inertia(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
         self._assert_inertia_reconstructs(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
