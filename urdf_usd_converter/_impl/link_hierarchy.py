@@ -26,6 +26,9 @@ class LinkHierarchy:
         # Store data for Ghost Link.
         self.links: dict[str, dict[str, Any]] = {}
 
+        # A dictionary of link names and their parent links.
+        self.link_parents: dict[str, ElementLink] = {}
+
         # A list of link names that are referenced by mimic joints.
         self.referenced_link_names_by_mimic_joint: list[str] = []
 
@@ -57,6 +60,7 @@ class LinkHierarchy:
                 link = self.get_link_by_name(joint.child.get_with_default("link"))
                 self.link_tree[parent_link_name]["children"].append(link)
                 self.link_tree[parent_link_name]["joints"].append(joint)
+                self.link_parents[link.name] = self.link_tree[parent_link_name]["link"]
 
         # If the link tree is empty, make the first link the root.
         if len(self.link_tree) == 0 and len(self.root_element.links) > 0:
@@ -205,6 +209,14 @@ class LinkHierarchy:
         if link_name not in self.link_tree:
             return []
         return self.link_tree[link_name]["children"]
+
+    def get_link_parent(self, link_name: str) -> ElementLink | None:
+        """
+        Get the parent link of a link, or None when the link is the root.
+        """
+        if link_name not in self.link_parents:
+            return None
+        return self.link_parents[link_name]
 
     def get_link_by_name(self, link_name: str) -> ElementLink:
         """

@@ -305,6 +305,29 @@ def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
     return orientation, diag_inertia
 
 
+def _has_rigid_body(link_name: str, data: ConversionData) -> bool:
+    """
+    Check whether PhysicsRigidBodyAPI is applied to the prim of a link.
+    """
+    link_prim = data.references[Tokens.Physics][link_name]
+    prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
+    return prim_over.HasAPI(UsdPhysics.RigidBodyAPI)
+
+
+def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | None:
+    """
+    Find the closest ancestor of a link that owns a rigid body.
+
+    Returns None when no ancestor owns one, which means the joint should target the world.
+    """
+    parent_link = data.link_hierarchy.get_link_parent(link_name)
+    while parent_link is not None:
+        if _has_rigid_body(parent_link.name, data):
+            return parent_link.name
+        parent_link = data.link_hierarchy.get_link_parent(parent_link.name)
+    return None
+
+
 def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     """
     Create physics joints.
@@ -322,6 +345,9 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     # we do not assign a rigid body to that link when building the prim hierarchy.
     #
     # If the joint is fixed, and body1 is a Ghost Link without a rigid body, creation of this joint is skipped.
+    #
+    # If body0 is a Ghost Link without a rigid body, the joint targets the closest ancestor link that
+    # owns one, so that body1 stays connected to the articulation.
 
     # If the first link does not have a ghost link, create a fixed joint connecting the first link to the world.
     if not has_root_ghost_link:
@@ -348,18 +374,18 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         body0_link_name = joint.parent.get_with_default("link")
         body1_link_name = joint.child.get_with_default("link")
 
-        has_ghost_link = has_root_ghost_link and root_link.name == body0_link_name
-        body0 = data.references[Tokens.Physics][body0_link_name] if not has_ghost_link else default_prim
-        body1 = data.references[Tokens.Physics][body1_link_name]
-
-        # Check whether PhysicsRigidBodyAPI is applied to body1.
-        body1_prim_over = data.content[Tokens.Physics].OverridePrim(body1.GetPath())
-        body1_has_rigid_body = body1_prim_over.HasAPI(UsdPhysics.RigidBodyAPI)
-
         # Skip when body1 is a ghost link and no rigid body is assigned to body1.
         # If no rigid body exists, it is confirmed during preprocessing that it is a ghost link.
-        if not body1_has_rigid_body:
+        if not _has_rigid_body(body1_link_name, data):
             continue
+
+        # A ghost link has no rigid body, so a joint targeting one on body0 would detach body1 from
+        # the articulation. Retarget body0 to the closest ancestor link that owns a rigid body.
+        if not _has_rigid_body(body0_link_name, data):
+            body0_link_name = _find_rigid_body_ancestor(body0_link_name, data)
+
+        body0 = data.references[Tokens.Physics][body0_link_name] if body0_link_name else default_prim
+        body1 = data.references[Tokens.Physics][body1_link_name]
 
         # Specifies that the origin position of Body1 (the "child" of the joint in the URDF) is the center.
         joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
