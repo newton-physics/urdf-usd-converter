@@ -8,6 +8,8 @@ from pxr import Gf, Usd, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
+from urdf_usd_converter._impl.link import _extract_inertia, _inertia_tensor_in_body_frame
+from urdf_usd_converter._impl.urdf_parser.elements import ElementInertia, ElementPose
 
 
 class TestPhysicsInertia(ConverterTestCase):
@@ -200,3 +202,154 @@ class TestPhysicsInertia(ConverterTestCase):
         # `newton:inertia` is in the body/link frame (URDF inertia rotated by origin.rpy).
         self._assert_newton_inertia(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
         self._assert_inertia_reconstructs(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
+
+    def _pair_degenerate_body_eigenvalues(self, scale: float, rpy: tuple[float, float, float]) -> np.ndarray:
+        """Eigenvalues of I_body for a pair-degenerate URDF tensor (ixx == iyy != izz)."""
+        inertia = ElementInertia()
+        inertia.ixx = scale
+        inertia.iyy = scale
+        inertia.izz = 2.0 * scale
+        inertia.ixy = 0.0
+        inertia.ixz = 0.0
+        inertia.iyz = 0.0
+        origin = ElementPose()
+        origin.rpy = rpy
+        i_body = _inertia_tensor_in_body_frame(inertia, origin)
+        ixx, iyy, izz, ixy, ixz, iyz = i_body
+        mat = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]], dtype=np.float64)
+        return np.linalg.eigh(mat)[0]
+
+    def _degeneracy_miss_rate(self, scale: float, *, relative: bool, n: int = 300, seed: int = 0) -> float:
+        """
+        Fraction of random origin.rpy samples where a pair-degenerate tensor is
+        not detected after rotation into the body frame.
+
+        Absolute 1e-9 becomes load-bearing once I_body carries magnitude-
+        proportional rounding; relative tolerance scales with |eigenvalues|.
+        """
+        rng = np.random.default_rng(seed)
+        misses = 0
+        for _ in range(n):
+            rpy = tuple(float(x) for x in rng.uniform(-math.pi, math.pi, size=3))
+            eigenvalues = self._pair_degenerate_body_eigenvalues(scale, rpy)
+            tol = 1e-9 * max(1.0, float(np.max(np.abs(eigenvalues)))) if relative else 1e-9
+            eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < tol
+            eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < tol
+            if not (eq01 or eq12):
+                misses += 1
+        return 100.0 * misses / n
+
+    def test_degeneracy_tolerance_scales_with_inertia_magnitude(self):
+        """
+        Compare absolute vs relative eigenvalue-degeneracy miss rates over random rpy.
+
+        Absolute 1e-9 misses pair-degeneracy more often as |I| grows; relative
+        tolerance detects all samples. Typical observed absolute miss rates over
+        300 random rpy (Gf-built I_body): I~1e5 ~0%, I~1e6 ~10%, I~1e7 ~85%+.
+        """
+        for scale in (1e5, 1e6, 1e7):
+            relative_miss = self._degeneracy_miss_rate(scale, relative=True)
+            self.assertEqual(
+                relative_miss,
+                0.0,
+                msg=f"relative tolerance should detect all degeneracies at scale {scale:g}, miss={relative_miss}%",
+            )
+
+        absolute_1e5 = self._degeneracy_miss_rate(1e5, relative=False)
+        absolute_1e6 = self._degeneracy_miss_rate(1e6, relative=False)
+        absolute_1e7 = self._degeneracy_miss_rate(1e7, relative=False)
+        self.assertEqual(absolute_1e5, 0.0, msg=f"I~1e5 absolute miss rate should be ~0%, got {absolute_1e5}%")
+        self.assertGreater(absolute_1e6, 0.0, msg=f"I~1e6 absolute miss rate should be >0%, got {absolute_1e6}%")
+        self.assertGreater(absolute_1e7, 50.0, msg=f"I~1e7 absolute miss rate should be high, got {absolute_1e7}%")
+        self.assertGreater(absolute_1e7, absolute_1e6)
+
+    def test_large_isotropic_extract_inertia_is_canonical(self):
+        """
+        Assert `_extract_inertia` returns identity axes for a large isotropic tensor.
+
+        Large isotropic I=2e6 with non-identity rpy must still canonicalize to
+        identity principalAxes when eigenvalue degeneracy uses a relative tolerance.
+        """
+        inertia = ElementInertia()
+        inertia.ixx = inertia.iyy = inertia.izz = 2e6
+        inertia.ixy = inertia.ixz = inertia.iyz = 0.0
+        origin = ElementPose()
+        origin.rpy = (0.37, 1.02, -2.9)
+        i_body = _inertia_tensor_in_body_frame(inertia, origin)
+        orientation, diag_inertia = _extract_inertia(i_body)
+        self.assertRotationsAlmostEqual(orientation, Gf.Quatf(1, 0, 0, 0))
+        # Gf.IsClose epsilon is absolute: |a-b| < 1e-3. At scale 2e6 that is still
+        # a tight relative check (~5e-10); looser than the O(1) tests' 1e-6 only
+        # to absorb float32 Vec3f / eigh rounding at large magnitude.
+        self.assertTrue(Gf.IsClose(diag_inertia, Gf.Vec3f(2e6, 2e6, 2e6), 1e-3))
+
+    def test_large_isotropic_urdf_principal_axes_are_canonical(self):
+        """
+        Assert URDF conversion authors identity principalAxes for a large isotropic link.
+
+        Same large isotropic case as above, end-to-end through URDF conversion:
+        authored physics:principalAxes must be the canonical identity.
+        """
+        input_path = "tests/data/inertia_large_degenerate.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        link_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link_isotropic_large"))
+        self.assertTrue(link_prim.IsValid())
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(1, 0, 0, 0))
+        # Absolute epsilon (see test_large_isotropic_extract_inertia_is_canonical).
+        self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(2e6, 2e6, 2e6), 1e-3))
+        # Isotropic I_body ≈ s*I; Gf vs NumPy rpy paths differ at ~1e-9 abs, so use relative tol.
+        inertia = link_prim.GetAttribute("newton:inertia").Get()
+        self.assertTrue(
+            np.allclose(inertia[:3], [2e6, 2e6, 2e6], rtol=1e-12, atol=1e-3),
+            msg=f"diagonal newton:inertia {inertia[:3]} not isotropic at 2e6",
+        )
+        self.assertTrue(
+            np.allclose(inertia[3:], [0.0, 0.0, 0.0], atol=1e-6),
+            msg=f"off-diagonal newton:inertia {inertia[3:]} should be ~0",
+        )
+        self._assert_inertia_reconstructs(link_prim, 2e6, 2e6, 2e6, 0.0, 0.0, 0.0, rpy=(0.37, 1.02, -2.9))
+
+    def test_origin_mass_without_inertia_skips_principal_axes(self):
+        """
+        Assert principalAxes is not authored when <inertial> lacks <inertia>.
+
+        mass and centerOfMass should still be authored from the present elements;
+        principalAxes, diagonalInertia, and newton:inertia require an inertia tensor.
+        """
+        input_path = "tests/data/inertia_origin_mass_no_inertia.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        link_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link_origin_mass_only"))
+        self.assertTrue(link_prim.IsValid())
+        self.assertTrue(link_prim.HasAPI(UsdPhysics.MassAPI))
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 1.0, places=6)
+        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.1), 1e-6))
+        self.assertFalse(
+            mass_api.GetPrincipalAxesAttr().HasAuthoredValue(),
+            msg="physics:principalAxes must not be authored without <inertia>",
+        )
+        self.assertFalse(
+            mass_api.GetDiagonalInertiaAttr().HasAuthoredValue(),
+            msg="physics:diagonalInertia must not be authored without <inertia>",
+        )
+        newton_inertia = link_prim.GetAttribute("newton:inertia")
+        self.assertTrue(newton_inertia)
+        self.assertFalse(
+            newton_inertia.HasAuthoredValue(),
+            msg="newton:inertia must not be authored without <inertia>",
+        )

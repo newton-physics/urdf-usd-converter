@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="inertia_origin_mass_no_inertia">
+  <!--
+    Purpose: verify that an <inertial> with origin and mass but no <inertia>
+    authors mass and centerOfMass only — not principalAxes, diagonalInertia,
+    or newton:inertia (which require an inertia tensor).
+  -->
+  <link name="link_origin_mass_only">
+    <inertial>
+      <origin xyz="0 0 0.1" rpy="0.1 0.2 0.3"/>
+      <mass value="1.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

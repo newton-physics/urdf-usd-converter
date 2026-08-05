@@ -221,8 +221,11 @@ def _canonicalize_eigenvectors(eigenvalues: np.ndarray, eigenvectors: np.ndarray
 
     Modifies eigenvectors in place.
     """
-    eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < 1e-9
-    eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < 1e-9
+    # Absolute 1e-9 is too tight once I_body = R I_urdf R^T introduces
+    # magnitude-proportional rounding; scale the threshold with |eigenvalues|.
+    tol = 1e-9 * max(1.0, float(np.max(np.abs(eigenvalues))))
+    eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < tol
+    eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < tol
     if eq01 and eq12:
         # All three equal: use identity (canonical default).
         # Spherical symmetry, etc.
@@ -268,7 +271,7 @@ def _extract_inertia(i_body: list[float]) -> tuple[Gf.Quatf, Gf.Vec3f]:
     eigenvalues, eigenvectors = np.linalg.eigh(mat)
 
     # In the case of two degenerate eigenvalues, the corresponding eigenvectors are not unique.
-    # Detect degeneracy with absolute tolerance and canonicalize the eigenvector matrix.
+    # Detect degeneracy with a magnitude-relative tolerance and canonicalize the eigenvector matrix.
     _canonicalize_eigenvectors(eigenvalues, eigenvectors)
 
     # Use eigenvalues as diagonal inertia

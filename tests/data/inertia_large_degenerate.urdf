@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<robot name="inertia_large_degenerate">
+  <!--
+    Purpose: verify large-magnitude isotropic inertia with non-identity origin.rpy
+    authors canonical identity principalAxes (degeneracy tolerance scales with |I|).
+  -->
+  <link name="link_isotropic_large">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0.37 1.02 -2.9"/>
+      <mass value="1.0"/>
+      <inertia ixx="2000000.0" ixy="0.0" ixz="0.0" iyy="2000000.0" iyz="0.0" izz="2000000.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>
