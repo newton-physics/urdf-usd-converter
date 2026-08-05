@@ -310,8 +310,8 @@ def _has_rigid_body(link_name: str, data: ConversionData) -> bool:
     Check whether PhysicsRigidBodyAPI is applied to the prim of a link.
     """
     link_prim = data.references[Tokens.Physics][link_name]
-    prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
-    return prim_over.HasAPI(UsdPhysics.RigidBodyAPI)
+    prim = data.content[Tokens.Physics].GetPrimAtPath(link_prim.GetPath())
+    return prim and prim.HasAPI(UsdPhysics.RigidBodyAPI)
 
 
 def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | None:
@@ -320,6 +320,11 @@ def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | Non
 
     Returns None when no ancestor owns one, which means the joint should target the world.
     """
+    root_name = data.link_hierarchy.get_root_link().name
+    # The kinematic root has no parent, so there is no rigid-body ancestor to find.
+    if link_name == root_name:
+        return None
+
     parent_link = data.link_hierarchy.get_link_parent(link_name)
     while parent_link is not None:
         if _has_rigid_body(parent_link.name, data):
@@ -346,8 +351,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     #
     # If the joint is fixed, and body1 is a Ghost Link without a rigid body, creation of this joint is skipped.
     #
-    # If body0 is a Ghost Link without a rigid body, the joint targets the closest ancestor link that
-    # owns one, so that body1 stays connected to the articulation.
+    # If body0 is a Ghost Link without a rigid body, author body0 as the closest ancestor that owns
+    # one (or the world), so consumers that read body0 directly do not need to walk ancestors.
 
     # If the first link does not have a ghost link, create a fixed joint connecting the first link to the world.
     if not has_root_ghost_link:
@@ -379,8 +384,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         if not _has_rigid_body(body1_link_name, data):
             continue
 
-        # A ghost link has no rigid body, so a joint targeting one on body0 would detach body1 from
-        # the articulation. Retarget body0 to the closest ancestor link that owns a rigid body.
+        # Author body0 as the closest rigid-body ancestor (or the world) rather than a ghost link,
+        # so the authored relationship matches what UsdPhysics would resolve by walking ancestors.
         if not _has_rigid_body(body0_link_name, data):
             body0_link_name = _find_rigid_body_ancestor(body0_link_name, data)
 

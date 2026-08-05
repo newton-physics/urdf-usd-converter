@@ -212,11 +212,13 @@ class LinkHierarchy:
 
     def get_link_parent(self, link_name: str) -> ElementLink | None:
         """
-        Get the parent link of a link, or None when the link is the root.
+        Get the parent link of a link, or None when the link is the kinematic root.
         """
-        if link_name not in self.link_parents:
+        root_link = self.get_root_link()
+        # The kinematic root has no parent and is not stored in `link_parents`.
+        if root_link is not None and link_name == root_link.name:
             return None
-        return self.link_parents[link_name]
+        return self.link_parents.get(link_name)
 
     def get_link_by_name(self, link_name: str) -> ElementLink:
         """

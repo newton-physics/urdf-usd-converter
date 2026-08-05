@@ -282,11 +282,10 @@ This is evaluated independently for each link.
 A Ghost Link on a Fixed joint still has its rigid body removed even when a descendant branch continues to a non-Ghost, articulated link—for example, a run of Ghost Links on Fixed joints followed by a Revolute joint to a link with collision geometry.  
 
 Physics joints whose child link has no rigid body are not authored in the Physics scope.  
-In USD `PhysicsJoint`, `body1` must reference a prim that has a rigid body; joints that would place a rigid-body-less child on `body1` are omitted.  
+In USD `PhysicsJoint`, `body0` may reference a prim without a rigid body, but `body1` must reference a prim that has one; joints that would place a rigid-body-less child on `body1` are omitted.  
 Fixed joints that only connect Ghost Links without rigid bodies are therefore dropped, while joints whose child still has a rigid body (for example, a Revolute joint to the first non-Ghost descendant) remain.
 
-An articulation is built from the `body0`/`body1` relationships of its joints, not from the USD hierarchy, so a joint whose `body0` targets a Ghost Link would detach its child from the rest of the articulation.  
-When the parent link of a joint has no rigid body, `body0` therefore targets the closest ancestor link that does have one, or the default prim (the world) when no such ancestor exists.  
+When the parent link of a joint has no rigid body, this converter authors `body0` as the closest ancestor link that does have one (or the default prim / world when none exists), rather than relying on consumers to walk ancestors from a ghost-link target themselves.  
 Because the joint frame is expressed relative to `body1`, the `origin` of the Fixed joints that were dropped along the way is accumulated into `physics:localPos0` and `physics:localRot0`, which keeps the child in the same place.
 
 The nested Geometry Xform hierarchy is not removed; only rigid-body assignment and redundant physics joints change.  
