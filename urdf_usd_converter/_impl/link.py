@@ -311,7 +311,7 @@ def _has_rigid_body(link_name: str, data: ConversionData) -> bool:
     """
     link_prim = data.references[Tokens.Physics][link_name]
     prim = data.content[Tokens.Physics].GetPrimAtPath(link_prim.GetPath())
-    return prim and prim.HasAPI(UsdPhysics.RigidBodyAPI)
+    return bool(prim and prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
 
 def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | None:
@@ -320,10 +320,6 @@ def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | Non
 
     Returns None when no ancestor owns one, which means the joint should target the world.
     """
-    # The kinematic root has no parent, so there is no rigid-body ancestor to find.
-    if link_name == data.link_hierarchy.root_link.name:
-        return None
-
     parent_link = data.link_hierarchy.get_link_parent(link_name)
     while parent_link is not None:
         if _has_rigid_body(parent_link.name, data):
