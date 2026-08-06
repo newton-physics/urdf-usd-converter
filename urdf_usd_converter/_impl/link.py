@@ -33,7 +33,7 @@ __all__ = ["convert_links"]
 
 def convert_links(data: ConversionData):
     geo_scope = data.content[Tokens.Geometry].GetDefaultPrim().GetChild(Tokens.Geometry).GetPrim()
-    root_link = data.link_hierarchy.get_root_link()
+    root_link = data.link_hierarchy.root_link
 
     # Creating a Link Hierarchy.
     convert_link(parent=geo_scope, having_articulation_root=False, link=root_link, data=data)
@@ -59,7 +59,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     joints = data.link_hierarchy.get_link_joints(link.name)
 
     # Determines if the link is the root link.
-    is_root_link = link == data.link_hierarchy.get_root_link()
+    is_root_link = link.name == data.link_hierarchy.root_link.name
 
     # Determines if the root link is a ghost link (no inertia/colliders/visuals).
     has_ghost_link = data.link_hierarchy.has_ghost_link(link.name)
@@ -320,9 +320,8 @@ def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | Non
 
     Returns None when no ancestor owns one, which means the joint should target the world.
     """
-    root_name = data.link_hierarchy.get_root_link().name
     # The kinematic root has no parent, so there is no rigid-body ancestor to find.
-    if link_name == root_name:
+    if link_name == data.link_hierarchy.root_link.name:
         return None
 
     parent_link = data.link_hierarchy.get_link_parent(link_name)
@@ -338,8 +337,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
     Create physics joints.
     """
     # Determines if the root link is a ghost link (no inertia/colliders/visuals).
-    root_link = data.link_hierarchy.get_root_link()
-    has_root_ghost_link = data.link_hierarchy.has_ghost_link(root_link.name)
+    root_link_name = data.link_hierarchy.root_link.name
+    has_root_ghost_link = data.link_hierarchy.has_ghost_link(root_link_name)
 
     default_prim = parent.GetStage().GetDefaultPrim()
 
@@ -359,7 +358,7 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         joint_name = "root_joint"
         joint_safe_name = data.name_cache.getPrimName(parent, joint_name)
         body0 = default_prim
-        body1 = data.references[Tokens.Physics][root_link.name]
+        body1 = data.references[Tokens.Physics][root_link_name]
         joint_frame = usdex.core.JointFrame(usdex.core.JointFrame.Space.Body1, Gf.Vec3d(0), Gf.Quatd.GetIdentity())
         physics_joint = usdex.core.definePhysicsFixedJoint(parent, joint_safe_name, body0, body1, joint_frame)
         if physics_joint and joint_name != joint_safe_name:

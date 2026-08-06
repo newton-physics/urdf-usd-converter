@@ -38,10 +38,13 @@ class LinkHierarchy:
         # Store the link names that are referenced by mimic joints.
         self._store_referenced_link_names_by_mimic_joint()
 
+        # The root link of the kinematic hierarchy.
+        self.root_link = self._find_root_link()
+
         # Preprocessing is performed to identify Ghost Links.
         # If the end of a link is a Ghost Link, the rigid body associated with that link will be removed.
-        self._ghost_links_chain(None, self.get_root_link())
-        self._check_remove_rigid_body_flag(self.get_root_link())
+        self._ghost_links_chain(None, self.root_link)
+        self._check_remove_rigid_body_flag(self.root_link)
 
     def _create_link_hierarchy(self):
         """
@@ -174,9 +177,9 @@ class LinkHierarchy:
                 break
         return checked
 
-    def get_root_link(self) -> ElementLink:
+    def _find_root_link(self) -> ElementLink:
         """
-        Get the root link name from the link hierarchy.
+        Find the root link from the link hierarchy.
         """
         links = [data["link"] for data in self.link_tree.values()]
         if len(links) == 0:
@@ -214,9 +217,8 @@ class LinkHierarchy:
         """
         Get the parent link of a link, or None when the link is the kinematic root.
         """
-        root_link = self.get_root_link()
         # The kinematic root has no parent and is not stored in `link_parents`.
-        if root_link is not None and link_name == root_link.name:
+        if link_name == self.root_link.name:
             return None
         return self.link_parents.get(link_name)
 
@@ -250,7 +252,7 @@ class LinkHierarchy:
         belongs_to_mimic_joint = self.links[link.name]["belongs_to_mimic_joint"]
 
         # For root links, only 'ghost_link' is used for identification.
-        if link.name == self.get_root_link().name:
+        if link.name == self.root_link.name:
             return ghost_link
 
         return ghost_link and belongs_to_fixed_joint and not belongs_to_mimic_joint
