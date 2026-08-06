@@ -284,6 +284,49 @@ class TestPhysicsInertia(ConverterTestCase):
         )
         self._assert_inertia_reconstructs(link_prim, 2e6, 2e6, 2e6, 0.0, 0.0, 0.0, rpy=(0.37, 1.02, -2.9))
 
+    def test_large_pair_degenerate_urdf_principal_axes(self):
+        """
+        Assert URDF conversion handles large pair-degenerate inertia (ixx == iyy != izz).
+
+        Exercises `_fix_degenerate_plane` end-to-end: authored principalAxes must
+        match the scale-invariant result from `_extract_inertia`, and reconstruct I_body.
+        """
+        rpy = (0.37, 1.02, -2.9)
+        scale = 2e6
+        input_path = "tests/data/inertia_large_degenerate.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        parent_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link_isotropic_large"))
+        link_prim = stage.GetPrimAtPath(parent_prim.GetPath().AppendChild("link_pair_degenerate_large"))
+        self.assertTrue(link_prim.IsValid())
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        # Same shape at unit scale must yield the same axes (relative degeneracy tolerance).
+        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), self._principal_axes(1.0, rpy))
+        # Absolute epsilon (see test_large_isotropic_extract_inertia_is_canonical).
+        self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(scale, scale, 2.0 * scale), 1e-3))
+        # Gf vs NumPy rpy paths differ at ~1e-9 abs for large |I|; use relative tol.
+        expected_body = self._rotation_from_rpy(rpy) @ np.diag([scale, scale, 2.0 * scale]) @ self._rotation_from_rpy(rpy).T
+        expected = [
+            expected_body[0, 0],
+            expected_body[1, 1],
+            expected_body[2, 2],
+            expected_body[0, 1],
+            expected_body[0, 2],
+            expected_body[1, 2],
+        ]
+        inertia = link_prim.GetAttribute("newton:inertia").Get()
+        self.assertTrue(
+            np.allclose(inertia, expected, rtol=1e-12, atol=1e-3),
+            msg=f"newton:inertia {inertia} does not match expected body-frame tensor {expected}",
+        )
+        self._assert_inertia_reconstructs(link_prim, scale, scale, 2.0 * scale, 0.0, 0.0, 0.0, rpy=rpy)
+
     def test_origin_mass_without_inertia_skips_principal_axes(self):
         """
         Assert principalAxes is not authored when <inertial> lacks <inertia>.
