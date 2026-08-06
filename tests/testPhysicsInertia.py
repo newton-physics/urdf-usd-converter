@@ -203,65 +203,32 @@ class TestPhysicsInertia(ConverterTestCase):
         self._assert_newton_inertia(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
         self._assert_inertia_reconstructs(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
 
-    def _pair_degenerate_body_eigenvalues(self, scale: float, rpy: tuple[float, float, float]) -> np.ndarray:
-        """Eigenvalues of I_body for a pair-degenerate URDF tensor (ixx == iyy != izz)."""
+    def _principal_axes(self, scale: float, rpy: tuple[float, float, float], *, izz_factor: float = 2.0) -> Gf.Quatf:
+        """
+        Principal axes from a pair-degenerate (default) or isotropic URDF tensor
+        after rotation into the body frame, via the shipped `_extract_inertia`.
+        """
         inertia = ElementInertia()
-        inertia.ixx = scale
-        inertia.iyy = scale
-        inertia.izz = 2.0 * scale
-        inertia.ixy = 0.0
-        inertia.ixz = 0.0
-        inertia.iyz = 0.0
+        inertia.ixx = inertia.iyy = scale
+        inertia.izz = izz_factor * scale
+        inertia.ixy = inertia.ixz = inertia.iyz = 0.0
         origin = ElementPose()
         origin.rpy = rpy
-        i_body = _inertia_tensor_in_body_frame(inertia, origin)
-        ixx, iyy, izz, ixy, ixz, iyz = i_body
-        mat = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]], dtype=np.float64)
-        return np.linalg.eigh(mat)[0]
+        return _extract_inertia(_inertia_tensor_in_body_frame(inertia, origin))[0]
 
-    def _degeneracy_miss_rate(self, scale: float, *, relative: bool, n: int = 300, seed: int = 0) -> float:
+    def test_principal_axes_are_scale_invariant(self):
         """
-        Fraction of random origin.rpy samples where a pair-degenerate tensor is
-        not detected after rotation into the body frame.
+        Assert principalAxes depend on inertia shape, not magnitude.
 
-        Absolute 1e-9 becomes load-bearing once I_body carries magnitude-
-        proportional rounding; relative tolerance scales with |eigenvalues|.
+        Same rpy and tensor shape must yield the same quaternion at any scale.
+        Uses pair-degenerate tensors (ixx == iyy != izz) so the shipped
+        `_canonicalize_eigenvectors` / `_fix_degenerate_plane` path is exercised
+        through `_extract_inertia`.
         """
-        rng = np.random.default_rng(seed)
-        misses = 0
-        for _ in range(n):
-            rpy = tuple(float(x) for x in rng.uniform(-math.pi, math.pi, size=3))
-            eigenvalues = self._pair_degenerate_body_eigenvalues(scale, rpy)
-            tol = 1e-9 * max(1.0, float(np.max(np.abs(eigenvalues)))) if relative else 1e-9
-            eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < tol
-            eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < tol
-            if not (eq01 or eq12):
-                misses += 1
-        return 100.0 * misses / n
-
-    def test_degeneracy_tolerance_scales_with_inertia_magnitude(self):
-        """
-        Compare absolute vs relative eigenvalue-degeneracy miss rates over random rpy.
-
-        Absolute 1e-9 misses pair-degeneracy more often as |I| grows; relative
-        tolerance detects all samples. Typical observed absolute miss rates over
-        300 random rpy (Gf-built I_body): I~1e5 ~0%, I~1e6 ~10%, I~1e7 ~85%+.
-        """
-        for scale in (1e5, 1e6, 1e7):
-            relative_miss = self._degeneracy_miss_rate(scale, relative=True)
-            self.assertEqual(
-                relative_miss,
-                0.0,
-                msg=f"relative tolerance should detect all degeneracies at scale {scale:g}, miss={relative_miss}%",
-            )
-
-        absolute_1e5 = self._degeneracy_miss_rate(1e5, relative=False)
-        absolute_1e6 = self._degeneracy_miss_rate(1e6, relative=False)
-        absolute_1e7 = self._degeneracy_miss_rate(1e7, relative=False)
-        self.assertEqual(absolute_1e5, 0.0, msg=f"I~1e5 absolute miss rate should be ~0%, got {absolute_1e5}%")
-        self.assertGreater(absolute_1e6, 0.0, msg=f"I~1e6 absolute miss rate should be >0%, got {absolute_1e6}%")
-        self.assertGreater(absolute_1e7, 50.0, msg=f"I~1e7 absolute miss rate should be high, got {absolute_1e7}%")
-        self.assertGreater(absolute_1e7, absolute_1e6)
+        for rpy in [(0.37, 1.02, -2.9), (0.8606, -1.4465, -2.8841), (0.1, 0.2, 0.3)]:
+            reference = self._principal_axes(1.0, rpy)
+            for scale in (1e3, 1e5, 1e6, 1e7):
+                self.assertRotationsAlmostEqual(self._principal_axes(scale, rpy), reference)
 
     def test_large_isotropic_extract_inertia_is_canonical(self):
         """
