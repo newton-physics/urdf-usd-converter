@@ -288,8 +288,8 @@ class TestPhysicsInertia(ConverterTestCase):
         """
         Assert URDF conversion handles large pair-degenerate inertia (ixx == iyy != izz).
 
-        Exercises `_fix_degenerate_plane` end-to-end: authored principalAxes must
-        match the scale-invariant result from `_extract_inertia`, and reconstruct I_body.
+        Authored principalAxes must match the unit-scale result for the same shape
+        (scale-invariant under body-frame rotation) and reconstruct I_body.
         """
         rpy = (0.37, 1.02, -2.9)
         scale = 2e6
