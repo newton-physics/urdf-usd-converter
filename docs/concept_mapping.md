@@ -285,6 +285,9 @@ Physics joints whose child link has no rigid body are not authored in the Physic
 In USD `PhysicsJoint`, `body0` may reference a prim without a rigid body, but `body1` must reference a prim that has one; joints that would place a rigid-body-less child on `body1` are omitted.  
 Fixed joints that only connect Ghost Links without rigid bodies are therefore dropped, while joints whose child still has a rigid body (for example, a Revolute joint to the first non-Ghost descendant) remain.
 
+When the parent link of a joint has no rigid body, this converter authors `body0` as the closest ancestor link that does have one (or the default prim / world when none exists), rather than relying on consumers to walk ancestors from a ghost-link target themselves.  
+Because the joint frame is expressed relative to `body1`, the `origin` of the Fixed joints that were dropped along the way is accumulated into `physics:localPos0` and `physics:localRot0`, which keeps the child in the same place.
+
 The nested Geometry Xform hierarchy is not removed; only rigid-body assignment and redundant physics joints change.  
 
 
@@ -352,7 +355,8 @@ The USD content can then be simplified to:
 In Physics, only the joint with `parent=BaseLink` and `child=BoxLink` remains (in addition to any world/root joint policy used elsewhere in this converter).
 
 When Ghost Links on Fixed joints appear **before** an articulated, non-Ghost descendant, the same per-link rule applies.  
-For example, with `BaseLink → ghost_link → ghost_link_2 → ghost_link_3 → link_box` (three Fixed joints, then a Revolute joint to `link_box`), rigid bodies are omitted on `ghost_link`, `ghost_link_2`, and `ghost_link_3`, the three internal Fixed joints are not authored, and only `joint_box` (Revolute, parent `ghost_link_3`, child `link_box`) remains among the joints along that chain.  
+For example, with `BaseLink → ghost_link → ghost_link_2 → ghost_link_3 → link_box` (three Fixed joints, then a Revolute joint to `link_box`), rigid bodies are omitted on `ghost_link`, `ghost_link_2`, and `ghost_link_3`, and the three internal Fixed joints are not authored.  
+Only `joint_box` remains among the joints along that chain, and its `body0` targets `BaseLink` rather than `ghost_link_3`, with the origins of the three dropped Fixed joints accumulated into its `physics:localPos0`.  
 
 ### link/inertial
 
