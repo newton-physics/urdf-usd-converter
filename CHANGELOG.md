@@ -1,3 +1,17 @@
+# 0.3.3
+
+## Fixes
+
+- Fixed `physics:body0` to reference the closest ancestor with a rigid body, rather than a ghost link that has none
+  - `UsdPhysics` already resolved such references by walking ancestors, so this does not change how the articulation is parsed; it makes the authored relationship more intuitive so consumers can read `body0` directly
+  - The `origin` of any fixed joints dropped along the way is accumulated into `physics:localPos0` / `physics:localRot0`
+- Ghost links no longer emit empty `over` prims into the Physics layer
+- Fixed `physics:principalAxes` to be derived from the body-frame inertia tensor, the same source as `newton:inertia`
+  - Previously the axes were eigendecomposed from the unrotated URDF tensor and `origin.rpy` was composed on afterward, which did not preserve the eigenvector sign convention
+- Fixed eigenvalue degeneracy detection to use a relative tolerance, so principal axes depend on the inertia tensor's shape rather than its magnitude
+- Fixed an invalid zero `physics:principalAxes` authored when `<inertial>` specifies `origin` and `mass` but no `<inertia>`
+  - Principal axes and diagonal inertia are now authored only when an inertia tensor is present
+
 # 0.3.2
 
 ## Fixes
