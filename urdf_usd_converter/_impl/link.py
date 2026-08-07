@@ -221,9 +221,10 @@ def _canonicalize_eigenvectors(eigenvalues: np.ndarray, eigenvectors: np.ndarray
 
     Modifies eigenvectors in place.
     """
-    # Absolute 1e-9 is too tight once I_body = R I_urdf R^T introduces
-    # magnitude-proportional rounding; scale the threshold with |eigenvalues|.
-    tol = 1e-9 * max(1.0, float(np.max(np.abs(eigenvalues))))
+    # Magnitude-proportional rounding after I_body = R I_urdf R^T requires a
+    # relative degeneracy tolerance (no absolute floor — that misclassifies
+    # fully anisotropic tensors whose |eigenvalues| are below 1.0).
+    tol = 1e-9 * float(np.max(np.abs(eigenvalues)))
     eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < tol
     eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < tol
     if eq01 and eq12:

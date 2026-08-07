@@ -220,14 +220,15 @@ class TestPhysicsInertia(ConverterTestCase):
         """
         Assert principalAxes depend on inertia shape, not magnitude.
 
-        Same rpy and tensor shape must yield the same quaternion at any scale.
+        Same rpy and tensor shape must yield the same quaternion at any scale,
+        including below 1.0 (a floored absolute tolerance would break that side).
         Uses pair-degenerate tensors (ixx == iyy != izz) so the shipped
         `_canonicalize_eigenvectors` / `_fix_degenerate_plane` path is exercised
         through `_extract_inertia`.
         """
         for rpy in [(0.37, 1.02, -2.9), (0.8606, -1.4465, -2.8841), (0.1, 0.2, 0.3)]:
             reference = self._principal_axes(1.0, rpy)
-            for scale in (1e3, 1e5, 1e6, 1e7):
+            for scale in (1e-10, 1e-9, 1e3, 1e5, 1e6, 1e7):
                 self.assertRotationsAlmostEqual(self._principal_axes(scale, rpy), reference)
 
     def test_large_isotropic_extract_inertia_is_canonical(self):
