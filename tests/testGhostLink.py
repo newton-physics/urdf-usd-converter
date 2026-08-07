@@ -262,14 +262,24 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(joint_box_prim.IsValid())
         self.assertTrue(joint_box_prim.IsA(UsdPhysics.RevoluteJoint))
         joint = UsdPhysics.RevoluteJoint(joint_box_prim)
-        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_chain/Geometry/BaseLink/ghost_link/ghost_link_2/ghost_link_3"])
+        # body0 is authored as "BaseLink" (resolved from "ghost_link_3") so consumers
+        # reading body0 directly see the rigid-body ancestor without walking the hierarchy.
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_chain/Geometry/BaseLink"])
         self.assertEqual(
             joint.GetBody1Rel().GetTargets(), ["/link_skip_ghost_link_chain/Geometry/BaseLink/ghost_link/ghost_link_2/ghost_link_3/link_box"]
         )
-        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.2), 1e-6))
+        # Authored localPos0 is relative to BaseLink (0.1+0.2+0.2), matching the world-space joint.
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
         self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
         self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        # Resolved parse agrees with the authored retargeting (same body0 / localPose0).
+        parsed = UsdPhysics.LoadUsdPhysicsFromRange(stage, ["/"])
+        revolute_paths, revolute_descs = parsed[UsdPhysics.ObjectType.RevoluteJoint]
+        self.assertEqual(list(revolute_paths), [joint_box_prim.GetPath()])
+        self.assertEqual(str(revolute_descs[0].body0), "/link_skip_ghost_link_chain/Geometry/BaseLink")
+        self.assertTrue(Gf.IsClose(revolute_descs[0].localPose0Position, Gf.Vec3f(0, 0, 0.5), 1e-6))
 
     def test_link_skip_ghost_link_chain_end(self):
         input_path = "tests/data/link_skip_ghost_link_chain_end.urdf"
@@ -432,13 +442,13 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(joint_box_prim.IsValid())
         self.assertTrue(joint_box_prim.IsA(UsdPhysics.RevoluteJoint))
         joint = UsdPhysics.RevoluteJoint(joint_box_prim)
-        self.assertEqual(
-            joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_chain_branch/Geometry/BaseLink/ghost_link/ghost_link_2/ghost_link_3"]
-        )
+        # body0 is authored as "BaseLink" (resolved from "ghost_link_3") so consumers
+        # reading body0 directly see the rigid-body ancestor without walking the hierarchy.
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_skip_ghost_link_chain_branch/Geometry/BaseLink"])
         self.assertEqual(
             joint.GetBody1Rel().GetTargets(), ["/link_skip_ghost_link_chain_branch/Geometry/BaseLink/ghost_link/ghost_link_2/ghost_link_3/link_box"]
         )
-        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.2), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
         self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
         self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
         self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
@@ -627,3 +637,84 @@ class TestGhostLink(ConverterTestCase):
 
         joint_no_inertia_prim = physics_scope_prim.GetChild("joint_no_inertia")
         self.assertFalse(joint_no_inertia_prim.IsValid())
+
+    def test_link_ghost_link_children(self):
+        input_path = "tests/data/link_ghost_link_children.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        default_prim = stage.GetDefaultPrim()
+        self.assertTrue(default_prim.IsValid())
+
+        geometry_scope_prim = default_prim.GetChild("Geometry")
+        self.assertTrue(geometry_scope_prim.IsValid())
+
+        # Check physics rigid bodies. This is a root link, and Articulation has been assigned to it.
+        base_link_prim = geometry_scope_prim.GetChild("BaseLink")
+        self.assertTrue(base_link_prim.IsValid())
+        self.assertTrue(base_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(base_link_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # This ghost link does not have a rigid body.
+        ghost_link_prim = base_link_prim.GetChild("ghost_link")
+        self.assertTrue(ghost_link_prim.IsValid())
+        self.assertFalse(ghost_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(ghost_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(ghost_link_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # This link has a rigid body.
+        box_link_prim = ghost_link_prim.GetChild("box_link")
+        self.assertTrue(box_link_prim.IsValid())
+        self.assertTrue(box_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(box_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(box_link_prim.HasAPI("NewtonArticulationRootAPI"))
+
+        # Check physics joint.
+        # "root_joint" and "joint2" are created.
+        # "joint1" is not created because it is a fixed joint and body1 is a ghost link without a rigid body.
+        physics_scope_prim = default_prim.GetChild("Physics")
+        self.assertTrue(physics_scope_prim.IsValid())
+        self.assertEqual(len(physics_scope_prim.GetChildren()), 2)
+
+        root_joint_prim = physics_scope_prim.GetChild("root_joint")
+        self.assertTrue(root_joint_prim.IsValid())
+        self.assertTrue(root_joint_prim.IsA(UsdPhysics.FixedJoint))
+        joint = UsdPhysics.FixedJoint(root_joint_prim)
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_ghost_link_children"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_ghost_link_children/Geometry/BaseLink"])
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        joint1_prim = physics_scope_prim.GetChild("joint1")
+        self.assertFalse(joint1_prim.IsValid())
+
+        joint2_prim = physics_scope_prim.GetChild("joint2")
+        self.assertTrue(joint2_prim.IsValid())
+        self.assertTrue(joint2_prim.IsA(UsdPhysics.RevoluteJoint))
+        joint = UsdPhysics.RevoluteJoint(joint2_prim)
+        # body0 is authored as "BaseLink" (resolved from "ghost_link") so consumers
+        # reading body0 directly see the rigid-body ancestor without walking the hierarchy.
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/link_ghost_link_children/Geometry/BaseLink"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/link_ghost_link_children/Geometry/BaseLink/ghost_link/box_link"])
+        # The origin of "joint1" and "joint2" are accumulated into the joint frame of "BaseLink".
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0.4, 0, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+        self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+        # Resolved parse agrees with the authored retargeting (same body0 / localPose0).
+        parsed = UsdPhysics.LoadUsdPhysicsFromRange(stage, ["/"])
+        revolute_paths, revolute_descs = parsed[UsdPhysics.ObjectType.RevoluteJoint]
+        self.assertEqual(list(revolute_paths), [joint2_prim.GetPath()])
+        self.assertEqual(str(revolute_descs[0].body0), "/link_ghost_link_children/Geometry/BaseLink")
+        self.assertTrue(Gf.IsClose(revolute_descs[0].localPose0Position, Gf.Vec3f(0.4, 0, 0), 1e-6))

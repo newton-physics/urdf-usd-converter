@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot name="link_ghost_link_children">
+  <!-- A `Ghost Link` sits between "BaseLink" and "box_link", and is the parent of a revolute joint. -->
+  <!-- The revolute joint targets "BaseLink" on body0, because the ghost link has no rigid body. -->
+  <link name="BaseLink">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.5 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="ghost_link" />
+  <link name="box_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.55 0 0"/>
+      <geometry>
+        <box size="1.0 0.2 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="joint1" type="fixed">
+    <origin rpy="0 0 0" xyz="0.3 0 0"/>
+    <parent link="BaseLink"/>
+    <child link="ghost_link"/>
+  </joint>
+  <joint name="joint2" type="revolute">
+    <origin rpy="0 0 0" xyz="0.1 0 0"/>
+    <parent link="ghost_link"/>
+    <child link="box_link"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-0.6" upper="0.6"/>
+  </joint>
+</robot>
