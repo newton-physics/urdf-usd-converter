@@ -22,7 +22,6 @@ from .urdf_parser.elements import (
 )
 from .utils import (
     float3_to_quatd,
-    float3_to_quatf,
     get_geometry_name,
     set_schema_attribute,
     set_transform,
@@ -156,21 +155,19 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
     prim_over.ApplyAPI("NewtonMassAPI")
 
     if link.inertial and link.inertial.inertia:
-        inertia = link.inertial.inertia
-        orientation, diag_inertia = extract_inertia(inertia)
+        # `newton:inertia` is in body local frame
+        i_body = _inertia_tensor_in_body_frame(link.inertial.inertia, link.inertial.origin)
+        set_schema_attribute(prim_over, "newton:inertia", i_body)
+
+        # Derive principal axes from I_body so `physics:*` and `newton:inertia` share one source.
+        # I_body already includes origin.rpy, so do not compose rpy onto principalAxes again.
+        orientation, diag_inertia = _extract_inertia(i_body)
         mass_api.GetPrincipalAxesAttr().Set(orientation)
         mass_api.GetDiagonalInertiaAttr().Set(diag_inertia)
 
-        # `newton:inertia` is in body local frame
-        i_body = _inertia_tensor_in_body_frame(inertia, link.inertial.origin)
-        set_schema_attribute(prim_over, "newton:inertia", i_body)
-
     if link.inertial.origin:
         position = Gf.Vec3f(link.inertial.origin.get_with_default("xyz"))
-        orientation = float3_to_quatf(link.inertial.origin.get_with_default("rpy"))
         mass_api.GetCenterOfMassAttr().Set(position)
-        axes = mass_api.GetPrincipalAxesAttr().Get()
-        mass_api.GetPrincipalAxesAttr().Set(orientation * axes)
 
     if link.inertial.mass:
         mass = link.inertial.mass.get_with_default("value")
@@ -224,8 +221,12 @@ def _canonicalize_eigenvectors(eigenvalues: np.ndarray, eigenvectors: np.ndarray
 
     Modifies eigenvectors in place.
     """
-    eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < 1e-9
-    eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < 1e-9
+    # Magnitude-proportional rounding after I_body = R I_urdf R^T requires a
+    # relative degeneracy tolerance (no absolute floor — that misclassifies
+    # fully anisotropic tensors whose |eigenvalues| are below 1.0).
+    tol = 1e-9 * float(np.max(np.abs(eigenvalues)))
+    eq01 = abs(float(eigenvalues[0]) - float(eigenvalues[1])) < tol
+    eq12 = abs(float(eigenvalues[1]) - float(eigenvalues[2])) < tol
     if eq01 and eq12:
         # All three equal: use identity (canonical default).
         # Spherical symmetry, etc.
@@ -249,23 +250,18 @@ def _canonicalize_eigenvectors(eigenvalues: np.ndarray, eigenvectors: np.ndarray
             eigenvectors[:, -1] = -eigenvectors[:, -1]
 
 
-def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
+def _extract_inertia(i_body: list[float]) -> tuple[Gf.Quatf, Gf.Vec3f]:
     """
     Extract the principal moments of inertia (diagonal inertia) and orientation
-    from URDF link inertia tensor using eigenvalue decomposition.
+    from a body-frame inertia tensor using eigenvalue decomposition.
 
     Args:
-        inertia: URDF inertia tensor element
+        i_body: Symmetric inertia tensor as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`
 
     Returns:
         tuple[Gf.Quatf, Gf.Vec3f]: (orientation, diagonal_inertia)
     """
-    ixx = inertia.get_with_default("ixx")
-    ixy = inertia.get_with_default("ixy")
-    ixz = inertia.get_with_default("ixz")
-    iyy = inertia.get_with_default("iyy")
-    iyz = inertia.get_with_default("iyz")
-    izz = inertia.get_with_default("izz")
+    ixx, iyy, izz, ixy, ixz, iyz = i_body
 
     # Build inertia tensor matrix (symmetric matrix)
     mat = np.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]], dtype=np.float64)
@@ -276,7 +272,7 @@ def extract_inertia(inertia: ElementInertia) -> tuple[Gf.Quatf, Gf.Vec3f]:
     eigenvalues, eigenvectors = np.linalg.eigh(mat)
 
     # In the case of two degenerate eigenvalues, the corresponding eigenvectors are not unique.
-    # Detect degeneracy with absolute tolerance and canonicalize the eigenvector matrix.
+    # Detect degeneracy with a magnitude-relative tolerance and canonicalize the eigenvector matrix.
     _canonicalize_eigenvectors(eigenvalues, eigenvectors)
 
     # Use eigenvalues as diagonal inertia

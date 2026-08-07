@@ -8,6 +8,8 @@ from pxr import Gf, Usd, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
+from urdf_usd_converter._impl.link import _extract_inertia, _inertia_tensor_in_body_frame
+from urdf_usd_converter._impl.urdf_parser.elements import ElementInertia, ElementPose
 
 
 class TestPhysicsInertia(ConverterTestCase):
@@ -195,7 +197,170 @@ class TestPhysicsInertia(ConverterTestCase):
         self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.5), 1e-6))
         self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 0.8, places=6)
         self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(0.77679752, 2.1640169, 3.0591856), 1e-6))
-        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(-0.0463736, 0.2748650, 0.9481796, 0.1524932))
+        # principalAxes come from eigendecomposition of I_body (not I_urdf composed with rpy).
+        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(0.9481796, 0.15249318, 0.04637361, -0.27486506))
         # `newton:inertia` is in the body/link frame (URDF inertia rotated by origin.rpy).
         self._assert_newton_inertia(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
         self._assert_inertia_reconstructs(link_box7_prim, 2.0, 1.0, 3.0, 0.5, 0.25, -0.1, rpy=(0.3, -0.4, 0.5))
+
+    def _principal_axes(self, scale: float, rpy: tuple[float, float, float], *, izz_factor: float = 2.0) -> Gf.Quatf:
+        """
+        Principal axes from a pair-degenerate (default) or isotropic URDF tensor
+        after rotation into the body frame, via the shipped `_extract_inertia`.
+        """
+        inertia = ElementInertia()
+        inertia.ixx = inertia.iyy = scale
+        inertia.izz = izz_factor * scale
+        inertia.ixy = inertia.ixz = inertia.iyz = 0.0
+        origin = ElementPose()
+        origin.rpy = rpy
+        return _extract_inertia(_inertia_tensor_in_body_frame(inertia, origin))[0]
+
+    def test_principal_axes_are_scale_invariant(self):
+        """
+        Assert principalAxes depend on inertia shape, not magnitude.
+
+        Same rpy and tensor shape must yield the same quaternion at any scale,
+        including below 1.0 (a floored absolute tolerance would break that side).
+        Uses pair-degenerate tensors (ixx == iyy != izz) so the shipped
+        `_canonicalize_eigenvectors` / `_fix_degenerate_plane` path is exercised
+        through `_extract_inertia`.
+        """
+        for rpy in [(0.37, 1.02, -2.9), (0.8606, -1.4465, -2.8841), (0.1, 0.2, 0.3)]:
+            reference = self._principal_axes(1.0, rpy)
+            for scale in (1e-10, 1e-9, 1e3, 1e5, 1e6, 1e7):
+                self.assertRotationsAlmostEqual(self._principal_axes(scale, rpy), reference)
+
+    def test_large_isotropic_extract_inertia_is_canonical(self):
+        """
+        Assert `_extract_inertia` returns identity axes for a large isotropic tensor.
+
+        Large isotropic I=2e6 with non-identity rpy must still canonicalize to
+        identity principalAxes when eigenvalue degeneracy uses a relative tolerance.
+        """
+        inertia = ElementInertia()
+        inertia.ixx = inertia.iyy = inertia.izz = 2e6
+        inertia.ixy = inertia.ixz = inertia.iyz = 0.0
+        origin = ElementPose()
+        origin.rpy = (0.37, 1.02, -2.9)
+        i_body = _inertia_tensor_in_body_frame(inertia, origin)
+        orientation, diag_inertia = _extract_inertia(i_body)
+        self.assertRotationsAlmostEqual(orientation, Gf.Quatf(1, 0, 0, 0))
+        # Gf.IsClose epsilon is absolute: |a-b| < 1e-3. At scale 2e6 that is still
+        # a tight relative check (~5e-10); looser than the O(1) tests' 1e-6 only
+        # to absorb float32 Vec3f / eigh rounding at large magnitude.
+        self.assertTrue(Gf.IsClose(diag_inertia, Gf.Vec3f(2e6, 2e6, 2e6), 1e-3))
+
+    def test_large_isotropic_urdf_principal_axes_are_canonical(self):
+        """
+        Assert URDF conversion authors identity principalAxes for a large isotropic link.
+
+        Same large isotropic case as above, end-to-end through URDF conversion:
+        authored physics:principalAxes must be the canonical identity.
+        """
+        input_path = "tests/data/inertia_large_degenerate.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        link_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link_isotropic_large"))
+        self.assertTrue(link_prim.IsValid())
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), Gf.Quatf(1, 0, 0, 0))
+        # Absolute epsilon (see test_large_isotropic_extract_inertia_is_canonical).
+        self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(2e6, 2e6, 2e6), 1e-3))
+        # Isotropic I_body ≈ s*I; Gf vs NumPy rpy paths differ at ~1e-9 abs, so use relative tol.
+        inertia = link_prim.GetAttribute("newton:inertia").Get()
+        self.assertTrue(
+            np.allclose(inertia[:3], [2e6, 2e6, 2e6], rtol=1e-12, atol=1e-3),
+            msg=f"diagonal newton:inertia {inertia[:3]} not isotropic at 2e6",
+        )
+        self.assertTrue(
+            np.allclose(inertia[3:], [0.0, 0.0, 0.0], atol=1e-6),
+            msg=f"off-diagonal newton:inertia {inertia[3:]} should be ~0",
+        )
+        self._assert_inertia_reconstructs(link_prim, 2e6, 2e6, 2e6, 0.0, 0.0, 0.0, rpy=(0.37, 1.02, -2.9))
+
+    def test_large_pair_degenerate_urdf_principal_axes(self):
+        """
+        Assert URDF conversion handles large pair-degenerate inertia (ixx == iyy != izz).
+
+        Authored principalAxes must match the unit-scale result for the same shape
+        (scale-invariant under body-frame rotation) and reconstruct I_body.
+        """
+        rpy = (0.37, 1.02, -2.9)
+        scale = 2e6
+        input_path = "tests/data/inertia_large_degenerate.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        parent_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link_isotropic_large"))
+        link_prim = stage.GetPrimAtPath(parent_prim.GetPath().AppendChild("link_pair_degenerate_large"))
+        self.assertTrue(link_prim.IsValid())
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        # Same shape at unit scale must yield the same axes (relative degeneracy tolerance).
+        self.assertRotationsAlmostEqual(mass_api.GetPrincipalAxesAttr().Get(), self._principal_axes(1.0, rpy))
+        # Absolute epsilon (see test_large_isotropic_extract_inertia_is_canonical).
+        self.assertTrue(Gf.IsClose(mass_api.GetDiagonalInertiaAttr().Get(), Gf.Vec3f(scale, scale, 2.0 * scale), 1e-3))
+        # Gf vs NumPy rpy paths differ at ~1e-9 abs for large |I|; use relative tol.
+        expected_body = self._rotation_from_rpy(rpy) @ np.diag([scale, scale, 2.0 * scale]) @ self._rotation_from_rpy(rpy).T
+        expected = [
+            expected_body[0, 0],
+            expected_body[1, 1],
+            expected_body[2, 2],
+            expected_body[0, 1],
+            expected_body[0, 2],
+            expected_body[1, 2],
+        ]
+        inertia = link_prim.GetAttribute("newton:inertia").Get()
+        self.assertTrue(
+            np.allclose(inertia, expected, rtol=1e-12, atol=1e-3),
+            msg=f"newton:inertia {inertia} does not match expected body-frame tensor {expected}",
+        )
+        self._assert_inertia_reconstructs(link_prim, scale, scale, 2.0 * scale, 0.0, 0.0, 0.0, rpy=rpy)
+
+    def test_origin_mass_without_inertia_skips_principal_axes(self):
+        """
+        Assert principalAxes is not authored when <inertial> lacks <inertia>.
+
+        mass and centerOfMass should still be authored from the present elements;
+        principalAxes, diagonalInertia, and newton:inertia require an inertia tensor.
+        """
+        input_path = "tests/data/inertia_origin_mass_no_inertia.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        link_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link_origin_mass_only"))
+        self.assertTrue(link_prim.IsValid())
+        self.assertTrue(link_prim.HasAPI(UsdPhysics.MassAPI))
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 1.0, places=6)
+        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0, 0, 0.1), 1e-6))
+        self.assertFalse(
+            mass_api.GetPrincipalAxesAttr().HasAuthoredValue(),
+            msg="physics:principalAxes must not be authored without <inertia>",
+        )
+        self.assertFalse(
+            mass_api.GetDiagonalInertiaAttr().HasAuthoredValue(),
+            msg="physics:diagonalInertia must not be authored without <inertia>",
+        )
+        newton_inertia = link_prim.GetAttribute("newton:inertia")
+        self.assertTrue(newton_inertia)
+        self.assertFalse(
+            newton_inertia.HasAuthoredValue(),
+            msg="newton:inertia must not be authored without <inertia>",
+        )

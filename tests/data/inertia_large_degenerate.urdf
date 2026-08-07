@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<robot name="inertia_large_degenerate">
+  <!--
+    Purpose: verify large-magnitude degenerate inertia with non-identity origin.rpy.
+    - link_isotropic_large: fully isotropic (ixx = iyy = izz); principalAxes → identity.
+    - link_pair_degenerate_large: pair-degenerate (ixx = iyy != izz); principalAxes
+      stay scale-invariant under body-frame rotation (degeneracy tolerance scales with |I|).
+  -->
+  <link name="link_isotropic_large">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0.37 1.02 -2.9"/>
+      <mass value="1.0"/>
+      <inertia ixx="2000000.0" ixy="0.0" ixz="0.0" iyy="2000000.0" iyz="0.0" izz="2000000.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="link_pair_degenerate_large">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0.37 1.02 -2.9"/>
+      <mass value="1.0"/>
+      <inertia ixx="2000000.0" ixy="0.0" ixz="0.0" iyy="2000000.0" iyz="0.0" izz="4000000.0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <joint name="joint_isotropic_to_pair" type="fixed">
+    <origin xyz="0 0 0.2" rpy="0 0 0"/>
+    <parent link="link_isotropic_large"/>
+    <child link="link_pair_degenerate_large"/>
+  </joint>
+</robot>
