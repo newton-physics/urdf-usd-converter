@@ -146,7 +146,3 @@ uv run urdf_usd_converter --help
 # In activated venv
 urdf_usd_converter --help
 ```
-
-## Changing OpenUSD Runtimes
-
-By default the urdf-usd-converter uses OpenUSD v26.08 & OpenUSD Exchange compiled for this same flavor. OpenUSD Exchange SDK can be compiled for many flavors of OpenUSD and Python. You can switch to a different flavor of OpenUSD by changing the `usd-exchange` version metadata within the pyproject.toml or sdist.
