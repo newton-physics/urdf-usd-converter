@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-import omni.asset_validator
+import usd_validation_nvidia
 import usdex.core
 import usdex.test
 from pxr import Kind, Sdf, Tf, Usd, UsdGeom, UsdPhysics, UsdShade
@@ -272,7 +272,7 @@ class TestAssetStructure(ConverterTestCase):
         self.assertTrue(materials_layer_path.exists(), msg=f"Materials layer not found at {materials_layer_path}")
         materials_stage: Usd.Stage = Usd.Stage.Open(materials_layer_path.as_posix())
         # overrides are expected in the material layer
-        self.validationEngine.disable_rule(omni.asset_validator.DanglingOverPrimChecker)
+        self.validationEngine.disable_rule(usd_validation_nvidia.DanglingOverPrimChecker)
         self.assertIsValidUsd(materials_stage)
 
         # Test stage metrics
@@ -326,7 +326,16 @@ class TestAssetStructure(ConverterTestCase):
         physics_layer_path = pathlib.Path(self.tmpDir()) / "Payload" / "Physics.usda"
         self.assertTrue(physics_layer_path.exists(), msg=f"Physics layer not found at {physics_layer_path}")
         physics_stage: Usd.Stage = Usd.Stage.Open(physics_layer_path.as_posix())
-        self.assertIsValidUsd(physics_stage)
+        # joint body targets are pure overs in this layer, they only resolve to Xformable prims in the composed asset
+        self.assertIsValidUsd(
+            physics_stage,
+            issuePredicates=[
+                usd_validation_nvidia.IssuePredicates.And(
+                    usd_validation_nvidia.IssuePredicates.IsRule(usd_validation_nvidia.PhysicsJointChecker),
+                    usd_validation_nvidia.IssuePredicates.ContainsMessage("body relationship must point to an Xformable prim"),
+                ),
+            ],
+        )
         self.assertEqual(UsdPhysics.GetStageKilogramsPerUnit(physics_stage), 1.0)
 
         # Test stage metrics
