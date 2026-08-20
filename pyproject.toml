@@ -7,7 +7,7 @@ license = {text = "Apache-2.0"}
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
 dependencies = [
-    "usd-exchange>=2.2.2",
+    "usd-exchange>=2.2.2,<3",
     "newton-usd-schemas>=0.4.0",
     "numpy-stl>=3.2",
     "tinyobjloader>=2.0.0rc13",
@@ -30,7 +30,7 @@ dev = [
     "coverage>=7.4",
     "unittest-xml-reporting>=3.2.0",
     "pyyaml>=6.0",
-    "usd-exchange[test]",
+    "usd-exchange[test]<3",
 ]
 
 [tool.hatch.version]
