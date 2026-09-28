@@ -364,7 +364,22 @@ The inertial element within a link defines the link’s mass, center of mass, an
 
 In USD, this maps to the `UsdPhysicsMassAPI` schema applied to the link Prim, with `NewtonMassAPI` additionally applied to author Newton-specific mass attributes, with properties set as described in the table below.
 
-While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD.
+While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD. The [fixed inertial-only child](#fixed-inertial-only-child) below is the exception this converter implements.
+
+#### Fixed inertial-only child
+
+Some URDFs cannot store inertia on a link that already has visual or collision geometry, and instead hang that inertia on a child connected by a fixed joint. Gazebo lumps the child into the parent, so the parent is a single rigid body. The child is not a [Ghost Link](#a-link-with-no-elements): it has non-zero inertial data.
+
+This converter copies the child onto the parent when all of the following hold:
+
+- The joint type is `fixed`.
+- The parent has at least one visual or collision element, and no inertial element (or inertial equivalent to zero mass).
+- The child has non-zero inertial data and no visual or collision elements.
+- The child is not referenced by a mimic joint.
+
+The child's mass, `origin.xyz`, and inertia tensor are authored on the parent with `UsdPhysicsMassAPI` and `NewtonMassAPI`, using the mapping in the tables below. The fixed joint origin is treated as identity, so the child's inertial origin is already the parent's center of mass. The child prim stays in the hierarchy as an Xform without `UsdPhysicsRigidBodyAPI` or `UsdPhysicsMassAPI`, and the fixed joint is not authored.
+
+A parent that already has inertial is left unchanged, as is a child on a non-fixed joint. When several children match, only the first is copied. The others remain rigid bodies.
 
 #### Inertial Elements
 
