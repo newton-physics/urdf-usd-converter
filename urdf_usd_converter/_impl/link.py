@@ -175,9 +175,7 @@ def _is_fixed_dummy_inertia_child(parent: ElementLink, joint: ElementJoint, chil
     that case is a separate decision. The inverse Universal Robots layout (empty
     parent, child with geometry and inertial) is also excluded.
     """
-    if joint.type != "fixed" or joint.parent is None or joint.child is None:
-        return False
-    if joint.parent.get_with_default("link") != parent.name or joint.child.get_with_default("link") != child.name:
+    if joint.type != "fixed":
         return False
     if not _is_zero_equivalent_inertial(parent) or not _link_has_geometry(parent):
         return False
