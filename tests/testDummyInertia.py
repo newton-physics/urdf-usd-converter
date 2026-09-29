@@ -138,3 +138,34 @@ class TestDummyInertiaMerge(ConverterTestCase):
         inertia_joint = UsdPhysics.Joint(physics.GetChild("arm_to_arm_inertia"))
         self.assertEqual(inertia_joint.GetBody0Rel().GetTargets(), ["/dummy_inertia_parent_mass/Geometry/base/arm"])
         self.assertEqual(inertia_joint.GetBody1Rel().GetTargets(), ["/dummy_inertia_parent_mass/Geometry/base/arm/arm_inertia"])
+
+    def test_joint_origin_is_composed_into_the_parent_inertial(self):
+        """
+        A non-identity fixed joint origin is applied before the child inertial is written on the parent.
+
+        The joint origin uses a translation and a right angle on every axis.
+        Child CoM (0, 0, 0.05) becomes (1.05, 2, 3), and diag(1, 2, 3) becomes (3, 2, 1).
+        The child link is not authored.
+        """
+        input_path = "tests/data/dummy_inertia_offset.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        base = stage.GetDefaultPrim().GetChild("Geometry").GetChild("base")
+        mass_api = UsdPhysics.MassAPI(base)
+        self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 2.0, places=6)
+        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(1.05, 2.0, 3.0), 1e-5))
+        inertia = base.GetAttribute("newton:inertia").Get()
+        for actual, expected in zip(inertia, [3.0, 2.0, 1.0, 0.0, 0.0, 0.0]):
+            self.assertAlmostEqual(actual, expected, places=5)
+
+        self.assertFalse(base.GetChild("inertia_link").IsValid())
+        physics = stage.GetDefaultPrim().GetChild("Physics")
+        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"root_joint"})

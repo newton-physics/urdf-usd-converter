@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<robot name="dummy_inertia_offset">
+  <!-- Joint xyz (1, 2, 3) and rpy (pi/2, pi/2, pi/2) on every axis. -->
+  <!-- Child CoM (0, 0, 0.05) becomes (1.05, 2, 3). diag(1, 2, 3) becomes (3, 2, 1). -->
+  <link name="base">
+    <collision>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="inertia_link">
+    <inertial>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <mass value="2"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="2" iyz="0" izz="3"/>
+    </inertial>
+  </link>
+  <joint name="inertia_joint" type="fixed">
+    <origin xyz="1 2 3" rpy="1.5707963267948966 1.5707963267948966 1.5707963267948966"/>
+    <parent link="base"/>
+    <child link="inertia_link"/>
+  </joint>
+</robot>

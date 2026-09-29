@@ -14,6 +14,7 @@ from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
+    ElementInertial,
     ElementJoint,
     ElementLink,
     ElementMesh,
@@ -89,11 +90,11 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
 
         # Assigning MassAPI to a Rigid Body.
         # A fixed inertial-only child is written onto this link instead of becoming a second rigid body.
-        # Its joint origin is identity in the known layouts, so the child's inertial is copied as-is.
+        # The joint origin is composed into that inertial data first.
         dummy_children = _fixed_dummy_inertia_children(link, data)
         if dummy_children:
-            _, dummy_link = dummy_children[0]
-            apply_inertial(link_prim, dummy_link, data)
+            joint, dummy_link = dummy_children[0]
+            apply_inertial(link_prim, _inertial_in_parent_frame(joint, dummy_link), data)
         else:
             apply_inertial(link_prim, link, data)
 
@@ -192,7 +193,7 @@ def _fixed_dummy_inertia_children(link: ElementLink, data: ConversionData) -> li
     A child referenced by a mimic joint is kept as its own rigid body, matching
     Ghost Link handling, so the mimic target joint is still authored.
     Only one child is returned. Further inertial-only siblings stay rigid bodies,
-    because summing them needs a frame composition that is not done here.
+    because summing them about a shared center of mass is not done here.
     """
     children = data.link_hierarchy.get_link_children(link.name)
     joints = data.link_hierarchy.get_link_joints(link.name) or []
@@ -243,6 +244,57 @@ def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose |
         rotation = Gf.Matrix3d(float3_to_quatd(origin.get_with_default("rpy")))
         mat = rotation.GetTranspose() * mat * rotation
     return [mat[0, 0], mat[1, 1], mat[2, 2], mat[0, 1], mat[0, 2], mat[1, 2]]
+
+
+def _joint_rotation(joint: ElementJoint) -> Gf.Matrix3d:
+    """
+    Joint-origin rotation in Gf's convention, where the matrix is `R^T`.
+
+    A missing origin is the URDF identity.
+    """
+    if joint.origin is None:
+        return Gf.Matrix3d(1.0)
+    return Gf.Matrix3d(float3_to_quatd(joint.origin.get_with_default("rpy")))
+
+
+def _inertial_in_parent_frame(joint: ElementJoint, child: ElementLink) -> ElementLink:
+    """
+    Express a child's inertial data in the parent link frame.
+
+    The center of mass is `R * com_child + t`. The inertia tensor is about that
+    center of mass, so a joint translation does not change it. A joint rotation
+    updates it as `I_parent = R * I_child * R^T`.
+    """
+    inertial = child.inertial
+    com_child = Gf.Vec3d(0.0)
+    if inertial and inertial.origin:
+        com_child = Gf.Vec3d(*inertial.origin.get_with_default("xyz"))
+    translation = Gf.Vec3d(0.0)
+    if joint.origin is not None:
+        translation = Gf.Vec3d(*joint.origin.get_with_default("xyz"))
+    rotation = _joint_rotation(joint)
+    com_parent = rotation.GetTranspose() * com_child + translation
+
+    merged = ElementLink()
+    merged.inertial = ElementInertial()
+    merged.inertial.origin = ElementPose()
+    merged.inertial.origin.xyz = (com_parent[0], com_parent[1], com_parent[2])
+    # `rpy` is already included in `I_child`, and the joint rotation is applied below.
+    merged.inertial.origin.rpy = (0.0, 0.0, 0.0)
+    if inertial and inertial.mass:
+        merged.inertial.mass = inertial.mass
+    if inertial and inertial.inertia:
+        ixx, iyy, izz, ixy, ixz, iyz = _inertia_tensor_in_body_frame(inertial.inertia, inertial.origin)
+        i_child = Gf.Matrix3d(ixx, ixy, ixz, ixy, iyy, iyz, ixz, iyz, izz)
+        i_parent = rotation.GetTranspose() * i_child * rotation
+        merged.inertial.inertia = ElementInertia()
+        merged.inertial.inertia.ixx = i_parent[0, 0]
+        merged.inertial.inertia.iyy = i_parent[1, 1]
+        merged.inertial.inertia.izz = i_parent[2, 2]
+        merged.inertial.inertia.ixy = i_parent[0, 1]
+        merged.inertial.inertia.ixz = i_parent[0, 2]
+        merged.inertial.inertia.iyz = i_parent[1, 2]
+    return merged
 
 
 def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):

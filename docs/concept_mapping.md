@@ -377,7 +377,7 @@ This converter copies the child onto the parent when all of the following hold:
 - The child has non-zero inertial data and no visual or collision elements.
 - The child is not referenced by a mimic joint.
 
-The child's mass, `origin.xyz`, and inertia tensor are authored on the parent with `UsdPhysicsMassAPI` and `NewtonMassAPI`, using the mapping in the tables below. The fixed joint origin is treated as identity, so the child's inertial origin is already the parent's center of mass. The child link and the fixed joint are not authored.
+The child's mass, center of mass, and inertia tensor are authored on the parent with `UsdPhysicsMassAPI` and `NewtonMassAPI`, using the mapping in the tables below. The fixed joint origin `(R, t)` is applied first: the center of mass is `R * com_child + t`, and the inertia tensor about that center of mass is `R * I_child * R^T`. A missing joint origin is identity. A translation does not change the tensor, because it is already expressed about the center of mass. The child link and the fixed joint are not authored.
 
 A parent that already has inertial is left unchanged, as is a child on a non-fixed joint. When several children match, only the first is copied. The others remain rigid bodies.
 
