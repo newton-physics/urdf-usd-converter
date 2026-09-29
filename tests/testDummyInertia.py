@@ -168,4 +168,33 @@ class TestDummyInertiaMerge(ConverterTestCase):
 
         self.assertFalse(base.GetChild("inertia_link").IsValid())
         physics = stage.GetDefaultPrim().GetChild("Physics")
-        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"root_joint"})
+        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"root_joint", "side_joint"})
+
+    def test_missing_joint_origin_copies_the_child_inertial_unchanged(self):
+        """
+        A fixed joint with no origin is the URDF identity.
+
+        The child's center of mass and inertia are copied onto the parent unchanged.
+        """
+        input_path = "tests/data/dummy_inertia_offset.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        side = stage.GetDefaultPrim().GetChild("Geometry").GetChild("base").GetChild("side")
+        mass_api = UsdPhysics.MassAPI(side)
+        self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 4.0, places=6)
+        self.assertTrue(Gf.IsClose(mass_api.GetCenterOfMassAttr().Get(), Gf.Vec3f(0.25, 0.5, 0.125), 1e-6))
+        inertia = side.GetAttribute("newton:inertia").Get()
+        for actual, expected in zip(inertia, [1.0, 2.0, 3.0, 0.0, 0.0, 0.0]):
+            self.assertAlmostEqual(actual, expected, places=6)
+
+        self.assertFalse(side.GetChild("side_inertia").IsValid())
+        physics = stage.GetDefaultPrim().GetChild("Physics")
+        self.assertNotIn("side_inertia_joint", {child.GetName() for child in physics.GetChildren()})
