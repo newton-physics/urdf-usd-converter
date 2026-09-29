@@ -71,7 +71,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     # Apply RigidBodyAPI to a link.
     # If it is a link of a ghost link, no rigid body will be assigned.
     # Additionally, if the link referencing Ghost link is a Fixed Joint, rigid body assignment will not be performed.
-    # An inertial-only child on a fixed joint is merged into the parent and stays a geometry-less Xform.
+    # An inertial-only child on a fixed joint is merged into the parent and is not authored.
     has_ghost_link_with_fixed_joint = data.link_hierarchy.check_ghost_link_with_fixed_joint(link)
     is_merged_dummy_inertia = _is_merged_dummy_inertia_link(link, data)
     if not has_ghost_link_with_fixed_joint and not remove_rigid_body and not is_merged_dummy_inertia:
@@ -118,6 +118,9 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
 
     if len(children) > 0:
         for child, joint in zip(children, joints):
+            # This child's inertial data was copied onto the parent. It has no other data to author.
+            if _is_merged_dummy_inertia_link(child, data):
+                continue
             child_xform = convert_link(link_prim, having_articulation_root, child, data)
             set_transform(child_xform, joint)
 
@@ -403,8 +406,12 @@ def _extract_inertia(i_body: list[float]) -> tuple[Gf.Quatf, Gf.Vec3f]:
 def _has_rigid_body(link_name: str, data: ConversionData) -> bool:
     """
     Check whether PhysicsRigidBodyAPI is applied to the prim of a link.
+
+    A link that was not authored, such as a merged inertial-only child, has no prim.
     """
-    link_prim = data.references[Tokens.Physics][link_name]
+    link_prim = data.references[Tokens.Physics].get(link_name)
+    if link_prim is None:
+        return False
     prim = data.content[Tokens.Physics].GetPrimAtPath(link_prim.GetPath())
     return bool(prim and prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
@@ -469,8 +476,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         body0_link_name = joint.parent.get_with_default("link")
         body1_link_name = joint.child.get_with_default("link")
 
-        # Skip when body1 has no rigid body. Ghost Links and inertial-only children
-        # merged into a parent are authored without one, so this fixed joint is dropped.
+        # Skip when body1 has no rigid body. Ghost Links are authored without one, and a
+        # merged inertial-only child is not authored, so this fixed joint is dropped.
         if not _has_rigid_body(body1_link_name, data):
             continue
 

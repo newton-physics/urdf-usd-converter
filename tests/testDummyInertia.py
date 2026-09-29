@@ -13,7 +13,7 @@ class TestDummyInertiaMerge(ConverterTestCase):
         """
         An inertial-only child on a fixed joint is copied onto the parent.
 
-        The child stays a geometry-less Xform, and a sibling with collision stays its own rigid body.
+        The child link is not authored, and a sibling with collision stays its own rigid body.
         """
         input_path = "tests/data/dummy_inertia_fixed.urdf"
         output_dir = self.tmpDir()
@@ -40,9 +40,7 @@ class TestDummyInertiaMerge(ConverterTestCase):
         for actual, expected in zip(inertia, [0.2, 0.3, 0.4, 0.01, 0.0, 0.0]):
             self.assertAlmostEqual(actual, expected, places=6)
 
-        self.assertTrue(dummy.IsValid())
-        self.assertFalse(dummy.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertFalse(dummy.HasAPI(UsdPhysics.MassAPI))
+        self.assertFalse(dummy.IsValid())
 
         self.assertTrue(wheel.HasAPI(UsdPhysics.RigidBodyAPI))
         self.assertAlmostEqual(UsdPhysics.MassAPI(wheel).GetMassAttr().Get(), 1.1, places=6)

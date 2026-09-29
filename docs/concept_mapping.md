@@ -368,7 +368,7 @@ While both inertial & MassAPI are considered optional, the semantics of omission
 
 #### Fixed inertial-only child
 
-Some URDFs cannot store inertia on a link that already has visual or collision geometry, and instead hang that inertia on a child connected by a fixed joint. Gazebo lumps the child into the parent, so the parent is a single rigid body. The child is not a [Ghost Link](#a-link-with-no-elements): it has non-zero inertial data.
+Some URDFs cannot store inertia on a link that already has visual or collision geometry, and instead hang that inertia on a child connected by a fixed joint. In this layout, the child provides the inertial properties for the parent's rigid body. The child is not a [Ghost Link](#a-link-with-no-elements): it has non-zero inertial data.
 
 This converter copies the child onto the parent when all of the following hold:
 
@@ -377,7 +377,7 @@ This converter copies the child onto the parent when all of the following hold:
 - The child has non-zero inertial data and no visual or collision elements.
 - The child is not referenced by a mimic joint.
 
-The child's mass, `origin.xyz`, and inertia tensor are authored on the parent with `UsdPhysicsMassAPI` and `NewtonMassAPI`, using the mapping in the tables below. The fixed joint origin is treated as identity, so the child's inertial origin is already the parent's center of mass. The child prim stays in the hierarchy as an Xform without `UsdPhysicsRigidBodyAPI` or `UsdPhysicsMassAPI`, and the fixed joint is not authored.
+The child's mass, `origin.xyz`, and inertia tensor are authored on the parent with `UsdPhysicsMassAPI` and `NewtonMassAPI`, using the mapping in the tables below. The fixed joint origin is treated as identity, so the child's inertial origin is already the parent's center of mass. The child link and the fixed joint are not authored.
 
 A parent that already has inertial is left unchanged, as is a child on a non-fixed joint. When several children match, only the first is copied. The others remain rigid bodies.
 
