@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot name="dummy_inertia_parent_mass">
+  <!-- The arm already has inertial, so its inertial-only fixed child stays a separate body. -->
+  <link name="base">
+    <collision>
+      <geometry>
+        <box size="0.2 0.2 0.2"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="5"/>
+      <inertia ixx="0.1" ixy="0" ixz="0" iyy="0.1" iyz="0" izz="0.1"/>
+    </inertial>
+  </link>
+  <link name="arm">
+    <collision>
+      <geometry>
+        <box size="0.4 0.1 0.1"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="4"/>
+      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.06" iyz="0" izz="0.07"/>
+    </inertial>
+  </link>
+  <joint name="arm_joint" type="revolute">
+    <origin xyz="0 0 0.2" rpy="0 0 0"/>
+    <parent link="base"/>
+    <child link="arm"/>
+    <axis xyz="0 0 1"/>
+  </joint>
+  <link name="arm_inertia">
+    <inertial>
+      <origin xyz="0.1 0.0 0.05" rpy="0 0 0"/>
+      <mass value="0.2"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.03"/>
+    </inertial>
+  </link>
+  <joint name="arm_to_arm_inertia" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="arm"/>
+    <child link="arm_inertia"/>
+  </joint>
+</robot>

@@ -14,6 +14,7 @@ from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
     ElementCollision,
     ElementInertia,
+    ElementInertial,
     ElementJoint,
     ElementLink,
     ElementMesh,
@@ -71,8 +72,10 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     # Apply RigidBodyAPI to a link.
     # If it is a link of a ghost link, no rigid body will be assigned.
     # Additionally, if the link referencing Ghost link is a Fixed Joint, rigid body assignment will not be performed.
+    # An inertial-only child on a fixed joint is merged into the parent and is not authored.
     has_ghost_link_with_fixed_joint = data.link_hierarchy.check_ghost_link_with_fixed_joint(link)
-    if not has_ghost_link_with_fixed_joint and not remove_rigid_body:
+    is_merged_dummy_inertia = _is_merged_dummy_inertia_link(link, data)
+    if not has_ghost_link_with_fixed_joint and not remove_rigid_body and not is_merged_dummy_inertia:
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.RigidBodyAPI.Apply(prim_over)
 
@@ -86,7 +89,14 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
             having_articulation_root = True
 
         # Assigning MassAPI to a Rigid Body.
-        apply_inertial(link_prim, link, data)
+        # A fixed inertial-only child is written onto this link instead of becoming a second rigid body.
+        # The joint origin is composed into that inertial data first.
+        dummy_children = _fixed_dummy_inertia_children(link, data)
+        if dummy_children:
+            joint, dummy_link = dummy_children[0]
+            apply_inertial(link_prim, _inertial_in_parent_frame(joint, dummy_link), data)
+        else:
+            apply_inertial(link_prim, link, data)
 
     # Create visual or collision geometry.
     geometries: list[ElementVisual | ElementCollision] = [
@@ -109,10 +119,103 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
 
     if len(children) > 0:
         for child, joint in zip(children, joints):
+            # This child's inertial data was copied onto the parent. It has no other data to author.
+            if _is_merged_dummy_inertia_link(child, data):
+                continue
             child_xform = convert_link(link_prim, having_articulation_root, child, data)
             set_transform(child_xform, joint)
 
     return link_xform
+
+
+def _link_has_geometry(link: ElementLink) -> bool:
+    """
+    True when the link has at least one visual or collision element.
+
+    This matches the geometry side of Ghost Link classification, which treats a
+    link as geometry-less only when both lists are empty.
+    """
+    return bool(link.visuals or link.collisions)
+
+
+def _is_zero_equivalent_inertial(link: ElementLink) -> bool:
+    """
+    True when inertial data is absent or equivalent to zero mass.
+
+    Same rule as `LinkHierarchy._is_zero_inertial`. A link with this inertial
+    and no geometry is a Ghost Link, not a dummy inertia child.
+    """
+    inertial = link.inertial
+    if inertial is None:
+        return True
+    mass_attr = inertial.mass
+    mass = mass_attr.get_with_default("value") if mass_attr is not None else None
+    if mass is None or mass > 0.0:
+        return mass is None
+    inertia = inertial.inertia
+    if inertia is None:
+        return True
+    diag = (inertia.get_with_default("ixx"), inertia.get_with_default("iyy"), inertia.get_with_default("izz"))
+    return all(v == 0.0 or v is None for v in diag)
+
+
+def _is_inertial_only_link(link: ElementLink) -> bool:
+    """
+    True when the link carries non-zero inertial data and no visual or collision.
+    """
+    return not _is_zero_equivalent_inertial(link) and not _link_has_geometry(link)
+
+
+def _is_fixed_dummy_inertia_child(parent: ElementLink, joint: ElementJoint, child: ElementLink) -> bool:
+    """
+    Detect a KDL-style dummy inertia child that should be merged into its parent.
+
+    The pattern is a fixed joint whose parent has visual or collision geometry
+    and no inertial, and whose child is inertial-only. Gazebo lumps that child's
+    inertia into the parent. The child is not a Ghost Link, because it has
+    non-zero inertial data.
+
+    A parent that already has inertial is not this pattern. Merging or rejecting
+    that case is a separate decision. The inverse Universal Robots layout (empty
+    parent, child with geometry and inertial) is also excluded.
+    """
+    if joint.type != "fixed":
+        return False
+    if not _is_zero_equivalent_inertial(parent) or not _link_has_geometry(parent):
+        return False
+    return _is_inertial_only_link(child)
+
+
+def _fixed_dummy_inertia_children(link: ElementLink, data: ConversionData) -> list[tuple[ElementJoint, ElementLink]]:
+    """
+    The first fixed joint from `link` to an inertial-only child that should be merged.
+
+    A child referenced by a mimic joint is kept as its own rigid body, matching
+    Ghost Link handling, so the mimic target joint is still authored.
+    Only one child is returned. Further inertial-only siblings stay rigid bodies,
+    because summing them about a shared center of mass is not done here.
+    """
+    children = data.link_hierarchy.get_link_children(link.name)
+    joints = data.link_hierarchy.get_link_joints(link.name) or []
+    mimic_links = data.link_hierarchy.referenced_link_names_by_mimic_joint
+    for child, joint in zip(children, joints):
+        # Keep links required as mimic-joint targets.
+        if child.name in mimic_links:
+            continue
+        # Copy this child onto the parent. Further inertial-only siblings stay rigid bodies.
+        if _is_fixed_dummy_inertia_child(link, joint, child):
+            return [(joint, child)]
+    return []
+
+
+def _is_merged_dummy_inertia_link(link: ElementLink, data: ConversionData) -> bool:
+    """
+    True when `link` is an inertial-only child whose inertia is merged into its parent.
+    """
+    parent = data.link_hierarchy.get_link_parent(link.name)
+    if parent is None:
+        return False
+    return any(child.name == link.name for _, child in _fixed_dummy_inertia_children(parent, data))
 
 
 def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose | None) -> list[float]:
@@ -141,6 +244,57 @@ def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose |
         rotation = Gf.Matrix3d(float3_to_quatd(origin.get_with_default("rpy")))
         mat = rotation.GetTranspose() * mat * rotation
     return [mat[0, 0], mat[1, 1], mat[2, 2], mat[0, 1], mat[0, 2], mat[1, 2]]
+
+
+def _joint_rotation(joint: ElementJoint) -> Gf.Matrix3d:
+    """
+    Joint-origin rotation in Gf's convention, where the matrix is `R^T`.
+
+    A missing origin is the URDF identity.
+    """
+    if joint.origin is None:
+        return Gf.Matrix3d(1.0)
+    return Gf.Matrix3d(float3_to_quatd(joint.origin.get_with_default("rpy")))
+
+
+def _inertial_in_parent_frame(joint: ElementJoint, child: ElementLink) -> ElementLink:
+    """
+    Express a child's inertial data in the parent link frame.
+
+    The center of mass is `R * com_child + t`. The inertia tensor is about that
+    center of mass, so a joint translation does not change it. A joint rotation
+    updates it as `I_parent = R * I_child * R^T`.
+    """
+    inertial = child.inertial
+    com_child = Gf.Vec3d(0.0)
+    if inertial and inertial.origin:
+        com_child = Gf.Vec3d(*inertial.origin.get_with_default("xyz"))
+    translation = Gf.Vec3d(0.0)
+    if joint.origin is not None:
+        translation = Gf.Vec3d(*joint.origin.get_with_default("xyz"))
+    rotation = _joint_rotation(joint)
+    com_parent = rotation.GetTranspose() * com_child + translation
+
+    merged = ElementLink()
+    merged.inertial = ElementInertial()
+    merged.inertial.origin = ElementPose()
+    merged.inertial.origin.xyz = (com_parent[0], com_parent[1], com_parent[2])
+    # `rpy` is already included in `I_child`, and the joint rotation is applied below.
+    merged.inertial.origin.rpy = (0.0, 0.0, 0.0)
+    if inertial and inertial.mass:
+        merged.inertial.mass = inertial.mass
+    if inertial and inertial.inertia:
+        ixx, iyy, izz, ixy, ixz, iyz = _inertia_tensor_in_body_frame(inertial.inertia, inertial.origin)
+        i_child = Gf.Matrix3d(ixx, ixy, ixz, ixy, iyy, iyz, ixz, iyz, izz)
+        i_parent = rotation.GetTranspose() * i_child * rotation
+        merged.inertial.inertia = ElementInertia()
+        merged.inertial.inertia.ixx = i_parent[0, 0]
+        merged.inertial.inertia.iyy = i_parent[1, 1]
+        merged.inertial.inertia.izz = i_parent[2, 2]
+        merged.inertial.inertia.ixy = i_parent[0, 1]
+        merged.inertial.inertia.ixz = i_parent[0, 2]
+        merged.inertial.inertia.iyz = i_parent[1, 2]
+    return merged
 
 
 def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
@@ -304,8 +458,12 @@ def _extract_inertia(i_body: list[float]) -> tuple[Gf.Quatf, Gf.Vec3f]:
 def _has_rigid_body(link_name: str, data: ConversionData) -> bool:
     """
     Check whether PhysicsRigidBodyAPI is applied to the prim of a link.
+
+    A link that was not authored, such as a merged inertial-only child, has no prim.
     """
-    link_prim = data.references[Tokens.Physics][link_name]
+    link_prim = data.references[Tokens.Physics].get(link_name)
+    if link_prim is None:
+        return False
     prim = data.content[Tokens.Physics].GetPrimAtPath(link_prim.GetPath())
     return bool(prim and prim.HasAPI(UsdPhysics.RigidBodyAPI))
 
@@ -370,8 +528,8 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
         body0_link_name = joint.parent.get_with_default("link")
         body1_link_name = joint.child.get_with_default("link")
 
-        # Skip when body1 is a ghost link and no rigid body is assigned to body1.
-        # If no rigid body exists, it is confirmed during preprocessing that it is a ghost link.
+        # Skip when body1 has no rigid body. Ghost Links are authored without one, and a
+        # merged inertial-only child is not authored, so this fixed joint is dropped.
         if not _has_rigid_body(body1_link_name, data):
             continue
 
