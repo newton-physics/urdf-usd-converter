@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-import omni.asset_validator
+import usd_validation_nvidia
 import usdex.core
 import usdex.test
 from pxr import Tf, Usd, UsdGeom
@@ -82,7 +82,7 @@ class TestMeshDae(ConverterTestCase):
         self.assertIsInvalidUsd(
             stage,
             [
-                omni.asset_validator.IssuePredicates.IsRule(omni.asset_validator.NormalsExistChecker),
+                usd_validation_nvidia.IssuePredicates.IsRule(usd_validation_nvidia.NormalsExistChecker),
             ],
         )
 
