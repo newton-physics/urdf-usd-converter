@@ -10,7 +10,7 @@ Key Features:
 - Converts an input URDF file into an OpenUSD Layer
 - Supports data conversion of visual geometry & materials, as well as the links, collision geometry, and joints necessary for kinematic simulation.
 - Available as a python module or command line interface (CLI).
-- Creates a standalone, self-contained artifact with no connection to the source URDF, OBJ, DAE, or STL data.
+- Creates a standalone, self-contained artifact with no connection to the source URDF, OBJ, DAE, STL, or GLB data.
   - Structured as an [Atomic Component](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html#atomic-model-structure-flowerpot)
   - Suitable for visualization & rendering in any OpenUSD Ecosystem application.
   - Suitable for import & simulation in [Newton](https://github.com/newton-physics/newton).
@@ -26,7 +26,9 @@ The output asset structure is based on NVIDIA's [Principles of Scalable Asset St
 The implementation also leverages the following dependencies:
 - NVIDIA's [OpenUSD Exchange SDK](https://docs.omniverse.nvidia.com/usd/code-docs/usd-exchange-sdk/latest/index.html) to author consistent & correct USD data.
 - Pixar's OpenUSD python modules & native libraries (vendored via the `usd-exchange` wheel).
-- [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader), [pycollada](https://github.com/pycollada/pycollada), and [numpy-stl](https://numpy-stl.readthedocs.io) for parsing any mesh data referenced by the input URDF datasets.
+- [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader), [pycollada](https://github.com/pycollada/pycollada), [numpy-stl](https://numpy-stl.readthedocs.io), and [trimesh](https://trimesh.org/) for parsing any mesh data referenced by the input URDF datasets.
+
+GLB support covers static triangle meshes, node transforms, vertex normals, UVs, PBR material factors, and embedded PNG/JPEG base-color, normal, emissive, and metallic-roughness textures. Animations, skins, morph targets, occlusion textures, alternate UV sets, non-default texture samplers, and glTF extensions are not supported.
 
 # Get Started
 

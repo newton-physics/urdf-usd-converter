@@ -85,8 +85,9 @@ def _copy_textures(material_cache: MaterialCache, data: ConversionData):
             unique_file_name = material_cache.texture_paths[texture_path]
 
             local_texture_path = local_texture_dir / unique_file_name
-            shutil.copyfile(texture_path, local_texture_path)
-            Tf.Status(f"Copied texture {texture_path} to {local_texture_path}")
+            if texture_path != local_texture_path:
+                shutil.copyfile(texture_path, local_texture_path)
+                Tf.Status(f"Copied texture {texture_path} to {local_texture_path}")
 
 
 def _convert_material(
@@ -129,32 +130,69 @@ def _convert_material(
     surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
     if material_data.ior != 0.0:
         surface_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(material_data.ior)
+    if material_data.opacity_threshold is not None:
+        surface_shader.CreateInput("opacityThreshold", Sdf.ValueTypeNames.Float).Set(material_data.opacity_threshold)
 
     if material_data.diffuse_texture_path:
         usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.diffuse_texture_path, texture_paths, data))
+        if material_data.diffuse_texture_scale is not None:
+            _configure_texture_scale(material_prim, "DiffuseTexture", material_data.diffuse_texture_scale, usdex.core.ColorSpace.eSrgb)
 
     if material_data.normal_texture_path:
         usdex.core.addNormalTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.normal_texture_path, texture_paths, data))
 
     if material_data.roughness_texture_path:
-        usdex.core.addRoughnessTextureToPreviewMaterial(
-            material_prim, _get_texture_asset_path(material_data.roughness_texture_path, texture_paths, data)
-        )
+        roughness_path = _get_texture_asset_path(material_data.roughness_texture_path, texture_paths, data)
+        if material_data.roughness_texture_channel == "r" and material_data.roughness_texture_scale == 1.0:
+            usdex.core.addRoughnessTextureToPreviewMaterial(material_prim, roughness_path)
+        else:
+            _add_scalar_texture_to_preview_material(
+                material_prim,
+                "roughness",
+                "RoughnessTexture",
+                roughness_path,
+                material_data.roughness_texture_channel,
+                material_data.roughness_texture_scale,
+            )
 
     if material_data.metallic_texture_path:
-        usdex.core.addMetallicTextureToPreviewMaterial(
-            material_prim, _get_texture_asset_path(material_data.metallic_texture_path, texture_paths, data)
-        )
+        metallic_path = _get_texture_asset_path(material_data.metallic_texture_path, texture_paths, data)
+        if material_data.metallic_texture_channel == "r" and material_data.metallic_texture_scale == 1.0:
+            usdex.core.addMetallicTextureToPreviewMaterial(material_prim, metallic_path)
+        else:
+            _add_scalar_texture_to_preview_material(
+                material_prim,
+                "metallic",
+                "MetallicTexture",
+                metallic_path,
+                material_data.metallic_texture_channel,
+                material_data.metallic_texture_scale,
+            )
 
     if material_data.opacity_texture_path:
-        usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data))
+        opacity_path = _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data)
+        if material_data.opacity_texture_channel == "r" and material_data.opacity_texture_scale == 1.0:
+            usdex.core.addOpacityTextureToPreviewMaterial(material_prim, opacity_path)
+        else:
+            _add_scalar_texture_to_preview_material(
+                material_prim,
+                "opacity",
+                "OpacityTexture",
+                opacity_path,
+                material_data.opacity_texture_channel,
+                material_data.opacity_texture_scale,
+            )
 
     # Add the emissive color to the preview material.
     if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
         surface_shader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Color3f).Set(emissive_color)
         if material_data.emissive_texture_path:
             _add_color_texture_to_preview_material(
-                material_prim, "emissiveColor", "EmissiveTexture", _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data)
+                material_prim,
+                "emissiveColor",
+                "EmissiveTexture",
+                _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data),
+                material_data.emissive_texture_scale,
             )
 
     # Add the material interface.
@@ -170,7 +208,13 @@ def _convert_material(
     return material_prim
 
 
-def _add_color_texture_to_preview_material(material_prim: UsdShade.Material, input_name: str, shader_name: str, texture_path: Sdf.AssetPath):
+def _add_color_texture_to_preview_material(
+    material_prim: UsdShade.Material,
+    input_name: str,
+    shader_name: str,
+    texture_path: Sdf.AssetPath,
+    scale: Gf.Vec4f | None = None,
+):
     """
     Add the color texture(e.g., specular, emissive) to the preview material.
 
@@ -192,10 +236,52 @@ def _add_color_texture_to_preview_material(material_prim: UsdShade.Material, inp
     fallback = Gf.Vec4f(color[0], color[1], color[2], 1.0)
 
     # Acquire the texture reader.
-    texture_reader: UsdShade.Shader = _acquire_texture_reader(material_prim, shader_name, texture_path, usdex.core.ColorSpace.eAuto, fallback)
+    texture_reader: UsdShade.Shader = _acquire_texture_reader(material_prim, shader_name, texture_path, usdex.core.ColorSpace.eSrgb, fallback)
+    if scale is not None:
+        texture_reader.CreateInput("fallback", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(1.0))
+        texture_reader.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(scale)
 
     # Connect the PreviewSurface shader "input_name" to the color texture shader output
     color_input.ConnectToSource(texture_reader.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
+
+
+def _add_scalar_texture_to_preview_material(
+    material_prim: UsdShade.Material,
+    input_name: str,
+    shader_name: str,
+    texture_path: Sdf.AssetPath,
+    output_name: str,
+    scale: float,
+):
+    surface = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+    scalar_input = surface.GetInput(input_name)
+    if not scalar_input:
+        scalar_input = surface.CreateInput(input_name, Sdf.ValueTypeNames.Float)
+    scalar_input.GetAttr().Clear()
+
+    texture_reader = _acquire_texture_reader(
+        material_prim,
+        shader_name,
+        texture_path,
+        usdex.core.ColorSpace.eRaw,
+        Gf.Vec4f(1.0),
+    )
+    texture_reader.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(scale, scale, scale, scale))
+    scalar_input.ConnectToSource(texture_reader.CreateOutput(output_name, Sdf.ValueTypeNames.Float))
+
+
+def _configure_texture_scale(
+    material_prim: UsdShade.Material,
+    shader_name: str,
+    scale: Gf.Vec4f,
+    color_space: usdex.core.ColorSpace,
+):
+    shader = UsdShade.Shader(material_prim.GetPrim().GetChild(shader_name))
+    if not shader:
+        return
+    shader.CreateInput("fallback", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(1.0))
+    shader.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(scale)
+    shader.CreateInput("sourceColorSpace", Sdf.ValueTypeNames.Token).Set(usdex.core.getColorSpaceToken(color_space))
 
 
 def _acquire_texture_reader(

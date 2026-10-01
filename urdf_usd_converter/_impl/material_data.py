@@ -39,6 +39,7 @@ class MaterialData:
         self.specular_color: Gf.Vec3f = Gf.Vec3f(0.0, 0.0, 0.0)
         self.emissive_color: Gf.Vec3f = Gf.Vec3f(0.0, 0.0, 0.0)
         self.opacity: float = 1.0
+        self.opacity_threshold: float | None = None
         self.roughness: float = 0.5
         self.metallic: float = 0.0
         self.ior: float = 0.0
@@ -50,6 +51,15 @@ class MaterialData:
         self.roughness_texture_path: pathlib.Path | None = None
         self.metallic_texture_path: pathlib.Path | None = None
         self.opacity_texture_path: pathlib.Path | None = None
+
+        self.diffuse_texture_scale: Gf.Vec4f | None = None
+        self.emissive_texture_scale: Gf.Vec4f | None = None
+        self.roughness_texture_scale: float = 1.0
+        self.metallic_texture_scale: float = 1.0
+        self.opacity_texture_scale: float = 1.0
+        self.roughness_texture_channel: str = "r"
+        self.metallic_texture_channel: str = "r"
+        self.opacity_texture_channel: str = "r"
 
     def get_display_name(self) -> str:
         """

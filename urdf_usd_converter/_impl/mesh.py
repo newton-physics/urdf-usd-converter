@@ -9,6 +9,7 @@ import usdex.core
 from pxr import Tf, Usd, UsdGeom, UsdShade, Vt
 
 from .conversion_collada import convert_collada
+from .conversion_gltf import convert_glb
 from .data import ConversionData, Tokens
 from .material import store_mesh_material_reference, store_obj_material_data
 from .numpy import convert_vec2f_array, convert_vec3f_array
@@ -63,6 +64,8 @@ def convert_mesh(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
         convert_obj(prim, input_path, data)
     elif input_path.suffix.lower() == ".dae":
         convert_collada(prim, input_path, data)
+    elif input_path.suffix.lower() == ".glb":
+        convert_glb(prim, input_path, data)
     elif not input_path.is_dir():
         Tf.Warn(f"Unsupported mesh format: {input_path}")
     else:
