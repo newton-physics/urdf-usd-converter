@@ -1,3 +1,13 @@
+# 0.3.4
+
+## Fixes
+
+- Fixed duplicate mass for links whose inertia is stored on an inertial-only child connected by a fixed joint (the KDL dummy-inertia pattern)
+  - Previously both links were authored as rigid bodies, and the parent had no `MassAPI`, so USD also derived mass for it from its collision volume
+  - The child's mass, center of mass, and inertia tensor are now authored on the parent via `UsdPhysics.MassAPI` and `NewtonMassAPI`, transformed by the fixed joint origin
+  - The child link and the fixed joint are no longer authored
+  - A parent that already has `<inertial>` or a child on a non-fixed joint is left unchanged. When several children match, only the first is merged
+
 # 0.3.3
 
 ## Fixes
