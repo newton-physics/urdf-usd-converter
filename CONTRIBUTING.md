@@ -55,7 +55,6 @@ Each PR adds its changelog entries to `CHANGELOG.md` under an `# Unreleased` hea
 Entries must match the voice of the existing changelog. Read the most recent releases before writing yours:
 
 - File entries under the section headings already used in this file: `## Features`, `## Fixes`, `## Documentation`, or `## Dependencies`.
-- Start each top-level bullet with a past-tense verb describing the outcome for users, such as "Added", "Fixed", "Changed", or "Updated to".
 - Wrap URDF element, USD schema, attribute, and package names in backticks.
 - Use nested bullets for consequences, caveats, and migration notes that users need. Leave implementation details to the PR description.
 
