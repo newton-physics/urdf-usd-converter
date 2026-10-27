@@ -9,6 +9,10 @@
         </visual>
     </link>
     <link name="BaseLinkB">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="-0.12 0 0"/>
             <geometry>
@@ -18,6 +22,10 @@
     </link>
 
     <link name="linkA">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="0.27 0 0"/>
             <geometry>
@@ -27,6 +35,10 @@
     </link>
 
     <link name="linkB">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="0.27 0 0"/>
             <geometry>
@@ -36,6 +48,10 @@
     </link>
 
     <link name="linkC">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="0.27 0 0"/>
             <geometry>
@@ -45,6 +61,10 @@
     </link>
 
     <link name="linkD">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="0.27 0 0"/>
             <geometry>

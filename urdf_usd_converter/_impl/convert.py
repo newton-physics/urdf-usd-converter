@@ -11,7 +11,7 @@ from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from ._flatten import export_flattened
 from .data import ConversionData, Tokens
-from .link import convert_links
+from .link import convert_links, validate_visual_only_links
 from .link_hierarchy import LinkHierarchy
 from .material import convert_materials
 from .mesh import convert_meshes
@@ -96,6 +96,10 @@ class Converter:
             mesh_material_references={},
             undefined_elements=parser.get_undefined_elements(),
         )
+
+        # Reject visual-only links that would become rigid bodies with no mass source
+        # before a stage is created. Fixed-joint children are handled while authoring links.
+        validate_visual_only_links(data)
 
         # setup the main output layer (which will become an asset interface later)
         robot_name = parser.get_robot_name()

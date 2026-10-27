@@ -9,6 +9,10 @@
         </visual>
     </link>
     <link name="BaseLinkB">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="-0.12 0 0"/>
             <geometry>
@@ -20,6 +24,10 @@
     <!-- A link referenced by a mimic joint must not be a candidate for ghost link removal. -->
     <link name="linkA"/>
     <link name="linkB">
+      <inertial>
+        <mass value="1"/>
+        <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
         <visual>
             <origin rpy="0 0 0" xyz="0.27 0 0"/>
             <geometry>

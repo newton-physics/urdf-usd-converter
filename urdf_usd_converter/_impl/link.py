@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 import usdex.core
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
@@ -28,7 +28,7 @@ from .utils import (
     set_transform,
 )
 
-__all__ = ["convert_links"]
+__all__ = ["convert_links", "validate_visual_only_links"]
 
 
 def convert_links(data: ConversionData):
@@ -75,7 +75,13 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     # An inertial-only child on a fixed joint is merged into the parent and is not authored.
     has_ghost_link_with_fixed_joint = data.link_hierarchy.check_ghost_link_with_fixed_joint(link)
     is_merged_dummy_inertia = _is_merged_dummy_inertia_link(link, data)
-    if not has_ghost_link_with_fixed_joint and not remove_rigid_body and not is_merged_dummy_inertia:
+
+    # A visual does not define mass or collision. On a fixed joint this link is not a rigid body.
+    # An empty ghost link stays silent; a visual records that the rigid body was omitted.
+    is_visual_only_fixed = _treat_visual_only_as_ghost(link, data)
+    if is_visual_only_fixed:
+        Tf.Warn(f"Link '{link.name}' has a visual but no inertial or collision, so it is not a rigid body.")
+    if not has_ghost_link_with_fixed_joint and not remove_rigid_body and not is_merged_dummy_inertia and not is_visual_only_fixed:
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.RigidBodyAPI.Apply(prim_over)
 
@@ -126,6 +132,70 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
             set_transform(child_xform, joint)
 
     return link_xform
+
+
+def _is_visual_only_link(link: ElementLink) -> bool:
+    """
+    True when the link has a visual and no collision or usable inertial data.
+
+    Missing inertial and inertial equivalent to zero mass are the same case.
+    A collision can still define mass at simulation time, so a link with a
+    collision is not visual-only.
+    """
+    return bool(link.visuals) and not link.collisions and _is_zero_equivalent_inertial(link)
+
+
+def _treat_visual_only_as_ghost(link: ElementLink, data: ConversionData) -> bool:
+    """
+    True when a visual-only link on a fixed joint is authored without a rigid body.
+
+    The kinematic root stays a rigid body. A link referenced by a mimic joint
+    also stays a rigid body, matching ghost-link handling, and conversion fails
+    for that link when it has no mass source. A fixed inertial-only child supplies
+    the mass instead, so that parent is a rigid body.
+    """
+    if not _is_visual_only_link(link):
+        return False
+    if link.name == data.link_hierarchy.root_link.name:
+        return False
+    if link.name in data.link_hierarchy.referenced_link_names_by_mimic_joint:
+        return False
+    if _fixed_dummy_inertia_children(link, data):
+        return False
+    joint = data.link_hierarchy.get_parent_joint(link.name)
+    return joint is not None and joint.type == "fixed"
+
+
+def validate_visual_only_links(data: ConversionData) -> None:
+    """
+    Fail conversion when a visual-only link would have to be a rigid body.
+
+    A fixed-joint child is authored without a rigid body. Any other joint is a
+    degree of freedom, and a rigid body with no mass source is not valid in USD.
+    The kinematic root is left unchanged.
+    """
+    messages: list[str] = []
+    mimic_links = data.link_hierarchy.referenced_link_names_by_mimic_joint
+    for link in data.urdf_parser.get_root_element().links:
+        if not _is_visual_only_link(link) or _treat_visual_only_as_ghost(link, data):
+            continue
+        if _fixed_dummy_inertia_children(link, data):
+            continue
+        joint = data.link_hierarchy.get_parent_joint(link.name)
+        if joint is None:
+            continue
+        if joint.type == "fixed" and link.name in mimic_links:
+            messages.append(
+                f"Link '{link.name}' has a visual but no inertial or collision and is the child of fixed joint "
+                f"'{joint.name}', which a mimic joint references. Add an <inertial> element to '{link.name}'."
+            )
+            continue
+        messages.append(
+            f"Link '{link.name}' has a visual but no inertial or collision and is connected by a {joint.type} joint. "
+            f"Add an <inertial> element to '{link.name}'."
+        )
+    if messages:
+        raise ValueError("A link with only a visual cannot be a rigid body.\n" + "\n".join(messages))
 
 
 def _link_has_geometry(link: ElementLink) -> bool:

@@ -414,6 +414,23 @@ class TestAssetStructure(ConverterTestCase):
             self,
             [
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Unsupported mesh format:.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_mesh_dxf' has a visual but no inertial or collision, so it is not a rigid body.*"),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*Link 'link_mesh_dae_unit_cm' has a visual but no inertial or collision, so it is not a rigid body.*",
+                ),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*Link 'link_two_meshes_dae' has a visual but no inertial or collision, so it is not a rigid body.*",
+                ),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*Link 'link_two_meshes_triangle_dae' has a visual but no inertial or collision, so it is not a rigid body.*",
+                ),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*Link 'link_box_two_materials_dae' has a visual but no inertial or collision, so it is not a rigid body.*",
+                ),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):

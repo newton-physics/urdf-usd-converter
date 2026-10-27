@@ -55,12 +55,12 @@
   <joint name="joint_box_cylinder" type="fixed">
     <parent link="link_box"/>
     <child link="link_cylinder"/>
+    <calibration rising="0.0"/>
+    <dynamics damping="0.01" friction="0.02"/>
   </joint>
   <joint name="joint_cylinder_sphere" type="fixed">
     <origin rpy="0 0 0" xyz="1.5 0 0.5"/>
     <parent link="link_cylinder"/>
     <child link="link_sphere"/>
-    <calibration rising="0.0"/>
-    <dynamics damping="0.01" friction="0.02"/>    
   </joint>
 </robot>

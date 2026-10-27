@@ -27,6 +27,7 @@ class TestROSPackagesCli(ConverterTestCase):
                 self,
                 [
                     (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_mesh_stl' has a visual but no inertial or collision, so it is not a rigid body.*"),
                 ],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
@@ -77,6 +78,7 @@ class TestROSPackagesCli(ConverterTestCase):
                 self,
                 [
                     (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_mesh_stl' has a visual but no inertial or collision, so it is not a rigid body.*"),
                 ],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
@@ -131,6 +133,7 @@ class TestROSPackagesCli(ConverterTestCase):
                 self,
                 [
                     (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_mesh_stl' has a visual but no inertial or collision, so it is not a rigid body.*"),
                 ],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
