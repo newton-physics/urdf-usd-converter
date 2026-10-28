@@ -227,11 +227,10 @@ class LinkHierarchy:
         Get the joint whose child is this link, or None when the link is the kinematic root.
         """
         parent = self.get_link_parent(link_name)
-        if parent is None:
-            return None
-        for joint in self.get_link_joints(parent.name) or []:
-            if joint.child.get_with_default("link") == link_name:
-                return joint
+        if parent is not None:
+            for joint in self.get_link_joints(parent.name) or []:
+                if joint.child.get_with_default("link") == link_name:
+                    return joint
         return None
 
     def get_link_by_name(self, link_name: str) -> ElementLink:
