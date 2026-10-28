@@ -400,7 +400,7 @@ The origin of an inertial element is the position and orientation of the link’
 
 ###### *Property: xyz*
 
-The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`, which should be applied in the link Prim.
+The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`, which should be applied in the link Prim. An omitted `<origin>` is the URDF pose default (`xyz="0 0 0"`, `rpy="0 0 0"`), and `physics:centerOfMass` is still authored at the link origin. Leaving it unauthored lets consumers derive the center of mass from collision geometry.
 
 ###### *Property: rpy*
 

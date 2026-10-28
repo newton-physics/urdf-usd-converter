@@ -364,3 +364,29 @@ class TestPhysicsInertia(ConverterTestCase):
             newton_inertia.HasAuthoredValue(),
             msg="newton:inertia must not be authored without <inertia>",
         )
+
+    def test_omitted_inertial_origin_authors_center_of_mass(self):
+        """
+        Assert physics:centerOfMass is authored at the link origin when <inertial> omits <origin>.
+
+        An omitted origin is the URDF pose default (0, 0, 0). Mass and inertia are still authored.
+        The offset collision must not become the center of mass.
+        """
+        input_path = "tests/data/inertia_no_origin.urdf"
+        asset_path = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        geometry_scope = stage.GetPrimAtPath(default_prim.GetPath().AppendChild("Geometry"))
+        link_prim = stage.GetPrimAtPath(geometry_scope.GetPath().AppendChild("link"))
+        self.assertTrue(link_prim.IsValid())
+        self.assertTrue(link_prim.HasAPI(UsdPhysics.MassAPI))
+
+        mass_api = UsdPhysics.MassAPI(link_prim)
+        center_of_mass = mass_api.GetCenterOfMassAttr()
+        self.assertTrue(center_of_mass.HasAuthoredValue())
+        self.assertTrue(Gf.IsClose(center_of_mass.Get(), Gf.Vec3f(0, 0, 0), 1e-6))
+        self.assertAlmostEqual(mass_api.GetMassAttr().Get(), 1.0, places=6)
+        self._assert_newton_inertia(link_prim, 0.01, 0.01, 0.01, 0.0, 0.0, 0.0)

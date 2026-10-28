@@ -1,3 +1,9 @@
+# Unreleased
+
+## Fixes
+
+- Fixed `physics:centerOfMass` to be authored at the link origin when `<inertial>` omits `<origin>`
+
 # 0.3.4
 
 ## Fixes
