@@ -7,7 +7,7 @@ from collections import Counter
 import collada
 import tinyobjloader
 import usdex.core
-from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdShade, UsdUtils
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdShade
 
 from .data import ConversionData, Tokens
 from .material_cache import MaterialCache
@@ -111,7 +111,7 @@ def _convert_material(
         The material prim.
     """
     diffuse_color = usdex.core.sRgbToLinear(material_data.diffuse_color)
-    emissive_color = usdex.core.sRgbToLinear(material_data.emissive_color)
+    emissive_color = _get_linear_emissive_color(material_data)
 
     # Build kwargs for material properties
     material_kwargs = {
@@ -149,12 +149,11 @@ def _convert_material(
     if material_data.opacity_texture_path:
         usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data))
 
-    # Add the emissive color to the preview material.
     if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
-        surface_shader.CreateInput("emissiveColor", Sdf.ValueTypeNames.Color3f).Set(emissive_color)
+        usdex.core.addEmissiveColorToPreviewMaterial(material_prim, emissive_color)
         if material_data.emissive_texture_path:
-            _add_color_texture_to_preview_material(
-                material_prim, "emissiveColor", "EmissiveTexture", _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data)
+            usdex.core.addEmissiveTextureToPreviewMaterial(
+                material_prim, _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data)
             )
 
     # Add the material interface.
@@ -162,84 +161,14 @@ def _convert_material(
     if not result:
         Tf.RaiseRuntimeError(f'Failed to add material instance to material prim "{material_prim.GetPath()}"')
 
-    # Set the wrap mode to repeat.
-    _set_wrap_mode(material_prim, "repeat")
-
     material_prim.GetPrim().SetInstanceable(True)
 
     return material_prim
 
 
-def _add_color_texture_to_preview_material(material_prim: UsdShade.Material, input_name: str, shader_name: str, texture_path: Sdf.AssetPath):
-    """
-    Add the color texture(e.g., specular, emissive) to the preview material.
-
-    Args:
-        material_prim: The material prim.
-        input_name: The name of the input (e.g., "specularColor", "emissiveColor").
-        shader_name: The name of the shader (e.g., "SpecularTexture", "EmissiveTexture").
-        texture_path: The path to the texture.
-    """
-    surface: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
-
-    color = Gf.Vec3f(0.0, 0.0, 0.0)
-    color_input = surface.GetInput(input_name)
-    if color_input:
-        value_attrs = color_input.GetValueProducingAttributes()
-        if value_attrs and len(value_attrs) > 0:
-            color = value_attrs[0].Get()
-            color_input.GetAttr().Clear()
-    fallback = Gf.Vec4f(color[0], color[1], color[2], 1.0)
-
-    # Acquire the texture reader.
-    texture_reader: UsdShade.Shader = _acquire_texture_reader(material_prim, shader_name, texture_path, usdex.core.ColorSpace.eAuto, fallback)
-
-    # Connect the PreviewSurface shader "input_name" to the color texture shader output
-    color_input.ConnectToSource(texture_reader.CreateOutput("rgb", Sdf.ValueTypeNames.Float3))
-
-
-def _acquire_texture_reader(
-    material_prim: UsdShade.Material,
-    shader_name: str,
-    texture_path: pathlib.Path,
-    color_space: usdex.core.ColorSpace,
-    fallback: Gf.Vec4f,
-) -> UsdShade.Shader:
-    """
-    Acquire the texture reader.
-
-    Args:
-        material_prim: The material prim.
-        shader_name: The name of the shader.
-        texture_path: The path to the texture.
-        color_space: The color space of the texture.
-        fallback: The fallback value for the texture.
-
-    Returns:
-        The texture reader.
-    """
-    shader_path = material_prim.GetPath().AppendChild(shader_name)
-    tex_shader = UsdShade.Shader.Define(material_prim.GetPrim().GetStage(), shader_path)
-    tex_shader.SetShaderId("UsdUVTexture")
-    tex_shader.CreateInput("fallback", Sdf.ValueTypeNames.Float4).Set(fallback)
-    tex_shader.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(texture_path)
-    tex_shader.CreateInput("sourceColorSpace", Sdf.ValueTypeNames.Token).Set(usdex.core.getColorSpaceToken(color_space))
-    st_input = tex_shader.CreateInput("st", Sdf.ValueTypeNames.Float2)
-    connected = usdex.core.connectPrimvarShader(st_input, UsdUtils.GetPrimaryUVSetName())
-    if not connected:
-        return UsdShade.Shader()
-
-    return tex_shader
-
-
-def _set_wrap_mode(material_prim: UsdShade.Material, wrap_mode: str):
-    wrap_mode_input = material_prim.CreateInput("wrapMode", Sdf.ValueTypeNames.Token)
-    wrap_mode_input.Set(wrap_mode)
-    for child in material_prim.GetPrim().GetAllChildren():
-        shader = UsdShade.Shader(child)
-        if shader.GetShaderId() == "UsdUVTexture":
-            shader.CreateInput("wrapS", Sdf.ValueTypeNames.Token).ConnectToSource(wrap_mode_input)
-            shader.CreateInput("wrapT", Sdf.ValueTypeNames.Token).ConnectToSource(wrap_mode_input)
+def _get_linear_emissive_color(material_data: MaterialData) -> Gf.Vec3f:
+    # sRgbToLinear can return slightly negative components, which the emissive helpers reject
+    return Gf.Vec3f(*(max(0.0, c) for c in usdex.core.sRgbToLinear(material_data.emissive_color)))
 
 
 def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData) -> Sdf.AssetPath:
