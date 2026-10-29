@@ -24,6 +24,9 @@ __all__ = [
     "use_material_id",
 ]
 
+# in nits (cd/m^2), usdex's default, a clearly visible emission in most scenes
+_EMISSIVE_LUMINANCE = 1000.0
+
 
 def convert_materials(data: ConversionData):
     # Acquire the global material data for URDF and the material data for obj/dae files.
@@ -110,6 +113,97 @@ def _convert_material(
     Returns:
         The material prim.
     """
+    if data.openpbr:
+        material_prim = _convert_pbr_material(parent, safe_name, material_data, texture_paths, data)
+    else:
+        material_prim = _convert_preview_material(parent, safe_name, material_data, texture_paths, data)
+
+    material_prim.GetPrim().SetInstanceable(True)
+
+    return material_prim
+
+
+def _convert_pbr_material(
+    parent: Usd.Prim,
+    safe_name: str,
+    material_data: MaterialData,
+    texture_paths: dict[pathlib.Path, str],
+    data: ConversionData,
+) -> UsdShade.Material:
+    """
+    Convert a material to a USD material with OpenPBR (MaterialX) and UsdPreviewSurface shaders driven by a shared Material Interface.
+
+    Args:
+        parent: The parent prim.
+        safe_name: The safe name of the material.
+        material_data: The material data.
+        texture_paths: A dictionary of texture paths and unique names.
+        data: The conversion data.
+
+    Returns:
+        The material prim.
+    """
+    material_prim = usdex.core.definePbrMaterial(
+        parent,
+        safe_name,
+        color=usdex.core.sRgbToLinear(material_data.diffuse_color),
+        opacity=material_data.opacity,
+        roughness=material_data.roughness,
+        metallic=material_data.metallic,
+    )
+    if not material_prim:
+        Tf.RaiseRuntimeError(f'Failed to convert material "{safe_name}"')
+
+    # ior is not part of the Material Interface, so it is authored on each surface shader
+    if material_data.ior != 0.0:
+        usdex.core.computeEffectivePreviewSurfaceShader(material_prim).CreateInput("ior", Sdf.ValueTypeNames.Float).Set(material_data.ior)
+        usdex.core.computeEffectiveMtlxSurfaceShader(material_prim).CreateInput("specular_ior", Sdf.ValueTypeNames.Float).Set(material_data.ior)
+
+    textures = (
+        (material_data.diffuse_texture_path, usdex.core.addColorTextureToPbrMaterial),
+        (material_data.normal_texture_path, usdex.core.addNormalTextureToPbrMaterial),
+        (material_data.roughness_texture_path, usdex.core.addRoughnessTextureToPbrMaterial),
+        (material_data.metallic_texture_path, usdex.core.addMetallicTextureToPbrMaterial),
+        (material_data.opacity_texture_path, usdex.core.addOpacityTextureToPbrMaterial),
+    )
+    for texture_path, add_texture in textures:
+        if texture_path:
+            add_texture(material_prim, _get_texture_asset_path(texture_path, texture_paths, data))
+
+    emissive_color = _get_linear_emissive_color(material_data)
+    if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
+        # OpenPBR limits emission_color to 1.0, so any brighter emission is carried by the luminance instead
+        scale = max(1.0, *emissive_color)
+        luminance = _EMISSIVE_LUMINANCE * scale
+        usdex.core.addEmissiveColorToPbrMaterial(material_prim, emissive_color / scale, luminance)
+        if material_data.emissive_texture_path:
+            usdex.core.addEmissiveTextureToPbrMaterial(
+                material_prim, _get_texture_asset_path(material_data.emissive_texture_path, texture_paths, data), luminance
+            )
+
+    return material_prim
+
+
+def _convert_preview_material(
+    parent: Usd.Prim,
+    safe_name: str,
+    material_data: MaterialData,
+    texture_paths: dict[pathlib.Path, str],
+    data: ConversionData,
+) -> UsdShade.Material:
+    """
+    Convert a material to a USD material with a UsdPreviewSurface shader.
+
+    Args:
+        parent: The parent prim.
+        safe_name: The safe name of the material.
+        material_data: The material data.
+        texture_paths: A dictionary of texture paths and unique names.
+        data: The conversion data.
+
+    Returns:
+        The material prim.
+    """
     diffuse_color = usdex.core.sRgbToLinear(material_data.diffuse_color)
     emissive_color = _get_linear_emissive_color(material_data)
 
@@ -160,8 +254,6 @@ def _convert_material(
     result = usdex.core.addPreviewMaterialInterface(material_prim)
     if not result:
         Tf.RaiseRuntimeError(f'Failed to add material instance to material prim "{material_prim.GetPath()}"')
-
-    material_prim.GetPrim().SetInstanceable(True)
 
     return material_prim
 

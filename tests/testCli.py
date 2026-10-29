@@ -5,7 +5,7 @@ import shutil
 from unittest.mock import patch
 
 import usdex.test
-from pxr import Sdf, Tf, Usd
+from pxr import Sdf, Tf, Usd, UsdShade
 
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.cli import run
@@ -45,6 +45,17 @@ class TestCli(ConverterTestCase):
             self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").exists())
             stage = Usd.Stage.Open((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").as_posix())
             self.assertFalse(stage.GetPrimAtPath("/PhysicsScene").IsValid())
+
+    def test_no_openpbr(self):
+        model = "tests/data/material_color.urdf"
+        robot_name = pathlib.Path(model).stem
+        with patch("sys.argv", ["urdf_usd_converter", model, self.tmpDir(), "--no-openpbr"]):
+            self.assertEqual(run(), 0, f"Failed to convert {model}")
+            stage = Usd.Stage.Open((pathlib.Path(self.tmpDir()) / f"{robot_name}.usda").as_posix())
+            materials = [UsdShade.Material(prim) for prim in stage.GetDefaultPrim().GetChild("Materials").GetChildren()]
+            self.assertGreater(len(materials), 0)
+            for material in materials:
+                self.assertFalse(material.GetSurfaceOutput("mtlx"), msg=material.GetPath())
 
     def test_comment(self):
         model = "tests/data/simple_box.urdf"

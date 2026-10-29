@@ -54,6 +54,7 @@ def run() -> int:
             scene=not args.no_physics_scene,
             comment=args.comment,
             ros_packages=args.package,
+            openpbr=not args.no_openpbr,
         )
         if result := converter.convert(args.input_file, args.output_dir):
             Tf.Status(f"Created USD Asset: {result.path}")
@@ -124,6 +125,13 @@ def __create_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="Disable authoring a `UsdPhysics.Scene` prim",
+    )
+    parser.add_argument(
+        "--no-openpbr",
+        action="store_true",
+        default=False,
+        help="Disable authoring OpenPBR shaders, so visual materials use only `UsdPreviewSurface` "
+        "rather than OpenPBR with a `UsdPreviewSurface` fallback",
     )
     parser.add_argument(
         "--verbose",

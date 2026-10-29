@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot name="dae_bright_emission">
+  <link name="link1">
+    <visual>
+      <geometry>
+        <mesh filename="assets/box_bright_emission.dae"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

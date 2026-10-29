@@ -636,6 +636,8 @@ For the lowest common denominator across the entire USD Ecosystem, [UsdPreviewSu
 
 For a fully featured PBR material suitable for high-fidelity visualization, and with broad (but not complete) interoperability across the USD Ecosystem, it is recommended to author MaterialX (Mtlx) node graphs, using an OpenPBR surface shader (e.g. [open\_pbr\_surface](https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/bxdf/open_pbr_surface.mtlx)).
 
+The urdf-usd-converter authors both render contexts by default, driving the UPS and OpenPBR shaders from a shared Material Interface. Use `--no-openpbr` to author only the UPS shaders.
+
 Note that the resulting Material prim will likely be the target of a UsdReference (e.g. via a [visual/material](#element-material)). As materials may be re-used multiple times within the robot, it is recommended to convert the material to USD once, under a dedicated class Scope within a “library layer” (see [Appendix D](#appendix-d-usd-asset-structure)), mark it as instanceable, and re-use it via [Reference](https://openusd.org/release/glossary.html#usdglossary-references) composition arcs. This allows for the materials and shaders to be referenced into the main robot structure several times, while avoiding excessive prim duplication.
 
 Since the material will be converted to a specific `SdfPath` (possibly within an external SdfLayer), it is important for converters to maintain a data structure associating the original URDF name with the resulting USD identifier.

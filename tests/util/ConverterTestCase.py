@@ -38,6 +38,11 @@ class ConverterTestCase(usdex.test.TestCase):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return self._get_input_value(shader, input_name)
 
+    def get_openpbr_input_value(self, material: UsdShade.Material, input_name: str):
+        shader: UsdShade.Shader = usdex.core.computeEffectiveMtlxSurfaceShader(material)
+        self.assertEqual(shader.GetShaderId(), "ND_open_pbr_surface_surfaceshader")
+        return self._get_input_value(shader, input_name)
+
     def get_material_diffuse_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
         return self._get_material_input_value(material, "diffuseColor")
 

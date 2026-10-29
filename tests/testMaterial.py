@@ -970,3 +970,95 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(mesh_prim.IsValid())
         self.assertTrue(mesh_prim.IsA(UsdGeom.Mesh))
         self.check_material_binding(mesh_prim, material)
+
+    def test_openpbr_material(self):
+        """Visual materials should author an OpenPBR shader driven by the same Material Interface as the UsdPreviewSurface shader."""
+        asset_path = urdf_usd_converter.Converter().convert("tests/data/material_mesh_texture.urdf", self.tmpDir())
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        material_scope_prim = stage.GetDefaultPrim().GetChild("Materials")
+
+        texture_material = UsdShade.Material(material_scope_prim.GetChild("texture_mat"))
+        self.assertTrue(texture_material)
+        self.assertTrue(texture_material.GetSurfaceOutput("mtlx").HasConnectedSource())
+        self.assertAlmostEqual(self.get_openpbr_input_value(texture_material, "specular_ior"), 1.45, places=6)
+        self.assertAlmostEqual(self.get_material_ior(texture_material), 1.45, places=6)
+        self.assertAlmostEqual(self.get_openpbr_input_value(texture_material, "specular_roughness"), self.get_material_roughness(texture_material))
+        self.assertAlmostEqual(self.get_openpbr_input_value(texture_material, "base_metalness"), self.get_material_metallic(texture_material))
+        self.assertEqual(texture_material.GetInput("ColorTexture").Get().path, "./Textures/grid.png")
+
+        # the specular texture is not converted, so the color is the material's own
+        specular_material = UsdShade.Material(material_scope_prim.GetChild("specular_workflow_with_texture_mat"))
+        self.assertTrue(specular_material)
+        base_color = usdex.core.linearToSrgb(self.get_openpbr_input_value(specular_material, "base_color"))
+        self.assertTrue(Gf.IsClose(base_color, Gf.Vec3f(0.4, 0.4, 0.4), 1e-6))
+
+    def test_openpbr_emission(self):
+        """Emissive colors should drive the OpenPBR emission at the default luminance."""
+        asset_path = urdf_usd_converter.Converter().convert("tests/data/dae_materials.urdf", self.tmpDir())
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        material_scope_prim = stage.GetDefaultPrim().GetChild("Materials")
+
+        emissive_material = UsdShade.Material(material_scope_prim.GetChild("emissive_mat"))
+        self.assertTrue(emissive_material)
+        emission_color = usdex.core.linearToSrgb(self.get_openpbr_input_value(emissive_material, "emission_color"))
+        self.assertTrue(Gf.IsClose(emission_color, Gf.Vec3f(1, 1, 0), 1e-6))
+        self.assertAlmostEqual(self.get_openpbr_input_value(emissive_material, "emission_luminance"), 1000.0)
+
+        emissive_texture_material = UsdShade.Material(material_scope_prim.GetChild("emissive_color_tex_mat"))
+        self.assertTrue(emissive_texture_material)
+        self.assertEqual(emissive_texture_material.GetInput("EmissiveTexture").Get().path, "./Textures/emissive.png")
+        self.assertAlmostEqual(self.get_openpbr_input_value(emissive_texture_material, "emission_luminance"), 1000.0)
+
+    def test_openpbr_bright_emission(self):
+        """Emissive colors brighter than 1.0 should be normalized, with the excess carried by the OpenPBR emission luminance."""
+        asset_path = urdf_usd_converter.Converter().convert("tests/data/dae_bright_emission.urdf", self.tmpDir())
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        material = UsdShade.Material(stage.GetDefaultPrim().GetChild("Materials").GetChild("bright_emission_mat"))
+        self.assertTrue(material)
+        emission_color = self.get_openpbr_input_value(material, "emission_color")
+        luminance = self.get_openpbr_input_value(material, "emission_luminance")
+        self.assertAlmostEqual(max(emission_color), 1.0, places=6)
+        self.assertGreater(luminance, 1000.0)
+        expected = usdex.core.sRgbToLinear(Gf.Vec3f(2, 1, 0))
+        self.assertTrue(Gf.IsClose(emission_color * (luminance / 1000.0), expected, 1e-5))
+
+    def test_preview_material_only(self):
+        """Disabling OpenPBR should author visual materials with only a UsdPreviewSurface shader."""
+        asset_path = urdf_usd_converter.Converter(openpbr=False).convert("tests/data/material_mesh_texture.urdf", self.tmpDir())
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        material_scope_prim = stage.GetDefaultPrim().GetChild("Materials")
+
+        materials = [UsdShade.Material(prim) for prim in material_scope_prim.GetChildren()]
+        self.assertGreater(len(materials), 0)
+        for material in materials:
+            self.assertFalse(material.GetSurfaceOutput("mtlx"), msg=material.GetPath())
+            self.assertFalse(material.GetPrim().HasAPI("MaterialXConfigAPI"), msg=material.GetPath())
+            self.assertTrue(usdex.core.computeEffectivePreviewSurfaceShader(material), msg=material.GetPath())
+
+        texture_material = UsdShade.Material(material_scope_prim.GetChild("texture_mat"))
+        self.assertEqual(self.get_material_wrap_mode(texture_material), "repeat")
+        self.assertEqual(self.get_material_texture_path(texture_material, "diffuseColor"), pathlib.Path("./Textures/grid.png"))
+        self.assertAlmostEqual(self.get_material_ior(texture_material), 1.45, places=6)
+
+    def test_preview_material_emission(self):
+        """Disabling OpenPBR should author emissive colors and textures on the UsdPreviewSurface shader."""
+        asset_path = urdf_usd_converter.Converter(openpbr=False).convert("tests/data/dae_materials.urdf", self.tmpDir())
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        material_scope_prim = stage.GetDefaultPrim().GetChild("Materials")
+
+        emissive_material = UsdShade.Material(material_scope_prim.GetChild("emissive_mat"))
+        self.assertTrue(emissive_material)
+        emissive_color = usdex.core.linearToSrgb(self.get_material_emissive_color(emissive_material))
+        self.assertTrue(Gf.IsClose(emissive_color, Gf.Vec3f(1, 1, 0), 1e-6))
+
+        emissive_texture_material = UsdShade.Material(material_scope_prim.GetChild("emissive_color_tex_mat"))
+        self.assertTrue(emissive_texture_material)
+        emissive_texture_path = self.get_material_texture_path(emissive_texture_material, "emissiveColor")
+        self.assertEqual(emissive_texture_path, pathlib.Path("./Textures/emissive.png"))
+        self.assertEqual(self.get_material_wrap_mode(emissive_texture_material), "repeat")
