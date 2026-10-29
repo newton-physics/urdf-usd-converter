@@ -1,10 +1,15 @@
 # Unreleased
 
-## Breaking Changes
+## Features
 
-- A link with only a visual is no longer authored as a rigid body without mass
-  - A fixed-joint child is treated as a ghost link. The prim and its visual stay, and the fixed joint is not authored
-  - A movable-joint child fails conversion unless it has `<inertial>`. A mimic-referenced fixed joint fails the same way
+- A rigid body with no collision or positive-mass `<inertial>` in its subtree warns and is still authored without mass. An empty link and a link with only a visual follow the same rule. A descendant that supplies mass keeps the link silent. `Converter(strict=True)` and `--strict` fail conversion instead. A mimic-referenced fixed joint does the same
+
+## Fixes
+
+- A fixed-joint child with only a visual is no longer authored as a rigid body without mass
+  - The prim and its visual stay, and the fixed joint is not authored
+- A joint that connects the first rigid body directly to the world stays inside the articulation when no ancestor link is a rigid body
+  - `ArticulationRootAPI` is applied to the non-body root link, so the joint is not excluded as a floating base
 
 # 0.3.4
 

@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-from pxr import Gf, Usd, UsdPhysics
+import usdex.core
+import usdex.test
+from pxr import Gf, Tf, Usd, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -27,18 +29,18 @@ class TestGhostLink(ConverterTestCase):
         geometry_scope_prim = default_prim.GetChild("Geometry")
         self.assertTrue(geometry_scope_prim.IsValid())
 
-        # Check physics rigid bodies.
+        # The fixed joint from the world stays inside the articulation when the root has no rigid body.
         base_link_prim = geometry_scope_prim.GetChild("BaseLink")
         self.assertTrue(base_link_prim.IsValid())
         self.assertFalse(base_link_prim.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertFalse(base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
-        self.assertFalse(base_link_prim.HasAPI("NewtonArticulationRootAPI"))
+        self.assertTrue(base_link_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(base_link_prim.HasAPI("NewtonArticulationRootAPI"))
 
         link1_prim = base_link_prim.GetChild("link1")
         self.assertTrue(link1_prim.IsValid())
         self.assertTrue(link1_prim.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertTrue(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
-        self.assertTrue(link1_prim.HasAPI("NewtonArticulationRootAPI"))
+        self.assertFalse(link1_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(link1_prim.HasAPI("NewtonArticulationRootAPI"))
 
         link_box_prim = link1_prim.GetChild("link_box")
         self.assertTrue(link_box_prim.IsValid())
@@ -464,7 +466,14 @@ class TestGhostLink(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        link_a = ".*Link 'linkA' has no collision or positive-mass inertial, including its descendants, and is the child of fixed joint 'jointA'.*"
+        link_b = ".*Link 'linkB' has no collision or positive-mass inertial, including its descendants, and is connected by a revolute joint.*"
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, link_a), (Tf.TF_DIAGNOSTIC_WARNING_TYPE, link_b)],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 

@@ -54,6 +54,7 @@ def run() -> int:
             scene=not args.no_physics_scene,
             comment=args.comment,
             ros_packages=args.package,
+            strict=args.strict,
         )
         if result := converter.convert(args.input_file, args.output_dir):
             Tf.Status(f"Created USD Asset: {result.path}")
@@ -137,6 +138,12 @@ def __create_parser() -> argparse.ArgumentParser:
         "-c",
         default="",
         help="Comment to add to the USD file",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        default=False,
+        help="Fail conversion for checks that otherwise warn and continue",
     )
     parser.add_argument(
         "--package",

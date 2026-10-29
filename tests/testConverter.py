@@ -210,7 +210,9 @@ class TestConverter(ConverterTestCase):
         output_dir = pathlib.Path(self.tmpDir()) / model_name
         usdc_path = output_dir / f"{model_name}.usdc"
 
-        asset_identifier = urdf_usd_converter.Converter(layer_structure=False).convert(model, output_dir)
+        prismatic_arms = [("Arm_1", "prismatic"), ("Arm_2", "prismatic"), ("Arm_3", "prismatic"), ("Arm_4", "prismatic")]
+        with self.expect_no_mass_source(prismatic_arms):
+            asset_identifier = urdf_usd_converter.Converter(layer_structure=False).convert(model, output_dir)
         self.assertTrue(usdc_path.exists())
 
         # check that the asset identifier returned from convert() is the same as the usdc path

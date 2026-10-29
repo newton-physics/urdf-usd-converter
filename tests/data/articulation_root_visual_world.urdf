@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot name="articulation_root_visual_world">
+  <link name="world"/>
+  <link name="drawn">
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 0.02"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="arm">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="j1" type="fixed">
+    <origin xyz="0 0 0.1"/>
+    <parent link="world"/>
+    <child link="drawn"/>
+  </joint>
+  <joint name="j2" type="revolute">
+    <origin xyz="0 0 0.2"/>
+    <parent link="drawn"/>
+    <child link="arm"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1" velocity="1"/>
+  </joint>
+</robot>

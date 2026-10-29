@@ -11,7 +11,7 @@ from pxr import Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from ._flatten import export_flattened
 from .data import ConversionData, Tokens
-from .link import convert_links, validate_visual_only_links
+from .link import convert_links, validate_links_without_mass_source
 from .link_hierarchy import LinkHierarchy
 from .material import convert_materials
 from .mesh import convert_meshes
@@ -32,9 +32,23 @@ class Converter:
         scene: bool = True
         comment: str = ""
         ros_packages: list[dict[str, str]] = field(default_factory=list)
+        strict: bool = False
 
-    def __init__(self, layer_structure: bool = True, scene: bool = True, comment: str = "", ros_packages: list[dict[str, str]] = []):
-        self.params = self.Params(layer_structure=layer_structure, scene=scene, comment=comment, ros_packages=ros_packages)
+    def __init__(
+        self,
+        layer_structure: bool = True,
+        scene: bool = True,
+        comment: str = "",
+        ros_packages: list[dict[str, str]] = [],
+        strict: bool = False,
+    ):
+        self.params = self.Params(
+            layer_structure=layer_structure,
+            scene=scene,
+            comment=comment,
+            ros_packages=ros_packages,
+            strict=strict,
+        )
 
     def convert(self, input_file: str, output_dir: str) -> Sdf.AssetPath:
         """
@@ -51,6 +65,7 @@ class Converter:
             ValueError: If input_file does not exist or is not a readable file.
             ValueError: If input_file cannot be parsed as a valid URDF.
             ValueError: If output_dir exists but is not a directory.
+            ValueError: If strict is set and a rigid body has no mass source.
         """
         input_path = pathlib.Path(input_file)
         if not input_path.exists() or not input_path.is_file():
@@ -97,9 +112,10 @@ class Converter:
             undefined_elements=parser.get_undefined_elements(),
         )
 
-        # Reject visual-only links that would become rigid bodies with no mass source
-        # before a stage is created. Fixed-joint children are handled while authoring links.
-        validate_visual_only_links(data)
+        # A rigid body has no mass source when neither it nor any descendant has a
+        # collision or a positive-mass inertial. A visual does not count.
+        # Warn and continue unless strict is set, which fails before a stage is created.
+        validate_links_without_mass_source(data, strict=self.params.strict)
 
         # setup the main output layer (which will become an asset interface later)
         robot_name = parser.get_robot_name()
