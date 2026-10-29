@@ -38,6 +38,11 @@ class ConverterTestCase(usdex.test.TestCase):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return self._get_input_value(shader, input_name)
 
+    def get_openpbr_input_value(self, material: UsdShade.Material, input_name: str):
+        shader: UsdShade.Shader = usdex.core.computeEffectiveMtlxSurfaceShader(material)
+        self.assertEqual(shader.GetShaderId(), "ND_open_pbr_surface_surfaceshader")
+        return self._get_input_value(shader, input_name)
+
     def get_material_diffuse_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
         return self._get_material_input_value(material, "diffuseColor")
 
@@ -56,15 +61,15 @@ class ConverterTestCase(usdex.test.TestCase):
     def get_material_ior(self, material: UsdShade.Material) -> float:
         return self._get_material_input_value(material, "ior")
 
-    def get_material_wrap_mode(self, material: UsdShade.Material) -> str:
-        wrap_mode_input = material.GetInput("wrapMode")
-        wrap_mode = wrap_mode_input.Get() if wrap_mode_input else None
-
-        for child in material.GetPrim().GetAllChildren():
+    def get_material_wrap_mode(self, material: UsdShade.Material) -> str | None:
+        wrap_mode = None
+        for child in material.GetPrim().GetFilteredChildren(Usd.TraverseInstanceProxies(Usd.PrimAllPrimsPredicate)):
             shader = UsdShade.Shader(child)
             if shader.GetShaderId() == "UsdUVTexture":
                 wrap_s = shader.GetInput("wrapS").Get()
                 wrap_t = shader.GetInput("wrapT").Get()
+                if wrap_mode is None:
+                    wrap_mode = wrap_s
                 self.assertEqual(wrap_mode, wrap_s)
                 self.assertEqual(wrap_mode, wrap_t)
         return wrap_mode
