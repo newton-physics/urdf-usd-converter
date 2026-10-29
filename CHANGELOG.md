@@ -1,3 +1,10 @@
+# Unreleased
+
+## Fixes
+
+- Fixed `physics:centerOfMass` to be authored at the link origin when `<inertial>` omits `<origin>`
+  - Previously it was left unauthored, so consumers derived the center of mass from collision geometry
+
 # 0.3.4
 
 ## Fixes
