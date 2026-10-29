@@ -33,6 +33,7 @@ class Converter:
         comment: str = ""
         ros_packages: list[dict[str, str]] = field(default_factory=list)
         strict: bool = False
+        openpbr: bool = True
 
     def __init__(
         self,
@@ -41,6 +42,7 @@ class Converter:
         comment: str = "",
         ros_packages: list[dict[str, str]] = [],
         strict: bool = False,
+        openpbr: bool = True,
     ):
         self.params = self.Params(
             layer_structure=layer_structure,
@@ -48,6 +50,7 @@ class Converter:
             comment=comment,
             ros_packages=ros_packages,
             strict=strict,
+            openpbr=openpbr,
         )
 
     def convert(self, input_file: str, output_dir: str) -> Sdf.AssetPath:
@@ -102,6 +105,7 @@ class Converter:
             references={},
             name_cache=usdex.core.NameCache(),
             scene=self.params.scene,
+            openpbr=self.params.openpbr,
             comment=self.params.comment,
             link_hierarchy=LinkHierarchy(parser.get_root_element()),
             mesh_cache=MeshCache(),
