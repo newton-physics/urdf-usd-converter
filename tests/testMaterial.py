@@ -489,8 +489,9 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(texture_specular_workflow_material_prim.IsA(UsdShade.Material))
         texture_specular_workflow_material = UsdShade.Material(texture_specular_workflow_material_prim)
         self.assertTrue(texture_specular_workflow_material)
+        # the specular texture is not converted, so there are no texture shaders to wrap
         wrap_mode = self.get_material_wrap_mode(texture_specular_workflow_material)
-        self.assertEqual(wrap_mode, "repeat")
+        self.assertIsNone(wrap_mode)
 
         # Specular Workflow is currently disabled.
         diffuse_color = self.get_material_diffuse_color(texture_specular_workflow_material)
