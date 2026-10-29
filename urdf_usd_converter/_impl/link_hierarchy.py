@@ -57,9 +57,7 @@ class LinkHierarchy:
         self.root_link = self._find_root_link()
 
         # Preprocessing is performed to identify Ghost Links.
-        # If the end of a link is a Ghost Link, the rigid body associated with that link will be removed.
         self._ghost_links_chain(None, self.root_link)
-        self._check_remove_rigid_body_flag(self.root_link)
 
     def _create_link_hierarchy(self):
         """
@@ -145,55 +143,11 @@ class LinkHierarchy:
             "ghost_link": has_ghost_link,
             "belongs_to_fixed_joint": belongs_to_fixed_joint,
             "belongs_to_mimic_joint": belongs_to_mimic_joint,
-            "remove_rigid_body": False,
         }
 
         children = self.get_link_children(link.name)
         for child in children:
             self._ghost_links_chain(link, child)
-
-    def _check_remove_rigid_body_flag(self, link: ElementLink):
-        """
-        Check if the link is a ghost link and all child elements are Ghost Links.
-        If so, fill the remove_rigid_body flag for all ghost links.
-        """
-        rb = self._check_all_ghost_links(link)
-        if rb:
-            # If all child elements are Ghost Links, fill the remove_rigid_body flag for all ghost links.
-            self._fill_all_remove_rigid_body_flag(link)
-            return
-
-        children = self.get_link_children(link.name)
-        for child in children:
-            self._check_remove_rigid_body_flag(child)
-
-    def _fill_all_remove_rigid_body_flag(self, link: ElementLink):
-        """
-        Fill the remove_rigid_body flag for all ghost links.
-        """
-        self.links[link.name]["remove_rigid_body"] = True
-        children = self.get_link_children(link.name)
-        for child in children:
-            self._fill_all_remove_rigid_body_flag(child)
-
-    def _check_all_ghost_links(self, link: ElementLink) -> bool:
-        """
-        Check if all child elements are Ghost Links.
-        """
-        ghost_link = self.links[link.name]["ghost_link"]
-        belongs_to_fixed_joint = self.links[link.name]["belongs_to_fixed_joint"]
-        belongs_to_mimic_joint = self.links[link.name]["belongs_to_mimic_joint"]
-
-        if not ghost_link or not belongs_to_fixed_joint or belongs_to_mimic_joint:
-            return False
-
-        checked = True
-        children = self.get_link_children(link.name)
-        for child in children:
-            if not self._check_all_ghost_links(child):
-                checked = False
-                break
-        return checked
 
     def _find_root_link(self) -> ElementLink:
         """
@@ -263,15 +217,6 @@ class LinkHierarchy:
         """
         return self.links[link_name]["ghost_link"] if link_name in self.links else False
 
-    def get_link_remove_rigid_body(self, link_name: str) -> bool:
-        """
-        Get the remove_rigid_body flag for a link.
-
-        If the Ghost Link extends all the way to the end of the link and
-        belongs to a Fixed Joint, the rigid body can be removed.
-        """
-        return self.links[link_name]["remove_rigid_body"] if link_name in self.links else False
-
     def check_ghost_link_with_fixed_joint(self, link: ElementLink) -> bool:
         """
         Check if a link is a ghost link.
@@ -298,8 +243,6 @@ class LinkHierarchy:
         if not self._is_authored_rigid_body(link):
             return LinkRole.GHOST
         if link.name == self.root_link.name or self._subtree_supplies_mass(link):
-            return LinkRole.RIGID
-        if self.get_parent_joint(link.name) is None:
             return LinkRole.RIGID
         return LinkRole.NO_MASS_SOURCE
 
@@ -337,8 +280,6 @@ class LinkHierarchy:
         if link.name not in self.links:
             return False
         if self.check_ghost_link_with_fixed_joint(link):
-            return False
-        if self.get_link_remove_rigid_body(link.name):
             return False
         if self.is_merged_dummy_inertia_link(link):
             return False

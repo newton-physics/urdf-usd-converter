@@ -151,8 +151,6 @@ def validate_links_without_mass_source(data: ConversionData, strict: bool = Fals
         if data.link_hierarchy.classify_link(link) is not LinkRole.NO_MASS_SOURCE:
             continue
         joint = data.link_hierarchy.get_parent_joint(link.name)
-        if joint is None:
-            continue
         messages.append(_no_mass_source_message(link, joint, mimic_links))
     if not messages:
         return
