@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 import usdex.core
-from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
@@ -77,10 +77,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
     is_merged_dummy_inertia = _is_merged_dummy_inertia_link(link, data)
 
     # A visual does not define mass or collision. On a fixed joint this link is not a rigid body.
-    # An empty ghost link stays silent; a visual records that the rigid body was omitted.
     is_visual_only_fixed = _treat_visual_only_as_ghost(link, data)
-    if is_visual_only_fixed:
-        Tf.Warn(f"Link '{link.name}' has a visual but no inertial or collision, so it is not a rigid body.")
     if not has_ghost_link_with_fixed_joint and not remove_rigid_body and not is_merged_dummy_inertia and not is_visual_only_fixed:
         prim_over = data.content[Tokens.Physics].OverridePrim(link_prim.GetPath())
         UsdPhysics.RigidBodyAPI.Apply(prim_over)

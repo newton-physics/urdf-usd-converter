@@ -114,15 +114,8 @@ class TestMaterial(ConverterTestCase):
             self,
             [
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_sphere' has a visual but no inertial or collision, so it is not a rigid body.*"),
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_cylinder' has a visual but no inertial or collision, so it is not a rigid body.*"),
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Textures are not projection mapped for Cube, Sphere, and Cylinder:.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_obj_texture' has a visual but no inertial or collision, so it is not a rigid body.*"),
-                (
-                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
-                    ".*Link 'link_obj_color_texture' has a visual but no inertial or collision, so it is not a rigid body.*",
-                ),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
@@ -238,7 +231,6 @@ class TestMaterial(ConverterTestCase):
             self,
             [
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Texture file not found:.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Link 'link_obj2' has a visual but no inertial or collision, so it is not a rigid body.*"),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):

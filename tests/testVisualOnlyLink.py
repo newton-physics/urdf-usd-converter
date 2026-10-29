@@ -4,12 +4,10 @@ import pathlib
 
 import usdex.core
 import usdex.test
-from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Usd, UsdGeom, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
-
-_VISUAL_ONLY_WARNING = ".*Link '{name}' has a visual but no inertial or collision, so it is not a rigid body.*"
 
 
 class TestVisualOnlyLink(ConverterTestCase):
@@ -17,20 +15,13 @@ class TestVisualOnlyLink(ConverterTestCase):
         """
         A visual-only link on a fixed joint keeps its visual and gets no rigid body.
 
-        An empty ghost link stays silent. A link with a collision still gets a rigid body.
+        A link with a collision still gets a rigid body.
         Explicit zero mass is the same case as a missing inertial.
         """
         input_path = "tests/data/visual_only_fixed.urdf"
         output_dir = self.tmpDir()
 
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, _VISUAL_ONLY_WARNING.format(name="drawn")),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, _VISUAL_ONLY_WARNING.format(name="zero")),
-            ],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
             asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
 
         self.assertIsNotNone(asset_path)
@@ -75,11 +66,7 @@ class TestVisualOnlyLink(ConverterTestCase):
         input_path = "tests/data/visual_only_chain.urdf"
         output_dir = self.tmpDir()
 
-        with usdex.test.ScopedDiagnosticChecker(
-            self,
-            [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, _VISUAL_ONLY_WARNING.format(name="drawn"))],
-            level=usdex.core.DiagnosticsLevel.eWarning,
-        ):
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
             asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
 
         stage = Usd.Stage.Open(asset_path.path)

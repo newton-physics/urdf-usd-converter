@@ -3,7 +3,7 @@
 ## Breaking Changes
 
 - A link with only a visual is no longer authored as a rigid body without mass
-  - A fixed-joint child is treated as a ghost link, and a warning names the link. Empty ghost links stay silent
+  - A fixed-joint child is treated as a ghost link. The prim and its visual stay, and the fixed joint is not authored
   - A movable-joint child fails conversion unless it has `<inertial>`. A mimic-referenced fixed joint fails the same way
 
 # 0.3.4

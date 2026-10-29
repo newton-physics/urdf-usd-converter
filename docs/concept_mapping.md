@@ -362,7 +362,7 @@ Only `joint_box` remains among the joints along that chain, and its `body0` targ
 
 A link with a [visual](#linkvisual), no [collision](#linkcollision), and no usable [inertial](#linkinertial) (missing or zero mass) is not a Ghost Link.
 
-On a fixed joint it is authored as a Ghost Link: the prim and its visual stay, `PhysicsRigidBodyAPI` is not applied, and the fixed joint is not authored. A warning names the link. An empty Ghost Link stays silent.
+On a fixed joint it is authored as a Ghost Link: the prim and its visual stay, `PhysicsRigidBodyAPI` is not applied, and the fixed joint is not authored.
 
 On any other joint, conversion fails. The link needs an `<inertial>` element. A fixed joint referenced by a [mimic joint](#element-mimic) fails the same way.
 
