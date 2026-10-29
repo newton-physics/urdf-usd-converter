@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 import usdex.core
-from pxr import Gf, Sdf, Usd, UsdGeom, UsdPhysics
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom, UsdPhysics
 
 from .data import ConversionData, Tokens
 from .geometry import convert_geometry
@@ -645,6 +645,11 @@ def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
     """
     Map URDF joint dynamics and velocity limits to NewtonJointAPI.
 
+    ``newton:velocityLimit`` is authored only for a positive ``<limit velocity>``.
+    An omitted velocity is unlimited and produces no warning. An explicit
+    non-positive velocity is also left unlimited, with a warning, because
+    NewtonJointAPI's range is ``(0, inf]``.
+
     Args:
         element_joint: ElementJoint in URDF
         prim: PhysicsJoint in USD
@@ -657,8 +662,15 @@ def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
         damping = _convert_joint_damping(element_joint.type, element_joint.dynamics.get_with_default("damping"))
         friction = element_joint.dynamics.get_with_default("friction")
 
-    if element_joint.limit and element_joint.type in ("revolute", "continuous", "prismatic"):
-        velocity_limit = _convert_joint_velocity_limit(element_joint.type, element_joint.limit.get_with_default("velocity"))
+    velocity = element_joint.limit.velocity if element_joint.limit else None
+    if element_joint.type in ("revolute", "continuous", "prismatic") and velocity is not None:
+        if velocity <= 0.0:
+            Tf.Warn(
+                f'Joint "{element_joint.name}" has non-positive <limit velocity> "{velocity}". '
+                "newton:velocityLimit requires a positive value and is not authored, leaving the joint unlimited."
+            )
+        else:
+            velocity_limit = _convert_joint_velocity_limit(element_joint.type, velocity)
 
     if damping is None and friction is None and velocity_limit is None:
         return

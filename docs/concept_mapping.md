@@ -863,13 +863,13 @@ To account for the arbitrary axis, it is necessary to also author `physics:local
 
 The joint/limit element specifies hard limits for revolute and prismatic joints, but is not used for the other types of joints. See also [safety\_controller](#element-safety_controller) for soft limits.
 
-In USD, these joints have lower and upper position limits via UsdPhysics. The velocity attribute has no UsdPhysics equivalent, but maps to `NewtonJointAPI` `newton:velocityLimit` on the `PhysicsJoint` prim. The effort attribute remains a ***GAP***.
+In USD, these joints have lower and upper position limits via UsdPhysics. The velocity attribute has no UsdPhysics equivalent, but a positive value maps to `NewtonJointAPI` `newton:velocityLimit` on the `PhysicsJoint` prim. An omitted velocity is left unlimited. An explicit non-positive velocity is also left unlimited, and a warning is emitted, because NewtonJointAPI's range is `(0, inf]`. The effort attribute remains a ***GAP***.
 
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
 | lower | `physics:lowerLimit` | minimum position/angle |
 | upper | `physics:upperLimit` | maximum position/angle |
-| velocity | `newton:velocityLimit` | maximum joint velocity. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)). |
+| velocity | `newton:velocityLimit` | maximum joint velocity, authored only when the URDF value is positive. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)). An omitted or non-positive value is not authored. |
 | effort | ***GAP*** | maximum torque/force (Nm/N) |
 
 ##### Element: mimic

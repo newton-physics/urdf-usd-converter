@@ -437,7 +437,7 @@ class ElementLimit(ElementBase):
         "lower": 0.0,
         "upper": 0.0,
         "effort": 0.0,
-        "velocity": 0.0,
+        # velocity has no default. An omitted attribute stays unset.
     }
 
     def __init__(self):
