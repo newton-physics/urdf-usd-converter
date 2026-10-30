@@ -191,6 +191,20 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*joint: Type is required \(line: 22\).*"):
             parser.parse()
 
+    def test_limit_velocity_default_is_unset(self):
+        parser = URDFParser(pathlib.Path("tests/data/velocity_limits.urdf"))
+        parser.parse()
+        joints = {joint.name: joint for joint in parser.get_root_element().joints}
+
+        self.assertEqual(joints["positive"].limit.velocity, 0.5)
+        self.assertEqual(joints["positive"].limit.get_with_default("velocity"), 0.5)
+
+        self.assertIsNone(joints["omitted"].limit.velocity)
+        self.assertIsNone(joints["omitted"].limit.get_with_default("velocity"))
+
+        self.assertEqual(joints["zero"].limit.velocity, 0.0)
+        self.assertEqual(joints["negative"].limit.velocity, -1.0)
+
     def test_load_warning_no_joint_k_velocity(self):
         # Load the specified URDF file.
         model_path = pathlib.Path("tests/data/warning_no_joint_k_velocity.urdf")
