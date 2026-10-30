@@ -632,9 +632,7 @@ class TestJoints(ConverterTestCase):
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, '.*Joint "zero" has non-positive <limit velocity> "0.0".*'),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, '.*Joint "negative" has non-positive <limit velocity> "-1.0".*'),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, '.*Joint "damped" has non-positive <limit velocity> "0.0".*'),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, '.*Joint "negative" has negative <limit velocity> "-1.0".*'),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):

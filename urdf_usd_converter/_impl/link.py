@@ -647,8 +647,8 @@ def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
     Map URDF joint dynamics and velocity limits to NewtonJointAPI.
 
     ``newton:velocityLimit`` is authored only for a positive ``<limit velocity>``.
-    An omitted velocity is unlimited and produces no warning. An explicit
-    non-positive velocity is also left unlimited, with a warning, because
+    An omitted velocity, or an explicit ``0``, is unlimited and produces no warning.
+    A negative velocity is also left unlimited, with a warning, because
     NewtonJointAPI's range is ``(0, inf]``.
 
     Args:
@@ -665,13 +665,13 @@ def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
 
     velocity = element_joint.limit.velocity if element_joint.limit else None
     if element_joint.type in ("revolute", "continuous", "prismatic") and velocity is not None:
-        if velocity <= 0.0:
+        if velocity > 0.0:
+            velocity_limit = _convert_joint_velocity_limit(element_joint.type, velocity)
+        elif velocity < 0.0:
             Tf.Warn(
-                f'Joint "{element_joint.name}" has non-positive <limit velocity> "{velocity}". '
+                f'Joint "{element_joint.name}" has negative <limit velocity> "{velocity}". '
                 "newton:velocityLimit requires a positive value and is not authored, leaving the joint unlimited."
             )
-        else:
-            velocity_limit = _convert_joint_velocity_limit(element_joint.type, velocity)
 
     if damping is None and friction is None and velocity_limit is None:
         return

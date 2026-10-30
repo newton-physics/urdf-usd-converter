@@ -8,8 +8,8 @@
 
 - Stopped authoring `newton:velocityLimit` for a missing or non-positive URDF `<limit velocity>`
   - A positive velocity is still converted and authored
-  - An omitted velocity is left unlimited, with no warning
-  - An explicit non-positive velocity is left unlimited and a warning is emitted, because `NewtonJointAPI`'s range is `(0, inf]`
+  - An omitted velocity, or an explicit `0`, is left unlimited, with no warning
+  - A negative velocity is left unlimited and a warning is emitted, because `NewtonJointAPI`'s range is `(0, inf]`
 - Fixed `physics:centerOfMass` to be authored at the link origin when `<inertial>` omits `<origin>`
   - Previously it was left unauthored, so consumers derived the center of mass from collision geometry
 
