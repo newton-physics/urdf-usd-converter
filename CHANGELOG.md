@@ -11,6 +11,10 @@
   - The prim and its visual stay, and the fixed joint is not authored
 - A joint that connects the first rigid body directly to the world stays inside the articulation when no ancestor link is a rigid body
   - `ArticulationRootAPI` is applied to the non-body root link, so the joint is not excluded as a floating base
+- Stopped authoring `newton:velocityLimit` for a missing or non-positive URDF `<limit velocity>`
+  - A positive velocity is still converted and authored
+  - An omitted velocity, or an explicit `0`, is left unlimited, with no warning
+  - A negative velocity is left unlimited and a warning is emitted, because `NewtonJointAPI`'s range is `(0, inf]`
 - Fixed `physics:centerOfMass` to be authored at the link origin when `<inertial>` omits `<origin>`
   - Previously it was left unauthored, so consumers derived the center of mass from collision geometry
 
