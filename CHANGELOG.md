@@ -1,11 +1,22 @@
 # Unreleased
 
+## Features
+
+- Added support for Python 3.13
+
 ## Fixes
 
 - Stopped authoring `newton:velocityLimit` for a missing or non-positive URDF `<limit velocity>`
   - A positive velocity is still converted and authored
   - An omitted velocity is left unlimited, with no warning
   - An explicit non-positive velocity is left unlimited and a warning is emitted, because `NewtonJointAPI`'s range is `(0, inf]`
+- Fixed `physics:centerOfMass` to be authored at the link origin when `<inertial>` omits `<origin>`
+  - Previously it was left unauthored, so consumers derived the center of mass from collision geometry
+
+## Dependencies
+
+- Updated to `usd-exchange>=3.0.1`, which uses OpenUSD 26.08
+  - `usd-exchange` 2.x and OpenUSD 25.05 are no longer supported
 
 # 0.3.4
 
