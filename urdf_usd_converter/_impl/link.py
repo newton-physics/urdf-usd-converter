@@ -261,9 +261,10 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
         mass_api.GetPrincipalAxesAttr().Set(orientation)
         mass_api.GetDiagonalInertiaAttr().Set(diag_inertia)
 
-    if link.inertial.origin:
-        position = Gf.Vec3f(link.inertial.origin.get_with_default("xyz"))
-        mass_api.GetCenterOfMassAttr().Set(position)
+    # Omitted <origin> uses ElementPose's xyz default, (0, 0, 0).
+    origin = link.inertial.origin or ElementPose()
+    position = Gf.Vec3f(origin.get_with_default("xyz"))
+    mass_api.GetCenterOfMassAttr().Set(position)
 
     if link.inertial.mass:
         mass = link.inertial.mass.get_with_default("value")

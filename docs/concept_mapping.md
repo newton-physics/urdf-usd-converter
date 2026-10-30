@@ -23,7 +23,7 @@ To facilitate a shared understanding between subject matter experts of these com
 
 | Version | Reference Documents |
 | :---- | :---- |
-| 25.05 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v25.05), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
+| 26.08 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v26.08), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
 
 ### General Assumptions and Constraints
 
@@ -410,7 +410,7 @@ The origin of an inertial element is the position and orientation of the link’
 
 ###### *Property: xyz*
 
-The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`, which should be applied in the link Prim.
+The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`, which should be applied in the link Prim. An omitted `<origin>` is the URDF pose default (`xyz="0 0 0"`, `rpy="0 0 0"`), and `physics:centerOfMass` is still authored at the link origin. Leaving it unauthored lets consumers derive the center of mass from collision geometry.
 
 ###### *Property: rpy*
 
