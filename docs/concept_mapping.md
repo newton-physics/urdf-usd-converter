@@ -191,7 +191,7 @@ In URDF, there must be a single kinematic tree hierarchy, with a single root lin
 
 In USD, the link (body) frame must be specified on the body prim itself, using XformOps (see [Appendix E](#element-origin-2)). There are two possible approaches, both require analyzing the [joint](#joint) elements first, to determine the correct kinematic hierarchy.
 
-The first link in the URDF file should be considered the root of the robot (after accounting for the “world” link, see Links as Anchor Points above). This link should be marked as the root by applying `UsdPhysicsArticulationRootAPI`.
+The first link in the URDF file should be considered the root of the robot (after accounting for the “world” link, see Links as Anchor Points above). This link should be marked as the root by applying `UsdPhysicsArticulationRootAPI`. If the root link is not a rigid body, apply `UsdPhysicsArticulationRootAPI` to that root prim. A joint from the first rigid body to the world stays inside the articulation.
 
 The next links must be determined by analyzing the joint connections. Upon recursive traversal, the joints that contain the current link as parent will contain the next link as the child. This traversal can be either Breadth-first-search or Depth-first-search. Implementations may choose to support either approach, but for consistency it is recommended to use depth-first-search for the default traversal.
 
@@ -358,13 +358,23 @@ When Ghost Links on Fixed joints appear **before** an articulated, non-Ghost des
 For example, with `BaseLink → ghost_link → ghost_link_2 → ghost_link_3 → link_box` (three Fixed joints, then a Revolute joint to `link_box`), rigid bodies are omitted on `ghost_link`, `ghost_link_2`, and `ghost_link_3`, and the three internal Fixed joints are not authored.  
 Only `joint_box` remains among the joints along that chain, and its `body0` targets `BaseLink` rather than `ghost_link_3`, with the origins of the three dropped Fixed joints accumulated into its `physics:localPos0`.  
 
+#### A link with no mass source
+
+A [visual](#linkvisual) does not supply mass. A link has a mass source when it, or one of its descendants, has a [collision](#linkcollision) or an [inertial](#linkinertial) with positive mass. Missing inertial and zero mass are the same.
+
+On a fixed joint, a link with a visual and no mass source of its own is authored as a Ghost Link: the prim and its visual stay, `PhysicsRigidBodyAPI` is not applied, and the fixed joint is not authored. An empty link on a fixed joint is already a Ghost Link.
+
+On any other joint, the link is a rigid body. When the link and its descendants have no mass source, conversion warns and the link is still authored without mass. Simulators then use a default mass. A descendant that supplies mass keeps the link silent. A fixed inertial-only child is that case: its mass is copied onto the parent.
+
+A fixed joint referenced by a [mimic joint](#element-mimic) stays a rigid body, and the same mass-source rule applies. The kinematic root stays a rigid body because the root joint welds it to the world, so its mass does not matter.
+
 ### link/inertial
 
 The inertial element within a link defines the link’s mass, center of mass, and its central inertia properties. When not defined, it indicates zero mass and zero inertia.
 
 In USD, this maps to the `UsdPhysicsMassAPI` schema applied to the link Prim, with `NewtonMassAPI` additionally applied to author Newton-specific mass attributes, with properties set as described in the table below.
 
-While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD. The [fixed inertial-only child](#fixed-inertial-only-child) below is the exception this converter implements.
+While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD. This converter does not treat every missing inertial as an error. See [A link with no mass source](#a-link-with-no-mass-source). The [fixed inertial-only child](#fixed-inertial-only-child) below supplies the parent's mass.
 
 #### Fixed inertial-only child
 

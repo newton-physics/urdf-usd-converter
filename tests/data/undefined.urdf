@@ -38,6 +38,10 @@
     </custom>
   </link>
   <link name="link_box2">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
     <visual>
       <geometry>
         <mesh filename="assets/box.dae"/>

@@ -2,10 +2,15 @@
 
 ## Features
 
+- A rigid body with no collision or positive-mass `<inertial>` in its subtree warns and is still authored without mass. An empty link and a link with only a visual follow the same rule. A descendant that supplies mass keeps the link silent. `Converter(strict=True)` and `--strict` fail conversion instead. A mimic-referenced fixed joint does the same
 - Added support for Python 3.13
 
 ## Fixes
 
+- A fixed-joint child with only a visual is no longer authored as a rigid body without mass
+  - The prim and its visual stay, and the fixed joint is not authored
+- A joint that connects the first rigid body directly to the world stays inside the articulation when no ancestor link is a rigid body
+  - `ArticulationRootAPI` is applied to the non-body root link, so the joint is not excluded as a floating base
 - Stopped authoring `newton:velocityLimit` for a missing or non-positive URDF `<limit velocity>`
   - A positive velocity is still converted and authored
   - An omitted velocity, or an explicit `0`, is left unlimited, with no warning

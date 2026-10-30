@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
+import enum
 from typing import Any
 
 from .urdf_parser.elements import (
@@ -9,7 +10,21 @@ from .urdf_parser.elements import (
     ElementRobot,
 )
 
-__all__ = ["LinkHierarchy"]
+__all__ = ["LinkHierarchy", "LinkRole"]
+
+
+class LinkRole(enum.Enum):
+    """
+    How a link is authored as a physics body.
+
+    `RIGID` gets a rigid body and has a mass source, or is the kinematic root.
+    `GHOST` is not a rigid body. `NO_MASS_SOURCE` is still a rigid body, but
+    neither it nor any descendant has a collision or a positive-mass inertial.
+    """
+
+    RIGID = "rigid"
+    GHOST = "ghost"
+    NO_MASS_SOURCE = "no-mass-source"
 
 
 class LinkHierarchy:
@@ -42,9 +57,7 @@ class LinkHierarchy:
         self.root_link = self._find_root_link()
 
         # Preprocessing is performed to identify Ghost Links.
-        # If the end of a link is a Ghost Link, the rigid body associated with that link will be removed.
         self._ghost_links_chain(None, self.root_link)
-        self._check_remove_rigid_body_flag(self.root_link)
 
     def _create_link_hierarchy(self):
         """
@@ -86,7 +99,10 @@ class LinkHierarchy:
 
     def _is_zero_inertial(self, inertial: ElementInertial) -> bool:
         """
-        Check if the inertial is zero.
+        True when inertial data is absent or equivalent to zero mass.
+
+        Positive mass counts. Mass of zero with a non-zero diagonal inertia does not.
+        Ghost classification and the mass-source rule both use this check.
         """
         if inertial is None:
             return True
@@ -127,55 +143,11 @@ class LinkHierarchy:
             "ghost_link": has_ghost_link,
             "belongs_to_fixed_joint": belongs_to_fixed_joint,
             "belongs_to_mimic_joint": belongs_to_mimic_joint,
-            "remove_rigid_body": False,
         }
 
         children = self.get_link_children(link.name)
         for child in children:
             self._ghost_links_chain(link, child)
-
-    def _check_remove_rigid_body_flag(self, link: ElementLink):
-        """
-        Check if the link is a ghost link and all child elements are Ghost Links.
-        If so, fill the remove_rigid_body flag for all ghost links.
-        """
-        rb = self._check_all_ghost_links(link)
-        if rb:
-            # If all child elements are Ghost Links, fill the remove_rigid_body flag for all ghost links.
-            self._fill_all_remove_rigid_body_flag(link)
-            return
-
-        children = self.get_link_children(link.name)
-        for child in children:
-            self._check_remove_rigid_body_flag(child)
-
-    def _fill_all_remove_rigid_body_flag(self, link: ElementLink):
-        """
-        Fill the remove_rigid_body flag for all ghost links.
-        """
-        self.links[link.name]["remove_rigid_body"] = True
-        children = self.get_link_children(link.name)
-        for child in children:
-            self._fill_all_remove_rigid_body_flag(child)
-
-    def _check_all_ghost_links(self, link: ElementLink) -> bool:
-        """
-        Check if all child elements are Ghost Links.
-        """
-        ghost_link = self.links[link.name]["ghost_link"]
-        belongs_to_fixed_joint = self.links[link.name]["belongs_to_fixed_joint"]
-        belongs_to_mimic_joint = self.links[link.name]["belongs_to_mimic_joint"]
-
-        if not ghost_link or not belongs_to_fixed_joint or belongs_to_mimic_joint:
-            return False
-
-        checked = True
-        children = self.get_link_children(link.name)
-        for child in children:
-            if not self._check_all_ghost_links(child):
-                checked = False
-                break
-        return checked
 
     def _find_root_link(self) -> ElementLink:
         """
@@ -222,6 +194,17 @@ class LinkHierarchy:
             return None
         return self.link_parents.get(link_name)
 
+    def get_parent_joint(self, link_name: str) -> ElementJoint | None:
+        """
+        Get the joint whose child is this link, or None when the link is the kinematic root.
+        """
+        parent = self.get_link_parent(link_name)
+        if parent is not None:
+            for joint in self.get_link_joints(parent.name) or []:
+                if joint.child.get_with_default("link") == link_name:
+                    return joint
+        return None
+
     def get_link_by_name(self, link_name: str) -> ElementLink:
         """
         Get a link by name.
@@ -233,15 +216,6 @@ class LinkHierarchy:
         Check if a link is a ghost link.
         """
         return self.links[link_name]["ghost_link"] if link_name in self.links else False
-
-    def get_link_remove_rigid_body(self, link_name: str) -> bool:
-        """
-        Get the remove_rigid_body flag for a link.
-
-        If the Ghost Link extends all the way to the end of the link and
-        belongs to a Fixed Joint, the rigid body can be removed.
-        """
-        return self.links[link_name]["remove_rigid_body"] if link_name in self.links else False
 
     def check_ghost_link_with_fixed_joint(self, link: ElementLink) -> bool:
         """
@@ -256,3 +230,131 @@ class LinkHierarchy:
             return ghost_link
 
         return ghost_link and belongs_to_fixed_joint and not belongs_to_mimic_joint
+
+    def classify_link(self, link: ElementLink) -> LinkRole:
+        """
+        Classify a link as a rigid body, a ghost, or a rigid body with no mass source.
+
+        Root, mimic, and dummy-inertia exceptions are decided here, next to ghost
+        classification, so authoring and the mass warning use the same decision.
+        The kinematic root stays a rigid body when it is not an empty ghost,
+        because `root_joint` welds it to the world and its mass never matters.
+        """
+        if not self._is_authored_rigid_body(link):
+            return LinkRole.GHOST
+        if link.name == self.root_link.name or self._subtree_supplies_mass(link):
+            return LinkRole.RIGID
+        return LinkRole.NO_MASS_SOURCE
+
+    def fixed_dummy_inertia_children(self, link: ElementLink) -> list[tuple[ElementJoint, ElementLink]]:
+        """
+        The first fixed joint from `link` to an inertial-only child that should be merged.
+
+        A child referenced by a mimic joint is kept as its own rigid body, matching
+        Ghost Link handling, so the mimic target joint is still authored.
+        Only one child is returned. Further inertial-only siblings stay rigid bodies,
+        because summing them about a shared center of mass is not done here.
+        """
+        children = self.get_link_children(link.name)
+        joints = self.get_link_joints(link.name) or []
+        for child, joint in zip(children, joints):
+            if child.name in self.referenced_link_names_by_mimic_joint:
+                continue
+            if self._is_fixed_dummy_inertia_child(link, joint, child):
+                return [(joint, child)]
+        return []
+
+    def is_merged_dummy_inertia_link(self, link: ElementLink) -> bool:
+        """
+        True when `link` is an inertial-only child whose inertia is merged into its parent.
+        """
+        parent = self.get_link_parent(link.name)
+        if parent is None:
+            return False
+        return any(child.name == link.name for _, child in self.fixed_dummy_inertia_children(parent))
+
+    def _is_authored_rigid_body(self, link: ElementLink) -> bool:
+        """
+        True when conversion applies a rigid body to this link.
+        """
+        if link.name not in self.links:
+            return False
+        if self.check_ghost_link_with_fixed_joint(link):
+            return False
+        if self.is_merged_dummy_inertia_link(link):
+            return False
+        return not self._treat_visual_only_as_ghost(link)
+
+    def _is_visual_only_link(self, link: ElementLink) -> bool:
+        """
+        True when the link has a visual and no collision or usable inertial data.
+
+        A collision can still define mass at simulation time, so a link with a
+        collision is not visual-only.
+        """
+        return bool(link.visuals) and not link.collisions and self._is_zero_inertial(link.inertial)
+
+    def _treat_visual_only_as_ghost(self, link: ElementLink) -> bool:
+        """
+        True when a visual-only link on a fixed joint is authored without a rigid body.
+
+        The kinematic root stays a rigid body because `root_joint` welds it to the
+        world. A link referenced by a mimic joint also stays a rigid body. A fixed
+        inertial-only child supplies the mass instead, so that parent is a rigid body.
+        """
+        if not self._is_visual_only_link(link):
+            return False
+        if link.name == self.root_link.name:
+            return False
+        if link.name in self.referenced_link_names_by_mimic_joint:
+            return False
+        if self.fixed_dummy_inertia_children(link):
+            return False
+        joint = self.get_parent_joint(link.name)
+        return joint is not None and joint.type == "fixed"
+
+    def _link_supplies_mass(self, link: ElementLink) -> bool:
+        """
+        True when the link has a collision or an inertial element with positive mass.
+
+        A visual does not supply mass.
+        """
+        return bool(link.collisions) or not self._is_zero_inertial(link.inertial)
+
+    def _subtree_supplies_mass(self, link: ElementLink) -> bool:
+        """
+        True when the link or any descendant supplies mass.
+        """
+        if self._link_supplies_mass(link):
+            return True
+        return any(self._subtree_supplies_mass(child) for child in self.get_link_children(link.name))
+
+    def _link_has_geometry(self, link: ElementLink) -> bool:
+        """
+        True when the link has at least one visual or collision element.
+        """
+        return bool(link.visuals or link.collisions)
+
+    def _is_inertial_only_link(self, link: ElementLink) -> bool:
+        """
+        True when the link carries non-zero inertial data and no visual or collision.
+        """
+        return not self._is_zero_inertial(link.inertial) and not self._link_has_geometry(link)
+
+    def _is_fixed_dummy_inertia_child(self, parent: ElementLink, joint: ElementJoint, child: ElementLink) -> bool:
+        """
+        Detect a KDL-style dummy inertia child that should be merged into its parent.
+
+        The pattern is a fixed joint whose parent has visual or collision geometry
+        and no inertial, and whose child is inertial-only. Gazebo lumps that child's
+        inertia into the parent. The child is not a Ghost Link, because it has
+        non-zero inertial data.
+
+        A parent that already has inertial is not this pattern. The inverse layout,
+        an empty parent with a child that has geometry and inertial, is also excluded.
+        """
+        if joint.type != "fixed":
+            return False
+        if not self._is_zero_inertial(parent.inertial) or not self._link_has_geometry(parent):
+            return False
+        return self._is_inertial_only_link(child)

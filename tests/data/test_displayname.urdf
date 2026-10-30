@@ -12,6 +12,10 @@
     </visual>
   </link>
   <link name="link-box2">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
     <visual>
       <geometry>
         <box size="0.5 0.5 0.5"/>
@@ -19,6 +23,10 @@
     </visual>
   </link>
   <link name="link-mesh_obj">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
     <visual>
       <geometry>
         <!-- Contains "Cube:Red" and "Cube:Green" as meshes. -->
@@ -28,6 +36,10 @@
     </visual>
   </link>
   <link name="link-mesh_dae">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
     <visual>
       <geometry>
         <!-- The node name is "Cube:1". -->
@@ -36,6 +48,10 @@
     </visual>
   </link>
   <link name="link-box_two_materials_same_names">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
     <visual>
       <geometry>
         <!-- With the same material name (IDs differ) -->

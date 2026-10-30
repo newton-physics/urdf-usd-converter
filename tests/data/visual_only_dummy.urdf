@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<robot name="visual_only_dummy">
+  <link name="base">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="pad">
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 0.02"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="pad_inertia">
+    <inertial>
+      <origin xyz="0.01 0 0"/>
+      <mass value="0.2"/>
+      <inertia ixx="0.01" iyy="0.02" izz="0.03" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+
+  <joint name="pad_joint" type="fixed">
+    <origin xyz="0.1 0 0"/>
+    <parent link="base"/>
+    <child link="pad"/>
+  </joint>
+  <joint name="pad_inertia_joint" type="fixed">
+    <parent link="pad"/>
+    <child link="pad_inertia"/>
+  </joint>
+</robot>
