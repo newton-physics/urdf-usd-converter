@@ -143,7 +143,7 @@ def __create_parser() -> argparse.ArgumentParser:
         "--strict",
         action="store_true",
         default=False,
-        help="Fail conversion for checks that otherwise warn and continue",
+        help="Fail conversion only when a rigid body and its descendants have no collision or positive-mass inertial",
     )
     parser.add_argument(
         "--package",
