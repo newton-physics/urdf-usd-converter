@@ -890,6 +890,41 @@ class TestURDFParser(ConverterTestCase):
         with self.assertRaisesRegex(RuntimeError, r".*limit: Upper is required for revolute and prismatic joints \(line: 10\).*"):
             parser.parse()
 
+    def test_load_error_urdf_12_negative_effort(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_effort.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Effort must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_velocity(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_velocity.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Velocity must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_acceleration(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_acceleration.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Acceleration must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_deceleration(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_deceleration.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Deceleration must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_jerk(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_jerk.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Jerk must be non-negative \(line: 10\).*"):
+            parser.parse()
+
     def test_load_error_urdf_12_upper_less_than_lower(self):
         model_path = pathlib.Path("tests/data/error_urdf_12_upper_less_than_lower.urdf")
         parser = URDFParser(model_path)
