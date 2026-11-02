@@ -3,6 +3,8 @@
 ## Features
 
 - Added support for Python 3.13
+- Rejected a URDF `version` other than the exact strings `1.0`, `1.1`, and `1.2`
+  - An omitted `version` is still `1.0`
 - Added URDF 1.1 `<capsule>` geometry as `UsdGeomCapsule`
   - `radius` and `length` are required and must be non-negative finite values
   - `length` is the cylindrical section only, not including the hemispherical caps

@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<!-- Error if the URDF version has trailing characters. -->
+<robot name="error_urdf_version_suffix" version="1.0~pre6">
+  <link name="base_link"/>
+</robot>

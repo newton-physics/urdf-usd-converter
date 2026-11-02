@@ -41,6 +41,9 @@ from .undefined_data import UndefinedData
 
 __all__ = ["URDFParser"]
 
+# An omitted version stays unset and later defaults to 1.0.
+_SUPPORTED_URDF_VERSIONS = {"1.0": 1.0, "1.1": 1.1, "1.2": 1.2}
+
 
 class URDFParser:
     def __init__(self, input_file: Path):
@@ -191,6 +194,16 @@ class URDFParser:
             )
         return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
+    def _parse_urdf_version(self, version: str, node: ET.Element) -> float:
+        """
+        Parse a robot version attribute.
+
+        Only the exact strings ``1.0``, ``1.1``, and ``1.2`` are accepted.
+        """
+        if version not in _SUPPORTED_URDF_VERSIONS:
+            raise ValueError(self._get_error_message(f'Unsupported version "{version}". Only 1.0, 1.1, and 1.2 are supported', node))
+        return _SUPPORTED_URDF_VERSIONS[version]
+
     def _normalize_quat_xyzw(self, quat: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
         """
         Normalize a quaternion stored as (x, y, z, w).
@@ -305,9 +318,9 @@ class URDFParser:
         if "length" in node.attrib:
             element.length = float(node.attrib["length"])
 
-        if "version" in node.attrib:
+        if isinstance(element, ElementRobot) and "version" in node.attrib:
             element.version = node.attrib["version"]
-            self.urdf_version = float(element.version)
+            self.urdf_version = self._parse_urdf_version(element.version, node)
 
         if isinstance(element, ElementUndefined):
             for key, value in node.attrib.items():

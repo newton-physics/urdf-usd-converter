@@ -906,3 +906,38 @@ class TestURDFParser(ConverterTestCase):
         self.assertIsNone(joint.limit.lower)
         self.assertEqual(joint.limit.upper, 1.57)
         self.assertEqual(parser.get_limit_with_default(joint.limit, "lower"), 0.0)
+
+    def test_load_error_urdf_version_unsupported(self):
+        model_path = pathlib.Path("tests/data/error_urdf_version_unsupported.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "2.0". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+            parser.parse()
+
+    def test_load_error_urdf_version_integer(self):
+        model_path = pathlib.Path("tests/data/error_urdf_version_integer.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+            parser.parse()
+
+    def test_load_error_urdf_version_extra(self):
+        model_path = pathlib.Path("tests/data/error_urdf_version_extra.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1.0.0". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+            parser.parse()
+
+    def test_load_error_urdf_version_suffix(self):
+        model_path = pathlib.Path("tests/data/error_urdf_version_suffix.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1.0~pre6". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+            parser.parse()
+
+    def test_load_error_urdf_version_one_ten(self):
+        model_path = pathlib.Path("tests/data/error_urdf_version_one_ten.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1.10". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+            parser.parse()
