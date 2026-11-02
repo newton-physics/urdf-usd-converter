@@ -8,7 +8,7 @@
   - The link is still authored as a rigid body without `MassAPI`, so simulators use a default mass
   - A visual-only link on a fixed joint does not warn when no ancestor is a rigid body, because that joint welds it to the world
   - A link on a fixed joint that a mimic joint references is checked the same way
-  - Added `--strict` and `Converter(strict=True)` to fail conversion instead of warning
+- Added `--strict` and `Converter(strict=True)` to fail conversion instead of warning
 - Added support for Python 3.13
 
 ## Fixes
