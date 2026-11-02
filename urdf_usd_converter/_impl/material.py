@@ -131,7 +131,7 @@ def _convert_material(
         surface_shader.CreateInput("ior", Sdf.ValueTypeNames.Float).Set(material_data.ior)
 
     if material_data.diffuse_texture_path:
-        usdex.core.addDiffuseTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.diffuse_texture_path, texture_paths, data))
+        usdex.core.addColorTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.diffuse_texture_path, texture_paths, data))
 
     if material_data.normal_texture_path:
         usdex.core.addNormalTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.normal_texture_path, texture_paths, data))

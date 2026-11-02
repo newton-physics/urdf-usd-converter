@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot name="inertia_no_origin">
+  <!--
+    Purpose: verify that an <inertial> with mass and inertia but no <origin>
+    authors physics:centerOfMass at the link origin (0, 0, 0). An omitted
+    origin is the URDF pose default. The offset collision must not become
+    the center of mass.
+  -->
+  <link name="link">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+    <collision>
+      <origin xyz="0 0 -0.2"/>
+      <geometry>
+        <box size="0.05 0.05 0.4"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

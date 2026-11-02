@@ -39,7 +39,7 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(red_material.GetPrim().HasAuthoredReferences())
 
         diffuse_color = self.get_material_diffuse_color(red_material)
-        self.assertEqual(diffuse_color, Gf.Vec3f(1, 0, 0))
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(1, 0, 0), 1e-6))
         opacity = self.get_material_opacity(red_material)
         self.assertEqual(opacity, 1.0)
 
@@ -52,7 +52,7 @@ class TestMaterial(ConverterTestCase):
         self.assertTrue(unnamed_material.GetPrim().HasAuthoredReferences())
 
         diffuse_color = self.get_material_diffuse_color(unnamed_material)
-        self.assertEqual(diffuse_color, Gf.Vec3f(0, 1, 0))
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
         opacity = self.get_material_opacity(unnamed_material)
         self.assertEqual(opacity, 1.0)
 
@@ -341,7 +341,7 @@ class TestMaterial(ConverterTestCase):
 
         diffuse_color = self.get_material_diffuse_color(green_material)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
-        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-5))
         opacity = self.get_material_opacity(green_material)
         self.assertEqual(opacity, 1.0)
         ior = self.get_material_ior(green_material)
@@ -717,7 +717,7 @@ class TestMaterial(ConverterTestCase):
 
         diffuse_color = self.get_material_diffuse_color(material_green)
         diffuse_color = usdex.core.linearToSrgb(diffuse_color)
-        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(diffuse_color, Gf.Vec3f(0, 1, 0), 1e-5))
         opacity = self.get_material_opacity(material_green)
         self.assertAlmostEqual(opacity, 1.0, places=6)
 

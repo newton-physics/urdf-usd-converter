@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<robot name="dummy_inertia_fixed">
+  <!-- KDL-style dummy: collision on the parent, inertia only on a fixed child. -->
+  <link name="base">
+    <visual>
+      <geometry>
+        <box size="0.5 0.3 0.2"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="0.5 0.3 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="base_inertia">
+    <inertial>
+      <origin xyz="0.1 0.0 0.05" rpy="0 0 0"/>
+      <mass value="16.8"/>
+      <inertia ixx="0.2" ixy="0.01" ixz="0.0" iyy="0.3" iyz="0.0" izz="0.4"/>
+    </inertial>
+  </link>
+  <joint name="base_to_base_inertia" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base"/>
+    <child link="base_inertia"/>
+  </joint>
+
+  <!-- Collision on the child must stay a separate rigid body. -->
+  <link name="wheel">
+    <inertial>
+      <mass value="1.1"/>
+      <inertia ixx="0.02" ixy="0" ixz="0" iyy="0.02" iyz="0" izz="0.01"/>
+    </inertial>
+    <collision>
+      <geometry>
+        <cylinder radius="0.1" length="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wheel_joint" type="fixed">
+    <origin xyz="0 0.2 0.1" rpy="0 0 0"/>
+    <parent link="base"/>
+    <child link="wheel"/>
+  </joint>
+</robot>

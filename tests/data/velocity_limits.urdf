@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<robot name="velocity_limits">
+  <link name="base">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="positive_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="omitted_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="zero_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="negative_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="damped_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="slide_link">
+    <visual>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="positive" type="revolute">
+    <parent link="base"/>
+    <child link="positive_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1" velocity="0.5"/>
+  </joint>
+  <joint name="omitted" type="revolute">
+    <parent link="base"/>
+    <child link="omitted_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1"/>
+  </joint>
+  <joint name="zero" type="revolute">
+    <parent link="base"/>
+    <child link="zero_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1" velocity="0"/>
+  </joint>
+  <joint name="negative" type="revolute">
+    <parent link="base"/>
+    <child link="negative_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1" velocity="-1"/>
+  </joint>
+  <joint name="damped" type="revolute">
+    <parent link="base"/>
+    <child link="damped_link"/>
+    <axis xyz="0 0 1"/>
+    <dynamics damping="1.0" friction="0.5"/>
+    <limit lower="-1" upper="1" effort="1" velocity="0"/>
+  </joint>
+  <joint name="slide" type="prismatic">
+    <parent link="base"/>
+    <child link="slide_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0" upper="1" effort="1" velocity="0.2"/>
+  </joint>
+</robot>

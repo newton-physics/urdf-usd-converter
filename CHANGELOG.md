@@ -1,3 +1,50 @@
+# Unreleased
+
+## Features
+
+- Added support for Python 3.13
+- Added URDF 1.1 `<capsule>` geometry as `UsdGeomCapsule`
+  - `radius` and `length` are required and must be non-negative finite values
+  - `length` is the cylindrical section only, not including the hemispherical caps
+  - A `<capsule>` in a URDF older than 1.1 still converts, and a warning is emitted
+- Added URDF 1.1 `origin.quat_xyzw` as an alternative to `origin.rpy`
+  - The quaternion is `(x, y, z, w)` and is normalized after parsing
+  - It applies to link inertial, visual, and collision origins, and to joint origins
+  - Inertial orientation is baked into `physics:principalAxes` and `newton:inertia` the same way as `rpy`
+  - Specifying both `rpy` and `quat_xyzw` on the same origin is an error in URDF 1.1 and newer
+  - `quat_xyzw` in a URDF older than 1.1 still converts, and a warning is emitted
+- Added URDF 1.2 joint limit attributes `acceleration`, `deceleration`, and `jerk`
+  - They are stored as custom attributes `urdf:limit:acceleration`, `urdf:limit:deceleration`, and `urdf:limit:jerk`
+  - Omitted limit attributes use version-specific defaults. In URDF 1.2, `effort`, `velocity`, `acceleration`, and `jerk` default to infinity, and `deceleration` defaults to `acceleration` when that is set
+  - `newton:velocityLimit` is still authored only for a positive finite velocity, so the URDF 1.2 default of infinity is left unlimited
+  - Revolute and prismatic joints in URDF 1.2 must provide both `lower` and `upper`, with `upper` greater than or equal to `lower`
+  - A negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error in URDF 1.2. URDF 1.0 / 1.1 still accept a negative `velocity` and leave it unlimited with a warning
+  - `acceleration`, `deceleration`, or `jerk` in a URDF older than 1.2 still convert, and a warning is emitted
+
+## Fixes
+
+- Stopped authoring `newton:velocityLimit` for a missing or non-positive URDF `<limit velocity>`
+  - A positive velocity is still converted and authored
+  - An omitted velocity, or an explicit `0`, is left unlimited, with no warning
+  - A negative velocity is left unlimited and a warning is emitted, because `NewtonJointAPI`'s range is `(0, inf]`
+- Fixed `physics:centerOfMass` to be authored at the link origin when `<inertial>` omits `<origin>`
+  - Previously it was left unauthored, so consumers derived the center of mass from collision geometry
+
+## Dependencies
+
+- Updated to `usd-exchange>=3.0.1`, which uses OpenUSD 26.08
+  - `usd-exchange` 2.x and OpenUSD 25.05 are no longer supported
+
+# 0.3.4
+
+## Fixes
+
+- Fixed duplicate mass for links whose inertia is stored on an inertial-only child connected by a fixed joint (the KDL dummy-inertia pattern)
+  - Previously both links were authored as rigid bodies, and the parent had no `MassAPI`, so USD also derived mass for it from its collision volume
+  - The child's mass, center of mass, and inertia tensor are now authored on the parent via `UsdPhysics.MassAPI` and `NewtonMassAPI`, transformed by the fixed joint origin
+  - The child link and the fixed joint are no longer authored
+  - A parent that already has `<inertial>` or a child on a non-fixed joint is left unchanged. When several children match, only the first is merged
+
 # 0.3.3
 
 ## Fixes

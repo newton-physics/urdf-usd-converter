@@ -379,24 +379,27 @@ class URDFParser:
                 element.upper = float(node.attrib["upper"])
             if "effort" in node.attrib:
                 element.effort = float(node.attrib["effort"])
-                if element.effort < 0.0:
-                    raise ValueError(self._get_error_message("Effort must be non-negative", node))
             if "velocity" in node.attrib:
                 element.velocity = float(node.attrib["velocity"])
-                if element.velocity < 0.0:
-                    raise ValueError(self._get_error_message("Velocity must be non-negative", node))
             if "acceleration" in node.attrib:
                 element.acceleration = float(node.attrib["acceleration"])
-                if element.acceleration < 0.0:
-                    raise ValueError(self._get_error_message("Acceleration must be non-negative", node))
             if "deceleration" in node.attrib:
                 element.deceleration = float(node.attrib["deceleration"])
-                if element.deceleration < 0.0:
-                    raise ValueError(self._get_error_message("Deceleration must be non-negative", node))
             if "jerk" in node.attrib:
                 element.jerk = float(node.attrib["jerk"])
-                if element.jerk < 0.0:
-                    raise ValueError(self._get_error_message("Jerk must be non-negative", node))
+            # URDF 1.2 requires these to be non-negative. URDF 1.0 / 1.1 still accept a
+            # negative velocity so conversion can warn and leave the joint unlimited.
+            if (self.urdf_version if self.urdf_version is not None else 1.0) >= 1.2:
+                for attr_name, label in (
+                    ("effort", "Effort"),
+                    ("velocity", "Velocity"),
+                    ("acceleration", "Acceleration"),
+                    ("deceleration", "Deceleration"),
+                    ("jerk", "Jerk"),
+                ):
+                    value = getattr(element, attr_name)
+                    if value is not None and value < 0.0:
+                        raise ValueError(self._get_error_message(f"{label} must be non-negative", node))
 
         elif isinstance(element, ElementCalibration):
             if "reference_position" in node.attrib:

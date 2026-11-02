@@ -451,6 +451,10 @@ class ElementLimit(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["joint"]
     available_tag_names: ClassVar[list[str]] = ["limit"]
 
+    # Version-specific defaults live in URDFParser.get_limit_with_default.
+    # Velocity has no element-level default, so an omission stays unset and is
+    # not confused with an explicit 0.
+
     def __init__(self):
         super().__init__()
 

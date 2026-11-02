@@ -24,7 +24,7 @@ To facilitate a shared understanding between subject matter experts of these com
 
 | Version | Reference Documents |
 | :---- | :---- |
-| 25.05 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v25.05), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
+| 26.08 | [OpenUSD API Docs](https://openusd.org/release/api/index.html), [USD Terms and Concepts](https://openusd.org/release/glossary.html), [Github](https://github.com/PixarAnimationStudios/OpenUSD/tree/v26.08), [Principals of Scalable Asset Structure](https://docs.omniverse.nvidia.com/usd/latest/learn-openusd/independent/asset-structure-principles.html), [Newton USD Schemas](https://github.com/newton-physics/newton-usd-schemas) |
 
 ### General Assumptions and Constraints
 
@@ -366,7 +366,22 @@ The inertial element within a link defines the link’s mass, center of mass, an
 
 In USD, this maps to the `UsdPhysicsMassAPI` schema applied to the link Prim, with `NewtonMassAPI` additionally applied to author Newton-specific mass attributes, with properties set as described in the table below.
 
-While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD.
+While both inertial & MassAPI are considered optional, the semantics of omission are different. Omitting MassAPI does not indicate zero mass in USD, it indicates that mass should be implicitly computed at runtime. Zero mass bodies are also considered invalid in USD. Given these differences, when a URDF link has no inertial child element, it is recommended to consider this an error case when converting to USD. The [fixed inertial-only child](#fixed-inertial-only-child) below is the exception this converter implements.
+
+#### Fixed inertial-only child
+
+Some URDFs cannot store inertia on a link that already has visual or collision geometry, and instead hang that inertia on a child connected by a fixed joint. In this layout, the child provides the inertial properties for the parent's rigid body. The child is not a [Ghost Link](#a-link-with-no-elements): it has non-zero inertial data.
+
+This converter copies the child onto the parent when all of the following hold:
+
+- The joint type is `fixed`.
+- The parent has at least one visual or collision element, and no inertial element (or inertial equivalent to zero mass).
+- The child has non-zero inertial data and no visual or collision elements.
+- The child is not referenced by a mimic joint.
+
+The child's mass, center of mass, and inertia tensor are authored on the parent with `UsdPhysicsMassAPI` and `NewtonMassAPI`, using the mapping in the tables below. The fixed joint origin `(R, t)` is applied first: the center of mass is `R * com_child + t`, and the inertia tensor about that center of mass is `R * I_child * R^T`. A missing joint origin is identity. A translation does not change the tensor, because it is already expressed about the center of mass. The child link and the fixed joint are not authored.
+
+A parent that already has inertial is left unchanged, as is a child on a non-fixed joint. When several children match, only the first is copied. The others remain rigid bodies.
 
 #### Inertial Elements
 
@@ -390,7 +405,7 @@ The origin of an inertial element is the position and orientation of the link’
 
 ###### *Property: xyz*
 
-The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`, which should be applied in the link Prim.
+The `origin.xyz` maps to `physics:centerOfMass` attribute of `UsdPhysicsMassAPI`, which should be applied in the link Prim. An omitted `<origin>` is the URDF pose default (`xyz="0 0 0"`, `rpy="0 0 0"`), and `physics:centerOfMass` is still authored at the link origin. Leaving it unauthored lets consumers derive the center of mass from collision geometry.
 
 ###### *Property: rpy*
 
@@ -870,21 +885,21 @@ To account for the arbitrary axis, it is necessary to also author `physics:local
 
 The joint/limit element specifies hard limits. In URDF 1.0 / 1.1 it is used for revolute and prismatic joints (other types typically omit it). URDF 1.2 adds `acceleration`, `deceleration`, and `jerk`, and may apply a limit to other joint types such as continuous. See also [safety\_controller](#element-safety_controller) for soft limits.
 
-In USD, lower and upper position limits map to UsdPhysics. Velocity has no UsdPhysics equivalent, but maps to `NewtonJointAPI` `newton:velocityLimit` on the `PhysicsJoint` prim. Effort, acceleration, deceleration, and jerk have no UsdPhysics or Newton schema equivalent and are stored as custom attributes (`urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, `urdf:limit:jerk`). See [Appendix C](#appendix-c-filling-concept-gaps).
+In USD, lower and upper position limits map to UsdPhysics. Velocity has no UsdPhysics equivalent, but a positive finite value maps to `NewtonJointAPI` `newton:velocityLimit` on the `PhysicsJoint` prim. An omitted velocity, an explicit `0`, or a non-finite value (including the URDF 1.2 default of infinity) is left unlimited with no warning. A negative velocity on URDF 1.0 / 1.1 is also left unlimited, and a warning is emitted, because NewtonJointAPI's range is `(0, inf]`. URDF 1.2 rejects a negative velocity at parse time. Effort, acceleration, deceleration, and jerk have no UsdPhysics or Newton schema equivalent and are stored as custom attributes (`urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, `urdf:limit:jerk`). See [Appendix C](#appendix-c-filling-concept-gaps).
 
-Omitted attributes are filled with version-specific defaults before mapping (see below). If a URDF older than 1.2 uses `acceleration`, `deceleration`, or `jerk`, a warning is emitted, but the values are still authored on the joint.
+Omitted attributes other than velocity are filled with version-specific defaults before mapping (see below). `newton:velocityLimit` uses the authored velocity only, so a version default of `0` or `infinity` stays unlimited. If a URDF older than 1.2 uses `acceleration`, `deceleration`, or `jerk`, a warning is emitted, but the values are still authored on the joint.
 
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
 | lower | `physics:lowerLimit` | minimum position/angle |
 | upper | `physics:upperLimit` | maximum position/angle |
-| velocity | `newton:velocityLimit` | maximum joint velocity. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)). |
+| velocity | `newton:velocityLimit` | maximum joint velocity, authored only when the URDF value is positive and finite. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)). An omitted value, an explicit `0`, or a non-finite value is not authored. A negative value is not authored; URDF 1.0 / 1.1 emit a warning, and URDF 1.2 rejects it. |
 | effort | `urdf:limit:effort` (custom) | maximum torque/force (N·m / N) |
 | acceleration | `urdf:limit:acceleration` (custom) | URDF 1.2 maximum joint acceleration (rad/s² or m/s²) |
 | deceleration | `urdf:limit:deceleration` (custom) | URDF 1.2 maximum joint deceleration (rad/s² or m/s²) |
 | jerk | `urdf:limit:jerk` (custom) | URDF 1.2 maximum joint jerk (rad/s³ or m/s³) |
 
-**Defaults and requirements** follow [urdfdom](https://github.com/ros/urdfdom/blob/rolling/README.md), except that omitted `effort` and `velocity` in URDF 1.0 / 1.1 default to `0.0` as in the [URDF XML Schema](https://raw.githubusercontent.com/ros/urdfdom/master/xsd/urdf.xsd) (the ROS Wiki marks them required).
+**Defaults and requirements** follow [urdfdom](https://github.com/ros/urdfdom/blob/rolling/README.md), except that omitted `effort` and `velocity` in URDF 1.0 / 1.1 default to `0.0` as in the [URDF XML Schema](https://raw.githubusercontent.com/ros/urdfdom/master/xsd/urdf.xsd) (the ROS Wiki marks them required). The velocity default is not copied onto `newton:velocityLimit`; only a positive finite authored value is.
 
 | Attribute | URDF 1.0 / 1.1 | URDF 1.2 |
 | :---- | :---- | :---- |
