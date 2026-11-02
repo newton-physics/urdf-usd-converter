@@ -68,15 +68,7 @@ def convert_link(parent: Usd.Prim, having_articulation_root: bool, link: Element
         # be treated as a one-link articulation instead of a free rigid body.
         has_articulated_joints = len(data.urdf_parser.get_root_element().joints) > 0
         if has_articulated_joints and not having_articulation_root:
-            # A joint from this body to the world is excluded from the articulation when
-            # ArticulationRootAPI sits on the body. Newton then builds no articulation.
-            # Apply the API to the non-body root link so the joint stays inside a fixed base.
-            if _incoming_joint_targets_world(link, data):
-                root_prim = data.references[Tokens.Physics][data.link_hierarchy.root_link.name]
-                root_over = data.content[Tokens.Physics].OverridePrim(root_prim.GetPath())
-                _apply_articulation_root(root_over)
-            else:
-                _apply_articulation_root(prim_over)
+            _apply_articulation_root(prim_over)
             having_articulation_root = True
 
         # Assigning MassAPI to a Rigid Body.
@@ -414,21 +406,6 @@ def _has_rigid_body(link_name: str, data: ConversionData) -> bool:
 def _apply_articulation_root(prim: Usd.Prim) -> None:
     UsdPhysics.ArticulationRootAPI.Apply(prim)
     prim.ApplyAPI("NewtonArticulationRootAPI")
-
-
-def _incoming_joint_targets_world(link: ElementLink, data: ConversionData) -> bool:
-    """
-    True when the joint into this rigid body is authored with body0 on the world.
-
-    A floating joint is not authored, so that body stays a floating articulation root.
-    The kinematic root keeps the articulation root on its own rigid body.
-    """
-    if link.name == data.link_hierarchy.root_link.name:
-        return False
-    joint = data.link_hierarchy.get_parent_joint(link.name)
-    if joint is None or joint.type == "floating":
-        return False
-    return _find_rigid_body_ancestor(link.name, data) is None
 
 
 def _find_rigid_body_ancestor(link_name: str, data: ConversionData) -> str | None:

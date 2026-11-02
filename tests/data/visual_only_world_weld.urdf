@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<robot name="visual_only_world_weld">
+  <link name="world"/>
+  <link name="camera">
+    <visual>
+      <geometry>
+        <box size="0.02 0.02 0.02"/>
+      </geometry>
+    </visual>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <origin xyz="0 0 0.2"/>
+    <parent link="world"/>
+    <child link="camera"/>
+  </joint>
+</robot>

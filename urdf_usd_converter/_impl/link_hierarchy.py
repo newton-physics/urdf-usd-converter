@@ -239,10 +239,12 @@ class LinkHierarchy:
         classification, so authoring and the mass warning use the same decision.
         The kinematic root stays a rigid body when it is not an empty ghost,
         because `root_joint` welds it to the world and its mass never matters.
+        A visual-only link on a fixed joint does the same when no ancestor is a
+        rigid body: that fixed joint welds it to the world.
         """
         if not self._is_authored_rigid_body(link):
             return LinkRole.GHOST
-        if link.name == self.root_link.name or self._subtree_supplies_mass(link):
+        if link.name == self.root_link.name or self._subtree_supplies_mass(link) or self._is_world_welded_visual_only_link(link):
             return LinkRole.RIGID
         return LinkRole.NO_MASS_SOURCE
 
@@ -299,8 +301,10 @@ class LinkHierarchy:
         True when a visual-only link on a fixed joint is authored without a rigid body.
 
         The kinematic root stays a rigid body because `root_joint` welds it to the
-        world. A link referenced by a mimic joint also stays a rigid body. A fixed
-        inertial-only child supplies the mass instead, so that parent is a rigid body.
+        world. A visual-only link on a fixed joint also stays a rigid body when no
+        ancestor is a rigid body, because that joint welds it to the world. A link
+        referenced by a mimic joint stays a rigid body. A fixed inertial-only child
+        supplies the mass instead, so that parent is a rigid body.
         """
         if not self._is_visual_only_link(link):
             return False
@@ -310,8 +314,34 @@ class LinkHierarchy:
             return False
         if self.fixed_dummy_inertia_children(link):
             return False
+        if self._is_world_welded_visual_only_link(link):
+            return False
         joint = self.get_parent_joint(link.name)
         return joint is not None and joint.type == "fixed"
+
+    def _is_world_welded_visual_only_link(self, link: ElementLink) -> bool:
+        """
+        True when a visual-only link on a fixed joint has no rigid-body ancestor.
+
+        The fixed joint welds the link to the world, so its mass never matters.
+        """
+        if not self._is_visual_only_link(link):
+            return False
+        joint = self.get_parent_joint(link.name)
+        if joint is None or joint.type != "fixed":
+            return False
+        return not self._has_authored_rigid_ancestor(link)
+
+    def _has_authored_rigid_ancestor(self, link: ElementLink) -> bool:
+        """
+        True when an ancestor link is authored as a rigid body.
+        """
+        parent = self.get_link_parent(link.name)
+        while parent is not None:
+            if self._is_authored_rigid_body(parent):
+                return True
+            parent = self.get_link_parent(parent.name)
+        return False
 
     def _link_supplies_mass(self, link: ElementLink) -> bool:
         """

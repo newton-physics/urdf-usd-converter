@@ -191,7 +191,7 @@ In URDF, there must be a single kinematic tree hierarchy, with a single root lin
 
 In USD, the link (body) frame must be specified on the body prim itself, using XformOps (see [Appendix E](#element-origin-2)). There are two possible approaches, both require analyzing the [joint](#joint) elements first, to determine the correct kinematic hierarchy.
 
-The first link in the URDF file should be considered the root of the robot (after accounting for the “world” link, see Links as Anchor Points above). This link should be marked as the root by applying `UsdPhysicsArticulationRootAPI`. If the root link is not a rigid body, apply `UsdPhysicsArticulationRootAPI` to that root prim. A joint from the first rigid body to the world stays inside the articulation.
+The first link in the URDF file should be considered the root of the robot (after accounting for the “world” link, see Links as Anchor Points above). This link should be marked as the root by applying `UsdPhysicsArticulationRootAPI`.
 
 The next links must be determined by analyzing the joint connections. Upon recursive traversal, the joints that contain the current link as parent will contain the next link as the child. This traversal can be either Breadth-first-search or Depth-first-search. Implementations may choose to support either approach, but for consistency it is recommended to use depth-first-search for the default traversal.
 
@@ -362,7 +362,7 @@ Only `joint_box` remains among the joints along that chain, and its `body0` targ
 
 A [visual](#linkvisual) does not supply mass. A link has a mass source when it, or one of its descendants, has a [collision](#linkcollision) or an [inertial](#linkinertial) with positive mass. Missing inertial and zero mass are the same.
 
-On a fixed joint, a link with a visual and no mass source of its own is authored as a Ghost Link: the prim and its visual stay, `PhysicsRigidBodyAPI` is not applied, and the fixed joint is not authored. An empty link on a fixed joint is already a Ghost Link.
+On a fixed joint, a link with a visual and no collision or positive-mass inertial is authored as a Ghost Link when an ancestor link is a rigid body: the prim and its visual stay, `PhysicsRigidBodyAPI` is not applied, and the fixed joint is not authored. An empty link on a fixed joint is already a Ghost Link. When no ancestor link is a rigid body, the visual-only link stays a rigid body and the fixed joint is authored. That joint welds it to the world, so its mass does not matter and conversion does not warn.
 
 On any other joint, the link is a rigid body. When the link and its descendants have no mass source, conversion warns and the link is still authored without mass. Simulators then use a default mass. A descendant that supplies mass keeps the link silent. A fixed inertial-only child is that case: its mass is copied onto the parent.
 

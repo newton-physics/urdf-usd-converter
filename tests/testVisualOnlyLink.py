@@ -299,12 +299,12 @@ class TestVisualOnlyLink(ConverterTestCase):
         self.assertTrue(physics.GetChild("drawn_joint").IsValid())
         self.assertTrue(physics.GetChild("tool_joint").IsValid())
 
-    def test_visual_only_link_between_world_and_arm_keeps_the_articulation(self):
+    def test_visual_only_link_between_world_and_arm_stays_a_rigid_body(self):
         """
-        A visual-only link stays without a rigid body, and the arm stays in the articulation.
+        A visual-only link with no rigid-body ancestor stays a rigid body.
 
-        ArticulationRootAPI is applied to the non-body root. Putting it on the arm would
-        exclude the revolute joint to the world, and Newton would build no articulation.
+        The fixed joint welds it to the world, so its mass does not matter.
+        ArticulationRootAPI stays on that link, and the revolute joint targets it.
         """
         input_path = "tests/data/articulation_root_visual_world.urdf"
         output_dir = self.tmpDir()
@@ -322,11 +322,13 @@ class TestVisualOnlyLink(ConverterTestCase):
         arm = drawn.GetChild("arm")
 
         self.assertFalse(world.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertTrue(world.HasAPI(UsdPhysics.ArticulationRootAPI))
-        self.assertTrue(world.HasAPI("NewtonArticulationRootAPI"))
+        self.assertFalse(world.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(world.HasAPI("NewtonArticulationRootAPI"))
 
-        self.assertFalse(drawn.HasAPI(UsdPhysics.RigidBodyAPI))
-        self.assertFalse(drawn.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(drawn.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(drawn.HasAPI(UsdPhysics.MassAPI))
+        self.assertTrue(drawn.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(drawn.HasAPI("NewtonArticulationRootAPI"))
         self.assertTrue(drawn.GetChild("box").IsA(UsdGeom.Cube))
         self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(drawn).GetTranslation(), Gf.Vec3d(0, 0, 0.1), 1e-6))
 
@@ -336,8 +338,39 @@ class TestVisualOnlyLink(ConverterTestCase):
         self.assertFalse(arm.HasAPI("NewtonArticulationRootAPI"))
 
         physics = default_prim.GetChild("Physics")
-        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"j2"})
+        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"j1", "j2"})
+        fixed = UsdPhysics.FixedJoint(physics.GetChild("j1"))
+        self.assertEqual(fixed.GetBody0Rel().GetTargets(), ["/articulation_root_visual_world"])
+        self.assertEqual(fixed.GetBody1Rel().GetTargets(), ["/articulation_root_visual_world/Geometry/world/drawn"])
+        self.assertTrue(Gf.IsClose(fixed.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.1), 1e-6))
         joint = UsdPhysics.RevoluteJoint(physics.GetChild("j2"))
-        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/articulation_root_visual_world"])
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/articulation_root_visual_world/Geometry/world/drawn"])
         self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/articulation_root_visual_world/Geometry/world/drawn/arm"])
-        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.3), 1e-6))
+        self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.2), 1e-6))
+
+    def test_visual_only_fixed_link_without_a_rigid_ancestor_does_not_warn(self):
+        """
+        A visual-only link welded to the world stays a rigid body without a mass warning.
+        """
+        input_path = "tests/data/visual_only_world_weld.urdf"
+        output_dir = self.tmpDir()
+
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
+            asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
+
+        stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        world = stage.GetDefaultPrim().GetChild("Geometry").GetChild("world")
+        camera = world.GetChild("camera")
+        self.assertFalse(world.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(world.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(world.HasAPI("NewtonArticulationRootAPI"))
+        self.assertTrue(camera.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(camera.HasAPI(UsdPhysics.MassAPI))
+        self.assertTrue(camera.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertTrue(camera.HasAPI("NewtonArticulationRootAPI"))
+        self.assertTrue(camera.GetChild("box").IsA(UsdGeom.Cube))
+
+        joint = UsdPhysics.FixedJoint(stage.GetDefaultPrim().GetChild("Physics").GetChild("camera_joint"))
+        self.assertEqual(joint.GetBody0Rel().GetTargets(), ["/visual_only_world_weld"])
+        self.assertEqual(joint.GetBody1Rel().GetTargets(), ["/visual_only_world_weld/Geometry/world/camera"])
