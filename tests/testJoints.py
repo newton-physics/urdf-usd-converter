@@ -17,7 +17,9 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        revolute_arms = [("Arm_1", "revolute"), ("Arm_2", "revolute"), ("Arm_3", "revolute"), ("Arm_4", "revolute")]
+        with self.expect_no_mass_source(revolute_arms):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
@@ -138,7 +140,8 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        with self.expect_no_mass_source([("Arm_2", "continuous")]):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
@@ -188,7 +191,9 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        prismatic_arms = [("Arm_1", "prismatic"), ("Arm_2", "prismatic"), ("Arm_3", "prismatic"), ("Arm_4", "prismatic")]
+        with self.expect_no_mass_source(prismatic_arms):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
@@ -301,7 +306,17 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        planar_links = [
+            ("planar_negative_z", "planar"),
+            ("planar_z", "planar"),
+            ("planar_negative_y", "planar"),
+            ("planar_y", "planar"),
+            ("planar_negative_x", "planar"),
+            ("planar_x", "planar"),
+            ("planar_tilt", "planar"),
+        ]
+        with self.expect_no_mass_source(planar_links):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
@@ -523,7 +538,8 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        with self.expect_no_mass_source([("Arm_2", "floating")]):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 
@@ -580,7 +596,9 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        mimic_links = [("linkA", "revolute"), ("linkB", "revolute"), ("linkC", "prismatic"), ("linkD", "prismatic")]
+        with self.expect_no_mass_source(mimic_links):
+            asset_path = converter.convert(input_path, output_dir)
 
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
@@ -629,9 +647,27 @@ class TestJoints(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
+        mass_warnings = [
+            (
+                Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                (
+                    f".*Link '{name}' has no collision or positive-mass inertial, including its descendants, "
+                    f"and is connected by a {joint_type} joint.*"
+                ),
+            )
+            for name, joint_type in [
+                ("positive_link", "revolute"),
+                ("omitted_link", "revolute"),
+                ("zero_link", "revolute"),
+                ("negative_link", "revolute"),
+                ("damped_link", "revolute"),
+                ("slide_link", "prismatic"),
+            ]
+        ]
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
+                *mass_warnings,
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, '.*Joint "negative" has negative <limit velocity> "-1.0".*'),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,

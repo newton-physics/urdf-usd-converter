@@ -4,6 +4,7 @@ import pathlib
 import shutil
 from unittest.mock import patch
 
+import usdex.core
 import usdex.test
 from pxr import Sdf, Tf, Usd
 
@@ -36,6 +37,19 @@ class TestCli(ConverterTestCase):
             self.assertTrue((pathlib.Path(self.tmpDir()) / f"{robot_name}.usdc").exists())
             self.assertTrue((textures_dir / "grid.png").exists())
             self.assertFalse((textures_dir / "foo.png").exists())
+
+    def test_strict_fails_visual_only_movable_link(self):
+        robot = "tests/data/visual_only_revolute.urdf"
+        with (
+            patch("sys.argv", ["urdf_usd_converter", robot, self.tmpDir(), "--strict"]),
+            usdex.test.ScopedDiagnosticChecker(
+                self,
+                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, "(?s).*Conversion failed:.*Link 'arm' has no collision or positive-mass inertial.*")],
+                level=usdex.core.DiagnosticsLevel.eWarning,
+            ),
+        ):
+            self.assertEqual(run(), 1, "Expected non-zero exit code when --strict rejects a visual-only link")
+            self.assertFalse((pathlib.Path(self.tmpDir()) / "visual_only_revolute.usda").exists())
 
     def test_no_physics_scene(self):
         model = "tests/data/simple_box.urdf"
@@ -215,7 +229,9 @@ class TestCli(ConverterTestCase):
             patch("sys.argv", ["urdf_usd_converter", robot, str(output_dir)]),
             usdex.test.ScopedDiagnosticChecker(
                 self,
-                [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No such file or directory:.*")],
+                [
+                    (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*No such file or directory:.*"),
+                ],
                 level=usdex.core.DiagnosticsLevel.eWarning,
             ),
         ):

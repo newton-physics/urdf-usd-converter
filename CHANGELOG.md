@@ -2,10 +2,20 @@
 
 ## Features
 
+- Added a warning for a link authored as a rigid body with no mass source
+  - A link has no mass source when neither it nor any descendant has a collision or an `<inertial>` with positive mass. A visual does not count
+  - An empty link and a link with only a visual follow the same rule. A descendant that supplies mass keeps the link silent
+  - The link is still authored as a rigid body without `MassAPI`, so simulators use a default mass
+  - A visual-only link on a fixed joint does not warn when no ancestor is a rigid body, because that joint welds it to the world
+  - A link on a fixed joint that a mimic joint references is checked the same way
+- Added `--strict` and `Converter(strict=True)` to fail conversion instead of warning
 - Added support for Python 3.13
 
 ## Fixes
 
+- A fixed-joint child with only a visual is no longer authored as a rigid body without mass
+  - When an ancestor is a rigid body, the prim and its visual stay, and the fixed joint is not authored
+  - When no ancestor is a rigid body, the link stays a rigid body and the fixed joint is authored. That joint welds it to the world, so conversion does not warn
 - Stopped authoring `newton:velocityLimit` for a missing or non-positive URDF `<limit velocity>`
   - A positive velocity is still converted and authored
   - An omitted velocity, or an explicit `0`, is left unlimited, with no warning
