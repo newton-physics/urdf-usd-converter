@@ -76,11 +76,10 @@ def origin_orientation(origin: ElementPose) -> Gf.Quatd:
     """
     Get the orientation of the origin.
 
-    In URDF 1.1,
-    the orientation can be obtained from either "rpy" or "quat_xyzw" within the "origin" element.
-    You cannot specify both of these.
+    URDF 1.1 uses either ``rpy`` or ``quat_xyzw``. The parser rejects both on the same origin.
+    When both are present anyway (URDF older than 1.1), ``rpy`` is used. The parsed ``quat_xyzw`` is left unchanged.
     """
-    if origin.quat_xyzw is not None:
+    if origin.quat_xyzw is not None and origin.rpy is None:
         return Gf.Quatd(origin.quat_xyzw[3], origin.quat_xyzw[0], origin.quat_xyzw[1], origin.quat_xyzw[2])
     return float3_to_quatd(origin.get_with_default("rpy"))
 

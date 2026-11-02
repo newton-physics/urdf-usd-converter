@@ -824,15 +824,16 @@ class URDFParser:
         used_capsule = False
         used_quat_xyzw = False
         for link in self.root_element.links:
-            for visual in link.visuals:
-                if visual.geometry and visual.geometry.shape and isinstance(visual.geometry.shape, ElementCapsule):
+            for element in (*link.visuals, *link.collisions):
+                if element.geometry and element.geometry.shape and isinstance(element.geometry.shape, ElementCapsule):
                     used_capsule = True
-            for collision in link.collisions:
-                if collision.geometry and collision.geometry.shape and isinstance(collision.geometry.shape, ElementCapsule):
-                    used_capsule = True
+                    break
+            if used_capsule:
+                break
         for origin in self._iter_origins():
             if origin.quat_xyzw is not None:
                 used_quat_xyzw = True
+                break
 
         # If capsule or quat_xyzw is being used and the URDF version is earlier than 1.1, output a warning.
         if used_capsule or used_quat_xyzw:

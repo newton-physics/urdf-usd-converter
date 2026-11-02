@@ -1232,7 +1232,7 @@ A common concept within several URDF elements is the origin, which represents th
 | [rpy](#property-rpy-1) | `UsdGeomXformOp` (`TypeRotateXYZ` or `TypeOrient`) | Orientation as roll, pitch, yaw Euler rotations in radians |
 | [quat_xyzw](#property-quat_xyzw-1) | `UsdGeomXformOp` (`TypeOrient`) | URDF 1.1 alternative orientation as a quaternion `(x, y, z, w)` |
 
-`rpy` and `quat_xyzw` must not be specified on the same `<origin>` element. When `quat_xyzw` is present, use it; otherwise use `rpy` (omitted `rpy` is identity). Parsed `quat_xyzw` values are normalized.
+`rpy` and `quat_xyzw` must not be specified on the same `<origin>` element. When `quat_xyzw` is present, use it; otherwise use `rpy` (omitted `rpy` is identity). Parsed `quat_xyzw` values are normalized. In a URDF older than 1.1, `quat_xyzw` warns and still converts; if `rpy` is also present, conversion uses `rpy` and leaves the parsed `quat_xyzw` unchanged.
 
 ###### *Property: xyz*
 

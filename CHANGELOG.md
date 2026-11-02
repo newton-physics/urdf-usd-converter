@@ -14,7 +14,7 @@
   - It applies to link inertial, visual, and collision origins, and to joint origins
   - Inertial orientation is baked into `physics:principalAxes` and `newton:inertia` the same way as `rpy`
   - Specifying both `rpy` and `quat_xyzw` on the same origin is an error in URDF 1.1 and newer
-  - `quat_xyzw` in a URDF older than 1.1 still converts, and a warning is emitted
+  - `quat_xyzw` in a URDF older than 1.1 still converts, and a warning is emitted. If `rpy` is also present, conversion uses `rpy` and leaves the parsed `quat_xyzw` unchanged
 - Added URDF 1.2 joint limit attributes `acceleration`, `deceleration`, and `jerk`
   - They are stored as custom attributes `urdf:limit:acceleration`, `urdf:limit:deceleration`, and `urdf:limit:jerk`
   - Omitted limit attributes use version-specific defaults. In URDF 1.2, `effort`, `velocity`, `acceleration`, and `jerk` default to infinity, and `deceleration` defaults to `acceleration` when that is set

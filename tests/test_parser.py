@@ -8,6 +8,7 @@ from pxr import Tf
 
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.urdf_parser.parser import URDFParser
+from urdf_usd_converter._impl.utils import float3_to_quatd, origin_orientation
 
 
 class TestURDFParser(ConverterTestCase):
@@ -768,6 +769,16 @@ class TestURDFParser(ConverterTestCase):
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
             parser.parse()
+
+        origin = parser.get_root_element().links[0].visuals[0].origin
+        self.assertEqual(origin.rpy, (0.0, 0.0, 1.0))
+        self.assertAlmostEqual(origin.quat_xyzw[1], 0.7071067811865476)
+        self.assertAlmostEqual(origin.quat_xyzw[3], 0.7071067811865476)
+        orientation = origin_orientation(origin)
+        expected = float3_to_quatd(origin.rpy)
+        self.assertAlmostEqual(orientation.GetReal(), expected.GetReal())
+        for index in range(3):
+            self.assertAlmostEqual(orientation.GetImaginary()[index], expected.GetImaginary()[index])
 
     def test_load_warning_urdf_10_inertial_quat_xyzw(self):
         model_path = pathlib.Path("tests/data/warning_urdf_10_inertial_quat_xyzw.urdf")
