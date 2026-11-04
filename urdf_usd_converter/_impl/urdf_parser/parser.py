@@ -41,8 +41,8 @@ from .undefined_data import UndefinedData
 
 __all__ = ["URDFParser"]
 
-# An omitted version stays unset and later defaults to 1.0.
-_SUPPORTED_URDF_VERSIONS = {"1.0": 1.0, "1.1": 1.1, "1.2": 1.2}
+# An omitted or unrecognized version is converted as 1.0.
+_SUPPORTED_URDF_VERSIONS = {(1, 0), (1, 1), (1, 2)}
 
 
 class URDFParser:
@@ -61,7 +61,7 @@ class URDFParser:
         self.materials: list[dict[str, str, tuple[float, float, float, float], str]] = []
 
         self.texture_paths: list[str] = []
-        self.urdf_version: float | None = None
+        self.urdf_version: tuple[int, int] | None = None
 
     def parse(self):
         """
@@ -194,15 +194,35 @@ class URDFParser:
             )
         return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
-    def _parse_urdf_version(self, version: str, node: ET.Element) -> float:
+    def _parse_urdf_version(self, version: str, node: ET.Element) -> tuple[int, int]:
         """
-        Parse a robot version attribute.
+        Parse a robot version attribute as ``(major, minor)``.
 
-        Only the exact strings ``1.0``, ``1.1``, and ``1.2`` are accepted.
+        This follows urdfdom's ``URDFVersion``: ``1.00`` is ``(1, 0)``. A malformed value, or a version
+        other than 1.0, 1.1, and 1.2, warns and is converted as 1.0.
         """
-        if version not in _SUPPORTED_URDF_VERSIONS:
-            raise ValueError(self._get_error_message(f'Unsupported version "{version}". Only 1.0, 1.1, and 1.2 are supported', node))
-        return _SUPPORTED_URDF_VERSIONS[version]
+        match = re.fullmatch(r"(\d+)\.(\d+)", version)
+        parsed = (int(match.group(1)), int(match.group(2))) if match else None
+        if parsed not in _SUPPORTED_URDF_VERSIONS:
+            Tf.Warn(
+                self._get_error_message(
+                    f'Unsupported version "{version}". Only 1.0, 1.1, and 1.2 are supported, so this file is converted as 1.0',
+                    node,
+                )
+            )
+            return (1, 0)
+        return parsed
+
+    def _effective_urdf_version(self) -> tuple[int, int]:
+        """
+        Return the version used for feature checks.
+
+        An omitted version stays unset and is 1.0. ``_parse_urdf_version`` stores 1.0 after warning
+        when the attribute cannot be used.
+        """
+        if self.urdf_version is None:
+            return (1, 0)
+        return self.urdf_version
 
     def _normalize_quat_xyzw(self, quat: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
         """
@@ -402,7 +422,7 @@ class URDFParser:
                 element.jerk = float(node.attrib["jerk"])
             # URDF 1.2 requires these to be non-negative. URDF 1.0 / 1.1 still accept a
             # negative velocity so conversion can warn and leave the joint unlimited.
-            if (self.urdf_version if self.urdf_version is not None else 1.0) >= 1.2:
+            if self._effective_urdf_version() >= (1, 2):
                 for attr_name, label in (
                     ("effort", "Effort"),
                     ("velocity", "Velocity"),
@@ -617,14 +637,14 @@ class URDFParser:
                         )
 
         # URDF 1.1: rpy and quat_xyzw cannot both be specified on the same origin.
-        version = float(self.root_element.get_with_default("version"))
-        if version >= 1.1:
+        version = self._effective_urdf_version()
+        if version >= (1, 1):
             for origin in self._iter_origins():
                 if origin.rpy is not None and origin.quat_xyzw is not None:
                     raise ValueError(self._get_error_message("Both rpy and quat_xyzw orientations are defined. Use either one or the other", origin))
 
         # URDF 1.2: revolute and prismatic joints require both lower and upper, and upper >= lower.
-        if version >= 1.2:
+        if version >= (1, 2):
             for joint in self.root_element.joints:
                 if joint.type not in ("revolute", "prismatic"):
                     continue
@@ -816,8 +836,7 @@ class URDFParser:
         """
         If capsule or quat_xyzw is being used and the URDF version is earlier than 1.1, output a warning.
         """
-        version = float(self.root_element.get_with_default("version"))
-        if version >= 1.1:
+        if self._effective_urdf_version() >= (1, 1):
             return
 
         # Check whether capsule or quat_xyzw is being used.
@@ -843,8 +862,7 @@ class URDFParser:
         """
         If acceleration, deceleration, or jerk is being used and the URDF version is earlier than 1.2, output a warning.
         """
-        version = float(self.root_element.get_with_default("version"))
-        if version >= 1.2:
+        if self._effective_urdf_version() >= (1, 2):
             return
 
         # Check whether acceleration and deceleration are being used.
@@ -879,8 +897,7 @@ class URDFParser:
         Returns:
             The default value for the joint parameter.
         """
-        version = float(self.root_element.get_with_default("version"))
-        if version >= 1.2:
+        if self._effective_urdf_version() >= (1, 2):
             if attr_name == "lower":
                 return -math.inf
             elif attr_name == "upper" or attr_name == "effort" or attr_name == "velocity" or attr_name == "acceleration" or attr_name == "jerk":

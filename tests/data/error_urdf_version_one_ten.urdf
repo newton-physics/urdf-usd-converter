@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<!-- Error if 1.10 is mistaken for 1.1. -->
-<robot name="error_urdf_version_one_ten" version="1.10">
-  <link name="base_link"/>
-</robot>

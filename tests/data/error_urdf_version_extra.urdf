@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<!-- Error if the URDF version has more than major.minor. -->
-<robot name="error_urdf_version_extra" version="1.0.0">
-  <link name="base_link"/>
-</robot>

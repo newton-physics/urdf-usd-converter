@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<!-- 1.00 is major.minor with a zero-padded minor, so it is URDF 1.0. -->
+<robot name="urdf_version_one_hundred" version="1.00">
+  <link name="base_link"/>
+</robot>

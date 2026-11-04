@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import math
 import pathlib
+import re
 
 import usdex.core
 from pxr import Tf
@@ -839,6 +840,7 @@ class TestURDFParser(ConverterTestCase):
 
         root_element = parser.get_root_element()
         self.assertEqual(root_element.get_with_default("version"), "1.2")
+        self.assertEqual(parser.urdf_version, (1, 2))
         self.assertEqual(len(root_element.joints), 3)
 
         revolute = root_element.joints[0]
@@ -953,37 +955,43 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(joint.limit.upper, 1.57)
         self.assertEqual(parser.get_limit_with_default(joint.limit, "lower"), 0.0)
 
-    def test_load_error_urdf_version_unsupported(self):
-        model_path = pathlib.Path("tests/data/error_urdf_version_unsupported.urdf")
-        parser = URDFParser(model_path)
-
-        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "2.0". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+    def _assert_unsupported_version_converts_as_10(self, filename: str, version: str) -> None:
+        parser = URDFParser(pathlib.Path("tests/data") / filename)
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    (
+                        rf'.*robot: Unsupported version "{re.escape(version)}". '
+                        r"Only 1.0, 1.1, and 1.2 are supported, so this file is converted as 1.0 \(line: 3\).*"
+                    ),
+                ),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
             parser.parse()
+        self.assertEqual(parser.urdf_version, (1, 0))
+        self.assertEqual(parser.get_root_element().version, version)
 
-    def test_load_error_urdf_version_integer(self):
-        model_path = pathlib.Path("tests/data/error_urdf_version_integer.urdf")
-        parser = URDFParser(model_path)
+    def test_load_warning_urdf_version_unsupported(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_unsupported.urdf", "2.0")
 
-        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
+    def test_load_warning_urdf_version_integer(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_integer.urdf", "1")
+
+    def test_load_warning_urdf_version_extra(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_extra.urdf", "1.0.0")
+
+    def test_load_warning_urdf_version_suffix(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_suffix.urdf", "1.0~pre6")
+
+    def test_load_warning_urdf_version_one_ten(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_one_ten.urdf", "1.10")
+
+    def test_load_urdf_version_one_hundred(self):
+        parser = URDFParser(pathlib.Path("tests/data/urdf_version_one_hundred.urdf"))
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
             parser.parse()
-
-    def test_load_error_urdf_version_extra(self):
-        model_path = pathlib.Path("tests/data/error_urdf_version_extra.urdf")
-        parser = URDFParser(model_path)
-
-        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1.0.0". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
-            parser.parse()
-
-    def test_load_error_urdf_version_suffix(self):
-        model_path = pathlib.Path("tests/data/error_urdf_version_suffix.urdf")
-        parser = URDFParser(model_path)
-
-        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1.0~pre6". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
-            parser.parse()
-
-    def test_load_error_urdf_version_one_ten(self):
-        model_path = pathlib.Path("tests/data/error_urdf_version_one_ten.urdf")
-        parser = URDFParser(model_path)
-
-        with self.assertRaisesRegex(RuntimeError, r'.*robot: Unsupported version "1.10". Only 1.0, 1.1, and 1.2 are supported \(line: 3\).*'):
-            parser.parse()
+        self.assertEqual(parser.get_root_element().version, "1.00")
+        self.assertEqual(parser.urdf_version, (1, 0))
