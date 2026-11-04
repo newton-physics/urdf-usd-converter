@@ -4,7 +4,7 @@
   <link name="base_link">
     <visual>
       <geometry>
-        <capsule radius="0.05" length="inf"/>
+        <capsule radius="0.05" length="INF"/>
       </geometry>
     </visual>
   </link>

@@ -657,6 +657,9 @@ class TestJoints(ConverterTestCase):
 
         revolute_prim = physics_scope_prim.GetChild("revolute_joint")
         self.assertTrue(revolute_prim.IsA(UsdPhysics.RevoluteJoint))
+        self.assertAlmostEqual(revolute_prim.GetAttribute("physics:lowerLimit").Get(), math.degrees(-1.57), places=5)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("physics:upperLimit").Get(), math.degrees(1.57), places=5)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("newton:velocityLimit").Get(), math.degrees(1.0), places=5)
         self.assertTrue(revolute_prim.GetAttribute("urdf:limit:effort").IsCustom())
         self.assertAlmostEqual(revolute_prim.GetAttribute("urdf:limit:effort").Get(), 100.0, places=6)
         self.assertAlmostEqual(revolute_prim.GetAttribute("urdf:limit:acceleration").Get(), 10.0, places=6)
@@ -672,9 +675,14 @@ class TestJoints(ConverterTestCase):
 
         continuous_prim = physics_scope_prim.GetChild("continuous_joint")
         self.assertTrue(continuous_prim.IsA(UsdPhysics.RevoluteJoint))
+        self.assertFalse(continuous_prim.GetAttribute("newton:velocityLimit").HasAuthoredValue())
         self.assertEqual(continuous_prim.GetAttribute("urdf:limit:acceleration").Get(), 3.0)
         for name in ("urdf:limit:effort", "urdf:limit:deceleration", "urdf:limit:jerk"):
             self.assertFalse(continuous_prim.GetAttribute(name).IsValid())
+
+        infinite_velocity_prim = physics_scope_prim.GetChild("infinite_velocity_joint")
+        self.assertTrue(infinite_velocity_prim.IsA(UsdPhysics.RevoluteJoint))
+        self.assertFalse(infinite_velocity_prim.GetAttribute("newton:velocityLimit").HasAuthoredValue())
 
     def test_pre_12_limit_derivatives_are_not_authored(self):
         input_path = "tests/data/warning_urdf_12_joint_limits.urdf"

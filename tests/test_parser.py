@@ -841,7 +841,7 @@ class TestURDFParser(ConverterTestCase):
         root_element = parser.get_root_element()
         self.assertEqual(root_element.get_with_default("version"), "1.2")
         self.assertEqual(parser.urdf_version, (1, 2))
-        self.assertEqual(len(root_element.joints), 3)
+        self.assertEqual(len(root_element.joints), 4)
 
         revolute = root_element.joints[0]
         self.assertEqual(revolute.name, "revolute_joint")
@@ -875,6 +875,10 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(parser.get_limit_with_default(continuous.limit, "jerk"), math.inf)
         self.assertEqual(parser.get_limit_with_default(continuous.limit, "lower"), -math.inf)
         self.assertEqual(parser.get_limit_with_default(continuous.limit, "upper"), math.inf)
+
+        infinite_velocity = root_element.joints[3]
+        self.assertEqual(infinite_velocity.name, "infinite_velocity_joint")
+        self.assertEqual(infinite_velocity.limit.velocity, math.inf)
 
     def test_load_warning_urdf_12_joint_limits(self):
         model_path = pathlib.Path("tests/data/warning_urdf_12_joint_limits.urdf")

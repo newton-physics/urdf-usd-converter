@@ -76,6 +76,20 @@
     </collision>
   </link>
 
+  <link name="infinite_velocity_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision name="infinite_velocity_collision">
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+
   <!-- Angular limits use radians, radians/s, radians/s^2, and radians/s^3. -->
   <joint name="revolute_joint" type="revolute">
     <parent link="base_link"/>
@@ -115,5 +129,14 @@
     <origin xyz="0.5 0 0"/>
     <axis xyz="0 0 1"/>
     <limit acceleration="3.0"/>
+  </joint>
+
+  <!-- An explicit infinite velocity is left unlimited. -->
+  <joint name="infinite_velocity_joint" type="continuous">
+    <parent link="continuous_link"/>
+    <child link="infinite_velocity_link"/>
+    <origin xyz="0 0 0.2"/>
+    <axis xyz="0 0 1"/>
+    <limit velocity="INF"/>
   </joint>
 </robot>
