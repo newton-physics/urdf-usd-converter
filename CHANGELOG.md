@@ -21,12 +21,10 @@
   - Specifying both `rpy` and `quat_xyzw` on the same origin is an error in URDF 1.1 and newer
   - `quat_xyzw` in a URDF older than 1.1 still converts, and a warning is emitted. If `rpy` is also present, conversion uses `rpy` and leaves the parsed `quat_xyzw` unchanged
 - Added URDF 1.2 joint limit attributes `acceleration`, `deceleration`, and `jerk`
-  - They are stored as custom attributes `urdf:limit:acceleration`, `urdf:limit:deceleration`, and `urdf:limit:jerk`
-  - Omitted limit attributes use version-specific defaults. In URDF 1.2, `effort`, `velocity`, `acceleration`, and `jerk` default to infinity, and `deceleration` defaults to `acceleration` when that is set
-  - `newton:velocityLimit` is still authored only for a positive finite velocity, so the URDF 1.2 default of infinity is left unlimited
-  - Revolute and prismatic joints in URDF 1.2 must provide both `lower` and `upper`, with `upper` greater than or equal to `lower`
-  - A negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error in URDF 1.2. URDF 1.0 / 1.1 still accept a negative `velocity` and leave it unlimited with a warning
-  - `acceleration`, `deceleration`, or `jerk` in a URDF older than 1.2 still convert, and a warning is emitted
+  - On URDF 1.2, `urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, and `urdf:limit:jerk` are authored only when the URDF specifies them
+  - In a URDF older than 1.2, `acceleration`, `deceleration`, and `jerk` warn and are not authored. An omitted `effort` is still authored as `0.0`
+  - Revolute and prismatic joints must provide both `lower` and `upper`, with `upper` greater than or equal to `lower`. Other joint types default an omitted `lower` and `upper` to negative and positive infinity
+  - A negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error
 
 ## Fixes
 

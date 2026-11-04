@@ -108,8 +108,7 @@
       jerk="20.0"/>
   </joint>
 
-  <!-- In URDF 1.2, omitted deceleration defaults to acceleration. -->
-  <!-- Omitted effort, velocity, and jerk default to infinity. -->
+  <!-- Only acceleration is specified. Omitted effort, deceleration, and jerk are not authored. -->
   <joint name="continuous_joint" type="continuous">
     <parent link="prismatic_link"/>
     <child link="continuous_link"/>

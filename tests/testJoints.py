@@ -673,9 +673,41 @@ class TestJoints(ConverterTestCase):
         continuous_prim = physics_scope_prim.GetChild("continuous_joint")
         self.assertTrue(continuous_prim.IsA(UsdPhysics.RevoluteJoint))
         self.assertEqual(continuous_prim.GetAttribute("urdf:limit:acceleration").Get(), 3.0)
-        self.assertEqual(continuous_prim.GetAttribute("urdf:limit:deceleration").Get(), 3.0)
-        self.assertEqual(continuous_prim.GetAttribute("urdf:limit:effort").Get(), math.inf)
-        self.assertEqual(continuous_prim.GetAttribute("urdf:limit:jerk").Get(), math.inf)
+        for name in ("urdf:limit:effort", "urdf:limit:deceleration", "urdf:limit:jerk"):
+            self.assertFalse(continuous_prim.GetAttribute(name).IsValid())
+
+    def test_pre_12_limit_derivatives_are_not_authored(self):
+        input_path = "tests/data/warning_urdf_12_joint_limits.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    (
+                        '.*limit: Joint "arm_joint" ignores acceleration, deceleration, jerk '
+                        r"because the URDF version is earlier than 1.2\. These values are not authored \(line: 22\).*"
+                    ),
+                ),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*Link 'arm_link' has no collision or positive-mass inertial, including its descendants, and is connected by a revolute joint.*",
+                ),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        joint_prim = stage.GetDefaultPrim().GetChild("Physics").GetChild("arm_joint")
+        self.assertTrue(joint_prim.IsValid())
+        self.assertAlmostEqual(joint_prim.GetAttribute("urdf:limit:effort").Get(), 1.0, places=6)
+        for name in ("urdf:limit:acceleration", "urdf:limit:deceleration", "urdf:limit:jerk"):
+            self.assertFalse(joint_prim.GetAttribute(name).IsValid())
 
     def test_velocity_limit(self):
         input_path = "tests/data/velocity_limits.urdf"

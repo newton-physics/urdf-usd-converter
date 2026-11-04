@@ -893,23 +893,21 @@ To account for the arbitrary axis, it is necessary to also author `physics:local
 
 ##### Element: limit
 
-The joint/limit element specifies hard limits. In URDF 1.0 / 1.1 it is used for revolute and prismatic joints (other types typically omit it). URDF 1.2 adds `acceleration`, `deceleration`, and `jerk`, and may apply a limit to other joint types such as continuous. See also [safety\_controller](#element-safety_controller) for soft limits.
+The joint/limit element specifies hard limits on any joint type. Continuous joints commonly carry `effort` and `velocity` in URDF 1.0. URDF 1.2 adds `acceleration`, `deceleration`, and `jerk`, and makes `lower` and `upper` optional except on revolute and prismatic joints. See also [safety\_controller](#element-safety_controller) for soft limits.
 
-In USD, lower and upper position limits map to UsdPhysics. Velocity has no UsdPhysics equivalent, but a positive finite value maps to `NewtonJointAPI` `newton:velocityLimit` on the `PhysicsJoint` prim. An omitted velocity, an explicit `0`, or a non-finite value (including the URDF 1.2 default of infinity) is left unlimited with no warning. A negative velocity on URDF 1.0 / 1.1 is also left unlimited, and a warning is emitted, because NewtonJointAPI's range is `(0, inf]`. URDF 1.2 rejects a negative velocity at parse time. Effort, acceleration, deceleration, and jerk have no UsdPhysics or Newton schema equivalent and are stored as custom attributes (`urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, `urdf:limit:jerk`). See [Appendix C](#appendix-c-filling-concept-gaps).
-
-Omitted attributes other than velocity are filled with version-specific defaults before mapping (see below). `newton:velocityLimit` uses the authored velocity only, so a version default of `0` or `infinity` stays unlimited. If a URDF older than 1.2 uses `acceleration`, `deceleration`, or `jerk`, a warning is emitted, but the values are still authored on the joint.
+`lower` and `upper` map to UsdPhysics. A positive finite `velocity` maps to `newton:velocityLimit`; an omission, `0`, or a non-finite value is left unlimited. A negative `velocity` warns and is left unlimited on URDF 1.0 / 1.1, and is a parse error on URDF 1.2. `effort`, `acceleration`, `deceleration`, and `jerk` are custom attributes. URDF 1.2 writes them only when the source specifies them. URDF 1.0 / 1.1 still write an omitted `effort` as `0.0`. Before 1.2, `acceleration`, `deceleration`, and `jerk` warn and are not authored. See [Appendix C](#appendix-c-filling-concept-gaps).
 
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
 | lower | `physics:lowerLimit` | minimum position/angle |
 | upper | `physics:upperLimit` | maximum position/angle |
-| velocity | `newton:velocityLimit` | maximum joint velocity, authored only when the URDF value is positive and finite. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)). An omitted value, an explicit `0`, or a non-finite value is not authored. A negative value is not authored; URDF 1.0 / 1.1 emit a warning, and URDF 1.2 rejects it. |
+| velocity | `newton:velocityLimit` | maximum joint velocity. Revolute and continuous joints use rad/s in URDF and deg/s in NewtonJointAPI; prismatic joints use m/s in URDF and distance/s in NewtonJointAPI with no conversion (see [Linear Units](#linear-units)) |
 | effort | `urdf:limit:effort` (custom) | maximum torque/force (N·m / N) |
 | acceleration | `urdf:limit:acceleration` (custom) | URDF 1.2 maximum joint acceleration (rad/s² or m/s²) |
 | deceleration | `urdf:limit:deceleration` (custom) | URDF 1.2 maximum joint deceleration (rad/s² or m/s²) |
 | jerk | `urdf:limit:jerk` (custom) | URDF 1.2 maximum joint jerk (rad/s³ or m/s³) |
 
-**Defaults and requirements** follow [urdfdom](https://github.com/ros/urdfdom/blob/rolling/README.md), except that omitted `effort` and `velocity` in URDF 1.0 / 1.1 default to `0.0` as in the [URDF XML Schema](https://raw.githubusercontent.com/ros/urdfdom/master/xsd/urdf.xsd) (the ROS Wiki marks them required). The velocity default is not copied onto `newton:velocityLimit`; only a positive finite authored value is.
+**Omitted-attribute defaults** follow [urdfdom](https://github.com/ros/urdfdom/blob/rolling/README.md), except that omitted `effort` and `velocity` in URDF 1.0 / 1.1 default to `0.0` as in the [URDF XML Schema](https://raw.githubusercontent.com/ros/urdfdom/master/xsd/urdf.xsd) (the ROS Wiki marks them required). This table is the value used when an attribute is omitted. It is not written to `urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, or `urdf:limit:jerk`.
 
 | Attribute | URDF 1.0 / 1.1 | URDF 1.2 |
 | :---- | :---- | :---- |
@@ -917,11 +915,11 @@ Omitted attributes other than velocity are filled with version-specific defaults
 | upper | Optional, default `0.0` | Required for revolute and prismatic; otherwise default `infinity` |
 | effort | Optional, default `0.0` | Optional, default `infinity` |
 | velocity | Optional, default `0.0` | Optional, default `infinity` |
-| acceleration | Not in the 1.0 / 1.1 schema (warn if present) | Optional, default `infinity` |
-| deceleration | Not in the 1.0 / 1.1 schema (warn if present) | Optional; default is `acceleration` if set, otherwise `infinity` |
-| jerk | Not in the 1.0 / 1.1 schema (warn if present) | Optional, default `infinity` |
+| acceleration | Not in the 1.0 / 1.1 schema | Optional, default `infinity` |
+| deceleration | Not in the 1.0 / 1.1 schema | Optional; default is `acceleration` if set, otherwise `infinity` |
+| jerk | Not in the 1.0 / 1.1 schema | Optional, default `infinity` |
 
-In URDF 1.2, revolute and prismatic joints must provide both `lower` and `upper`, and `upper` must be greater than or equal to `lower`. When provided, `effort`, `velocity`, `acceleration`, `deceleration`, and `jerk` must be non-negative.
+In URDF 1.2, `upper` must be greater than or equal to `lower`. A negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error.
 
 ##### Element: mimic
 

@@ -644,18 +644,19 @@ def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, pri
         data: ConversionData
     """
     if element_joint.limit:
-        effort = data.urdf_parser.get_limit_with_default(element_joint.limit, "effort")
+        # URDF 1.0 / 1.1 still author an omitted effort as 0.0. URDF 1.2 authors these custom
+        # attributes only when the source specifies them, so an omitted value is not filled with infinity.
+        version = data.urdf_parser.effective_urdf_version()
+        effort = element_joint.limit.effort if version >= (1, 2) else data.urdf_parser.get_limit_with_default(element_joint.limit, "effort")
         if effort is not None:
             prim.CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(effort)
-        acceleration = data.urdf_parser.get_limit_with_default(element_joint.limit, "acceleration")
-        if acceleration is not None:
-            prim.CreateAttribute("urdf:limit:acceleration", Sdf.ValueTypeNames.Float, custom=True).Set(acceleration)
-        deceleration = data.urdf_parser.get_limit_with_default(element_joint.limit, "deceleration")
-        if deceleration is not None:
-            prim.CreateAttribute("urdf:limit:deceleration", Sdf.ValueTypeNames.Float, custom=True).Set(deceleration)
-        jerk = data.urdf_parser.get_limit_with_default(element_joint.limit, "jerk")
-        if jerk is not None:
-            prim.CreateAttribute("urdf:limit:jerk", Sdf.ValueTypeNames.Float, custom=True).Set(jerk)
+
+        # urdfdom ignores these before 1.2. Do not author them, so they are not mistaken for 1.2 limits.
+        if version >= (1, 2):
+            for attr_name in ("acceleration", "deceleration", "jerk"):
+                value = getattr(element_joint.limit, attr_name)
+                if value is not None:
+                    prim.CreateAttribute(f"urdf:limit:{attr_name}", Sdf.ValueTypeNames.Float, custom=True).Set(value)
 
     if element_joint.calibration:
         rising = element_joint.calibration.get_with_default("rising")

@@ -883,7 +883,13 @@ class TestURDFParser(ConverterTestCase):
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*acceleration, deceleration, and jerk are unavailable when the URDF version is earlier than 1.2.*"),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    (
+                        '.*limit: Joint "arm_joint" ignores acceleration, deceleration, jerk '
+                        r"because the URDF version is earlier than 1.2\. These values are not authored \(line: 22\).*"
+                    ),
+                ),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
@@ -954,6 +960,9 @@ class TestURDFParser(ConverterTestCase):
         self.assertIsNone(joint.limit.lower)
         self.assertEqual(joint.limit.upper, 1.57)
         self.assertEqual(parser.get_limit_with_default(joint.limit, "lower"), 0.0)
+        self.assertIsNone(parser.get_limit_with_default(joint.limit, "acceleration"))
+        self.assertIsNone(parser.get_limit_with_default(joint.limit, "deceleration"))
+        self.assertIsNone(parser.get_limit_with_default(joint.limit, "jerk"))
 
     def _assert_unsupported_version_converts_as_10(self, filename: str, version: str) -> None:
         parser = URDFParser(pathlib.Path("tests/data") / filename)

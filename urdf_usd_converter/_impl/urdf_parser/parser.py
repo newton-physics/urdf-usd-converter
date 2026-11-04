@@ -213,7 +213,7 @@ class URDFParser:
             return (1, 0)
         return parsed
 
-    def _effective_urdf_version(self) -> tuple[int, int]:
+    def effective_urdf_version(self) -> tuple[int, int]:
         """
         Return the version used for feature checks.
 
@@ -422,7 +422,7 @@ class URDFParser:
                 element.jerk = float(node.attrib["jerk"])
             # URDF 1.2 requires these to be non-negative. URDF 1.0 / 1.1 still accept a
             # negative velocity so conversion can warn and leave the joint unlimited.
-            if self._effective_urdf_version() >= (1, 2):
+            if self.effective_urdf_version() >= (1, 2):
                 for attr_name, label in (
                     ("effort", "Effort"),
                     ("velocity", "Velocity"),
@@ -637,7 +637,7 @@ class URDFParser:
                         )
 
         # URDF 1.1: rpy and quat_xyzw cannot both be specified on the same origin.
-        version = self._effective_urdf_version()
+        version = self.effective_urdf_version()
         if version >= (1, 1):
             for origin in self._iter_origins():
                 if origin.rpy is not None and origin.quat_xyzw is not None:
@@ -836,7 +836,7 @@ class URDFParser:
         """
         If capsule or quat_xyzw is being used and the URDF version is earlier than 1.1, output a warning.
         """
-        if self._effective_urdf_version() >= (1, 1):
+        if self.effective_urdf_version() >= (1, 1):
             return
 
         # Check whether capsule or quat_xyzw is being used.
@@ -861,65 +861,46 @@ class URDFParser:
     def _warning_urdf_version_12(self) -> None:
         """
         If acceleration, deceleration, or jerk is being used and the URDF version is earlier than 1.2, output a warning.
+
+        One warning is emitted per joint, on that joint's ``<limit>`` line.
         """
-        if self._effective_urdf_version() >= (1, 2):
+        if self.effective_urdf_version() >= (1, 2):
             return
 
-        # Check whether acceleration and deceleration are being used.
-        used_acceleration = False
-        used_deceleration = False
-        used_jerk = False
         for joint in self.root_element.joints:
-            if joint.limit and joint.limit.acceleration is not None:
-                used_acceleration = True
-            if joint.limit and joint.limit.deceleration is not None:
-                used_deceleration = True
-            if joint.limit and joint.limit.jerk is not None:
-                used_jerk = True
-
-        if used_acceleration or used_deceleration or used_jerk:
-            Tf.Warn(
-                self._get_error_message(
-                    "acceleration, deceleration, and jerk are unavailable when the URDF version is earlier than 1.2", self.root_element
-                )
+            if joint.limit is None:
+                continue
+            present = [name for name in ("acceleration", "deceleration", "jerk") if getattr(joint.limit, name) is not None]
+            if not present:
+                continue
+            message = (
+                f'Joint "{joint.name}" ignores {", ".join(present)} because the URDF version is earlier than 1.2. ' "These values are not authored"
             )
+            Tf.Warn(self._get_error_message(message, joint.limit))
 
-    def _resolve_limit_defaults(self, limit: ElementLimit, attr_name: str) -> float | None:
+    def get_limit_with_default(self, limit: ElementLimit, attr_name: str) -> float | None:
         """
-        Get the default value for the joint parameter.
+        Return the limit attribute, or its version-specific default when it is omitted.
 
-        The default values for joint parameters have been changed in URDF 1.2.
+        URDF 1.2:
+        - ``lower`` is negative infinity.
+        - ``upper``, ``effort``, ``velocity``, ``acceleration``, and ``jerk`` are infinity.
+        - ``deceleration`` uses ``acceleration`` when that is set, otherwise infinity.
 
-        Args:
-            limit: The limit element.
-            attr_name: The name of the attribute.
-
-        Returns:
-            The default value for the joint parameter.
+        Earlier versions:
+        - ``lower``, ``upper``, ``effort``, and ``velocity`` are ``0.0``.
+        - ``acceleration``, ``deceleration``, and ``jerk`` have no default.
         """
-        if self._effective_urdf_version() >= (1, 2):
+        value = getattr(limit, attr_name)
+        if value is not None:
+            return value
+        if self.effective_urdf_version() >= (1, 2):
             if attr_name == "lower":
                 return -math.inf
-            elif attr_name == "upper" or attr_name == "effort" or attr_name == "velocity" or attr_name == "acceleration" or attr_name == "jerk":
+            if attr_name in ("upper", "effort", "velocity", "acceleration", "jerk"):
                 return math.inf
-            elif attr_name == "deceleration":
+            if attr_name == "deceleration":
                 return limit.acceleration if limit.acceleration is not None else math.inf
-        else:
-            if attr_name == "lower" or attr_name == "upper" or attr_name == "effort" or attr_name == "velocity":
-                return 0.0
+        elif attr_name in ("lower", "upper", "effort", "velocity"):
+            return 0.0
         return None
-
-    def get_limit_with_default(self, limit: ElementLimit, attr_name: str) -> float:
-        """
-        Get the limit value with the default value.
-
-        Args:
-            limit: The limit element.
-            attr_name: The name of the attribute.
-
-        Returns:
-            The limit value with the default value.
-        """
-        if getattr(limit, attr_name) is None:
-            return self._resolve_limit_defaults(limit, attr_name)
-        return getattr(limit, attr_name)
