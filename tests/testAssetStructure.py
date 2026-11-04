@@ -182,7 +182,9 @@ class TestAssetStructure(ConverterTestCase):
 
     def test_prim_stack_no_materials(self):
         input_path = "tests/data/revolute_joints.urdf"
-        asset: Sdf.AssetPath = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        revolute_arms = [("Arm_1", "revolute"), ("Arm_2", "revolute"), ("Arm_3", "revolute"), ("Arm_4", "revolute")]
+        with self.expect_no_mass_source(revolute_arms):
+            asset: Sdf.AssetPath = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
         parent_path = pathlib.Path(asset.path).parent
         self.assertTrue(pathlib.Path(asset.path).exists())
 
@@ -320,7 +322,9 @@ class TestAssetStructure(ConverterTestCase):
     def test_physics_layer(self):
         input_path = "tests/data/revolute_joints.urdf"
         robot_name = pathlib.Path(input_path).stem
-        urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        revolute_arms = [("Arm_1", "revolute"), ("Arm_2", "revolute"), ("Arm_3", "revolute"), ("Arm_4", "revolute")]
+        with self.expect_no_mass_source(revolute_arms):
+            urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
 
         # kg per unit is authored in the physics layer
         physics_layer_path = pathlib.Path(self.tmpDir()) / "Payload" / "Physics.usda"
@@ -418,7 +422,9 @@ class TestAssetStructure(ConverterTestCase):
                             f"Prim {prim.GetPath()} in {layer.name} layer should not have physics properties, but found {prop.GetName()}",
                         )
 
-        check_layer("revolute_joints")  # has bodies and joints and geoms
+        revolute_arms = [("Arm_1", "revolute"), ("Arm_2", "revolute"), ("Arm_3", "revolute"), ("Arm_4", "revolute")]
+        with self.expect_no_mass_source(revolute_arms):
+            check_layer("revolute_joints")  # has bodies and joints and geoms
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
@@ -431,7 +437,9 @@ class TestAssetStructure(ConverterTestCase):
 
     def test_physics_scene(self):
         input_path = "tests/data/revolute_joints.urdf"
-        asset: Sdf.AssetPath = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
+        revolute_arms = [("Arm_1", "revolute"), ("Arm_2", "revolute"), ("Arm_3", "revolute"), ("Arm_4", "revolute")]
+        with self.expect_no_mass_source(revolute_arms):
+            asset: Sdf.AssetPath = urdf_usd_converter.Converter().convert(input_path, self.tmpDir())
 
         stage: Usd.Stage = Usd.Stage.Open(asset.path)
         self.assertIsValidUsd(stage)

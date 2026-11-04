@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<robot name="two_robots_world">
+  <link name="world"/>
+  <link name="left_base">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <link name="left_arm">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="right_base">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+  </link>
+  <link name="right_arm">
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0" ixz="0" iyz="0"/>
+    </inertial>
+    <visual>
+      <geometry>
+        <box size="0.05 0.05 0.2"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <joint name="left_fixed" type="fixed">
+    <origin xyz="0 0.2 0"/>
+    <parent link="world"/>
+    <child link="left_base"/>
+  </joint>
+  <joint name="left_arm_joint" type="revolute">
+    <origin xyz="0 0 0.2"/>
+    <parent link="left_base"/>
+    <child link="left_arm"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1" velocity="1"/>
+  </joint>
+  <joint name="right_fixed" type="fixed">
+    <origin xyz="0 -0.2 0"/>
+    <parent link="world"/>
+    <child link="right_base"/>
+  </joint>
+  <joint name="right_arm_joint" type="revolute">
+    <origin xyz="0 0 0.2"/>
+    <parent link="right_base"/>
+    <child link="right_arm"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1" upper="1" effort="1" velocity="1"/>
+  </joint>
+</robot>

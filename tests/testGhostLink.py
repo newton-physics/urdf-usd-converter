@@ -2,7 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-from pxr import Gf, Usd, UsdPhysics
+import usdex.core
+import usdex.test
+from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -72,6 +74,108 @@ class TestGhostLink(ConverterTestCase):
         self.assertTrue(Gf.IsClose(joint.GetLocalPos1Attr().Get(), Gf.Vec3f(0, 0, 0), 1e-6))
         self.assertRotationsAlmostEqual(joint.GetLocalRot0Attr().Get(), Gf.Quatf(1, 0, 0, 0))
         self.assertRotationsAlmostEqual(joint.GetLocalRot1Attr().Get(), Gf.Quatf(1, 0, 0, 0))
+
+    def test_two_robots_under_an_empty_world_stay_separate_articulations(self):
+        """
+        Two robots under an empty world each get an articulation root.
+
+        Putting ArticulationRootAPI on the world would merge both robots into one articulation.
+        """
+        input_path = "tests/data/two_robots_world.urdf"
+        output_dir = self.tmpDir()
+
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
+            asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
+
+        stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        self.assertFalse(default_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+
+        world = default_prim.GetChild("Geometry").GetChild("world")
+        self.assertFalse(world.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(world.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(world.HasAPI("NewtonArticulationRootAPI"))
+
+        robots = (
+            ("left_base", "left_arm", "left_fixed", "left_arm_joint", Gf.Vec3f(0, 0.2, 0)),
+            ("right_base", "right_arm", "right_fixed", "right_arm_joint", Gf.Vec3f(0, -0.2, 0)),
+        )
+        physics = default_prim.GetChild("Physics")
+        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"left_fixed", "left_arm_joint", "right_fixed", "right_arm_joint"})
+        for base_name, arm_name, fixed_name, revolute_name, fixed_pos in robots:
+            base = world.GetChild(base_name)
+            arm = base.GetChild(arm_name)
+            self.assertTrue(base.HasAPI(UsdPhysics.RigidBodyAPI))
+            self.assertTrue(base.HasAPI(UsdPhysics.MassAPI))
+            self.assertTrue(base.HasAPI(UsdPhysics.ArticulationRootAPI))
+            self.assertTrue(base.HasAPI("NewtonArticulationRootAPI"))
+            self.assertTrue(arm.HasAPI(UsdPhysics.RigidBodyAPI))
+            self.assertTrue(arm.HasAPI(UsdPhysics.MassAPI))
+            self.assertFalse(arm.HasAPI(UsdPhysics.ArticulationRootAPI))
+            self.assertFalse(arm.HasAPI("NewtonArticulationRootAPI"))
+            self.assertTrue(arm.GetChild("box").IsA(UsdGeom.Cube))
+
+            fixed = UsdPhysics.FixedJoint(physics.GetChild(fixed_name))
+            self.assertEqual(fixed.GetBody0Rel().GetTargets(), ["/two_robots_world"])
+            self.assertEqual(fixed.GetBody1Rel().GetTargets(), [f"/two_robots_world/Geometry/world/{base_name}"])
+            self.assertTrue(Gf.IsClose(fixed.GetLocalPos0Attr().Get(), fixed_pos, 1e-6))
+            joint = UsdPhysics.RevoluteJoint(physics.GetChild(revolute_name))
+            self.assertEqual(joint.GetBody0Rel().GetTargets(), [f"/two_robots_world/Geometry/world/{base_name}"])
+            self.assertEqual(joint.GetBody1Rel().GetTargets(), [f"/two_robots_world/Geometry/world/{base_name}/{arm_name}"])
+            self.assertTrue(Gf.IsClose(joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.2), 1e-6))
+
+    def test_revolute_and_floating_robots_under_an_empty_world_stay_separate_articulations(self):
+        """
+        A revolute robot and a floating robot under an empty world stay separate articulations.
+
+        ArticulationRootAPI is applied to arm and free, not to world. The floating joint is not
+        authored, so the two articulations do not overlap.
+        """
+        input_path = "tests/data/world_revolute_and_floating.urdf"
+        output_dir = self.tmpDir()
+
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
+            asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
+
+        stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        default_prim = stage.GetDefaultPrim()
+        self.assertFalse(default_prim.HasAPI(UsdPhysics.ArticulationRootAPI))
+
+        world = default_prim.GetChild("Geometry").GetChild("world")
+        arm = world.GetChild("arm")
+        free = world.GetChild("free")
+        freechild = free.GetChild("freechild")
+        self.assertFalse(world.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertFalse(world.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(world.HasAPI("NewtonArticulationRootAPI"))
+
+        for link in (arm, free):
+            self.assertTrue(link.HasAPI(UsdPhysics.RigidBodyAPI))
+            self.assertTrue(link.HasAPI(UsdPhysics.MassAPI))
+            self.assertTrue(link.HasAPI(UsdPhysics.ArticulationRootAPI))
+            self.assertTrue(link.HasAPI("NewtonArticulationRootAPI"))
+            self.assertTrue(link.GetChild("box").IsA(UsdGeom.Cube))
+        self.assertTrue(freechild.HasAPI(UsdPhysics.RigidBodyAPI))
+        self.assertTrue(freechild.HasAPI(UsdPhysics.MassAPI))
+        self.assertFalse(freechild.HasAPI(UsdPhysics.ArticulationRootAPI))
+        self.assertFalse(freechild.HasAPI("NewtonArticulationRootAPI"))
+        self.assertTrue(freechild.GetChild("box").IsA(UsdGeom.Cube))
+        self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(arm).GetTranslation(), Gf.Vec3d(0, 0.25, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(free).GetTranslation(), Gf.Vec3d(0, -0.25, 0), 1e-6))
+        self.assertTrue(Gf.IsClose(usdex.core.getLocalTransform(freechild).GetTranslation(), Gf.Vec3d(0, 0, 0.3), 1e-6))
+
+        physics = default_prim.GetChild("Physics")
+        self.assertEqual({child.GetName() for child in physics.GetChildren()}, {"arm_joint", "freechild_joint"})
+        arm_joint = UsdPhysics.RevoluteJoint(physics.GetChild("arm_joint"))
+        self.assertEqual(arm_joint.GetBody0Rel().GetTargets(), ["/world_revolute_and_floating"])
+        self.assertEqual(arm_joint.GetBody1Rel().GetTargets(), ["/world_revolute_and_floating/Geometry/world/arm"])
+        self.assertTrue(Gf.IsClose(arm_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0.25, 0), 1e-6))
+        freechild_joint = UsdPhysics.RevoluteJoint(physics.GetChild("freechild_joint"))
+        self.assertEqual(freechild_joint.GetBody0Rel().GetTargets(), ["/world_revolute_and_floating/Geometry/world/free"])
+        self.assertEqual(freechild_joint.GetBody1Rel().GetTargets(), ["/world_revolute_and_floating/Geometry/world/free/freechild"])
+        self.assertTrue(Gf.IsClose(freechild_joint.GetLocalPos0Attr().Get(), Gf.Vec3f(0, 0, 0.3), 1e-6))
 
     def test_link_first_ghost_link_floating(self):
         input_path = "tests/data/link_first_ghost_link_floating.urdf"
@@ -464,7 +568,14 @@ class TestGhostLink(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        link_a = ".*Link 'linkA' has no collision or positive-mass inertial, including its descendants, and is the child of fixed joint 'jointA'.*"
+        link_b = ".*Link 'linkB' has no collision or positive-mass inertial, including its descendants, and is connected by a revolute joint.*"
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [(Tf.TF_DIAGNOSTIC_WARNING_TYPE, link_a), (Tf.TF_DIAGNOSTIC_WARNING_TYPE, link_b)],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())
 

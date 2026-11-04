@@ -4,7 +4,7 @@ import pathlib
 
 import usd_validation_nvidia
 import usdex.test
-from pxr import Gf, Usd, UsdGeom, UsdShade
+from pxr import Gf, Tf, Usd, UsdGeom, UsdShade
 
 
 class ConverterTestCase(usdex.test.TestCase):
@@ -37,6 +37,24 @@ class ConverterTestCase(usdex.test.TestCase):
     def _get_material_input_value(self, material: UsdShade.Material, input_name: str):
         shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material)
         return self._get_input_value(shader, input_name)
+
+    def expect_no_mass_source(self, links: list[tuple[str, str]]):
+        """
+        Expect a warning for each rigid body whose subtree has no mass source.
+
+        `links` is `(link name, parent joint type)` in the order the URDF lists the links.
+        """
+        diagnostics = [
+            (
+                Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                (
+                    f".*Link '{name}' has no collision or positive-mass inertial, including its descendants, "
+                    f"and is connected by a {joint_type} joint.*"
+                ),
+            )
+            for name, joint_type in links
+        ]
+        return usdex.test.ScopedDiagnosticChecker(self, diagnostics, level=usdex.core.DiagnosticsLevel.eWarning)
 
     def get_material_diffuse_color(self, material: UsdShade.Material) -> Gf.Vec3f | None:
         return self._get_material_input_value(material, "diffuseColor")
