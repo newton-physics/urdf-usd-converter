@@ -1,4 +1,4 @@
-# Unreleased
+# 0.4.0
 
 ## Breaking Changes
 
@@ -23,7 +23,7 @@
   - OpenPBR limits emissive colors to 1.0, so brighter colors are normalized and the excess is carried by the luminance
   - Added the `--no-openpbr` CLI flag and `openpbr` converter argument to author only `UsdPreviewSurface` shaders
 - Added support for Python 3.13
-- An unrecognized `<robot version>` warns and is converted as URDF 1.0
+- Added a warning for an unrecognized `<robot version>`, which is converted as URDF 1.0
 - Added URDF 1.1 `<capsule>` geometry as `UsdGeomCapsule`
   - `radius` and `length` are required and must be non-negative finite values
   - `length` is the cylindrical section only, not including the hemispherical caps
