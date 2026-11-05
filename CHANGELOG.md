@@ -10,6 +10,7 @@
   - A link on a fixed joint that a mimic joint references is checked the same way
 - Added `--strict` and `Converter(strict=True)` to fail conversion instead of warning
 - Added support for Python 3.13
+- An unrecognized `<robot version>` warns and is converted as URDF 1.0
 - Added URDF 1.1 `<capsule>` geometry as `UsdGeomCapsule`
   - `radius` and `length` are required and must be non-negative finite values
   - `length` is the cylindrical section only, not including the hemispherical caps
@@ -23,11 +24,13 @@
 - Added URDF 1.2 joint limit attributes `acceleration`, `deceleration`, and `jerk`
   - On URDF 1.2, `urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, and `urdf:limit:jerk` are authored only when the URDF specifies them
   - In a URDF older than 1.2, `acceleration`, `deceleration`, and `jerk` warn and are not authored. An omitted `effort` is still authored as `0.0`
-  - Revolute and prismatic joints must provide both `lower` and `upper`, with `upper` greater than or equal to `lower`. Other joint types default an omitted `lower` and `upper` to negative and positive infinity
-  - A negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error
+  - In URDF 1.2, revolute and prismatic joints must provide both `lower` and `upper`, with `upper` greater than or equal to `lower`. Other joint types default an omitted `lower` and `upper` to negative and positive infinity
+  - In URDF 1.2, a negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error
 
 ## Fixes
 
+- Origin orientations are now computed in double precision
+  - Authored values may differ in the last digit or by quaternion sign (`q` and `-q` are the same rotation)
 - A fixed-joint child with only a visual is no longer authored as a rigid body without mass
   - When an ancestor is a rigid body, the prim and its visual stay, and the fixed joint is not authored
   - When no ancestor is a rigid body, the link stays a rigid body and the fixed joint is authored. That joint welds it to the world, so conversion does not warn
