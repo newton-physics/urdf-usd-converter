@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- An unrecognized version warns and is converted as URDF 1.0. -->
+<robot name="warning_urdf_version_unsupported" version="2.0">
+  <link name="base_link"/>
+  <link name="arm"/>
+  <joint name="joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="arm"/>
+  </joint>
+</robot>

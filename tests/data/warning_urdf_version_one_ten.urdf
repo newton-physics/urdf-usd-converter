@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<!-- Warn if 1.10 is not treated as 1.1, and convert as 1.0. -->
+<robot name="warning_urdf_version_one_ten" version="1.10">
+  <link name="base_link"/>
+</robot>

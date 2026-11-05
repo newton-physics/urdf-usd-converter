@@ -642,6 +642,81 @@ class TestJoints(ConverterTestCase):
         self.assertAlmostEqual(joint_d_prim.GetAttribute("newton:mimicCoef0").Get(), 0.25, places=6)
         self.assertAlmostEqual(joint_d_prim.GetAttribute("newton:mimicCoef1").Get(), 2.0)
 
+    def test_urdf_12_joint_limits(self):
+        input_path = "tests/data/urdf_12_joint_limits.urdf"
+        output_dir = self.tmpDir()
+
+        asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        physics_scope_prim = stage.GetDefaultPrim().GetChild("Physics")
+
+        revolute_prim = physics_scope_prim.GetChild("revolute_joint")
+        self.assertTrue(revolute_prim.IsA(UsdPhysics.RevoluteJoint))
+        self.assertAlmostEqual(revolute_prim.GetAttribute("physics:lowerLimit").Get(), math.degrees(-1.57), places=5)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("physics:upperLimit").Get(), math.degrees(1.57), places=5)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("newton:velocityLimit").Get(), math.degrees(1.0), places=5)
+        self.assertTrue(revolute_prim.GetAttribute("urdf:limit:effort").IsCustom())
+        self.assertAlmostEqual(revolute_prim.GetAttribute("urdf:limit:effort").Get(), 100.0, places=6)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("urdf:limit:acceleration").Get(), 10.0, places=6)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("urdf:limit:deceleration").Get(), 5.0, places=6)
+        self.assertAlmostEqual(revolute_prim.GetAttribute("urdf:limit:jerk").Get(), 200.0, places=6)
+
+        prismatic_prim = physics_scope_prim.GetChild("prismatic_joint")
+        self.assertTrue(prismatic_prim.IsA(UsdPhysics.PrismaticJoint))
+        self.assertAlmostEqual(prismatic_prim.GetAttribute("urdf:limit:effort").Get(), 50.0, places=6)
+        self.assertAlmostEqual(prismatic_prim.GetAttribute("urdf:limit:acceleration").Get(), 2.0, places=6)
+        self.assertAlmostEqual(prismatic_prim.GetAttribute("urdf:limit:deceleration").Get(), 1.5, places=6)
+        self.assertAlmostEqual(prismatic_prim.GetAttribute("urdf:limit:jerk").Get(), 20.0, places=6)
+
+        continuous_prim = physics_scope_prim.GetChild("continuous_joint")
+        self.assertTrue(continuous_prim.IsA(UsdPhysics.RevoluteJoint))
+        self.assertFalse(continuous_prim.GetAttribute("newton:velocityLimit").HasAuthoredValue())
+        self.assertEqual(continuous_prim.GetAttribute("urdf:limit:acceleration").Get(), 3.0)
+        for name in ("urdf:limit:effort", "urdf:limit:deceleration", "urdf:limit:jerk"):
+            self.assertFalse(continuous_prim.GetAttribute(name).IsValid())
+
+        infinite_velocity_prim = physics_scope_prim.GetChild("infinite_velocity_joint")
+        self.assertTrue(infinite_velocity_prim.IsA(UsdPhysics.RevoluteJoint))
+        self.assertFalse(infinite_velocity_prim.GetAttribute("newton:velocityLimit").HasAuthoredValue())
+
+    def test_pre_12_limit_derivatives_are_not_authored(self):
+        input_path = "tests/data/warning_urdf_12_joint_limits.urdf"
+        output_dir = self.tmpDir()
+
+        converter = urdf_usd_converter.Converter()
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    (
+                        '.*limit: Joint "arm_joint" ignores acceleration, deceleration, jerk '
+                        r"because the URDF version is earlier than 1.2\. These values are not authored \(line: 22\).*"
+                    ),
+                ),
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    ".*Link 'arm_link' has no collision or positive-mass inertial, including its descendants, and is connected by a revolute joint.*",
+                ),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        joint_prim = stage.GetDefaultPrim().GetChild("Physics").GetChild("arm_joint")
+        self.assertTrue(joint_prim.IsValid())
+        self.assertAlmostEqual(joint_prim.GetAttribute("urdf:limit:effort").Get(), 1.0, places=6)
+        for name in ("urdf:limit:acceleration", "urdf:limit:deceleration", "urdf:limit:jerk"):
+            self.assertFalse(joint_prim.GetAttribute(name).IsValid())
+
     def test_velocity_limit(self):
         input_path = "tests/data/velocity_limits.urdf"
         output_dir = self.tmpDir()

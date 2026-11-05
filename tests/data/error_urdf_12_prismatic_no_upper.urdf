@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- URDF 1.2: prismatic joints require both lower and upper. -->
+<robot name="error_urdf_12_prismatic_no_upper" version="1.2">
+  <link name="base_link"/>
+  <link name="slider_link"/>
+  <joint name="slider_joint" type="prismatic">
+    <parent link="base_link"/>
+    <child link="slider_link"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="0.0" effort="1.0" velocity="1.0"/>
+  </joint>
+</robot>

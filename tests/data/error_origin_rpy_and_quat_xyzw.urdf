@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!-- Error if both rpy and quat_xyzw are specified on the same origin (URDF 1.1). -->
+<robot name="error_origin_rpy_and_quat_xyzw" version="1.1">
+  <link name="base_link">
+    <visual>
+      <!-- This is a deliberate mistake. -->
+      <origin xyz="0 0 0" rpy="0 0 0" quat_xyzw="0 0 0 1"/>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

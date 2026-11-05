@@ -17,14 +17,15 @@ from .urdf_parser.elements import (
     ElementInertia,
     ElementInertial,
     ElementJoint,
+    ElementLimit,
     ElementLink,
     ElementMesh,
     ElementPose,
     ElementVisual,
 )
 from .utils import (
-    float3_to_quatd,
     get_geometry_name,
+    origin_orientation,
     set_schema_attribute,
     set_transform,
 )
@@ -158,9 +159,10 @@ def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose |
 
     URDF `inertia` is expressed in the inertial frame defined by `origin`.
     `newton:inertia` requires the symmetric tensor in the body/link frame, so
-    when `origin.rpy` is non-identity the tensor is rotated as
-    `I_body = R * I_urdf * R^T`, where `R` is built from URDF's fixed-axis
-    (extrinsic) XYZ convention, `R = Rz(yaw) * Ry(pitch) * Rx(roll)`.
+    when `origin.rpy` or `origin.quat_xyzw` is non-identity the tensor is rotated as
+    `I_body = R * I_urdf * R^T`. `R` comes from `origin_orientation`: for `rpy` it is
+    URDF's fixed-axis (extrinsic) XYZ convention, `R = Rz(yaw) * Ry(pitch) * Rx(roll)`;
+    for `quat_xyzw` it is the equivalent rotation from that quaternion.
 
     In `Gf`'s row-vector convention `Gf.Matrix3d(quat)` is the transpose of the
     column-convention `R`, so the `R_gf.GetTranspose() * I * R_gf` below
@@ -175,7 +177,7 @@ def _inertia_tensor_in_body_frame(inertia: ElementInertia, origin: ElementPose |
     # Gf.Matrix3d is row-major: (r0c0, r0c1, r0c2, r1c0, ...)
     mat = Gf.Matrix3d(ixx, ixy, ixz, ixy, iyy, iyz, ixz, iyz, izz)
     if origin:
-        rotation = Gf.Matrix3d(float3_to_quatd(origin.get_with_default("rpy")))
+        rotation = Gf.Matrix3d(origin_orientation(origin))
         mat = rotation.GetTranspose() * mat * rotation
     return [mat[0, 0], mat[1, 1], mat[2, 2], mat[0, 1], mat[0, 2], mat[1, 2]]
 
@@ -184,11 +186,12 @@ def _joint_rotation(joint: ElementJoint) -> Gf.Matrix3d:
     """
     Joint-origin rotation in Gf's convention, where the matrix is `R^T`.
 
-    A missing origin is the URDF identity.
+    A missing origin is the URDF identity. ``rpy`` and URDF 1.1 ``quat_xyzw``
+    are both accepted.
     """
     if joint.origin is None:
         return Gf.Matrix3d(1.0)
-    return Gf.Matrix3d(float3_to_quatd(joint.origin.get_with_default("rpy")))
+    return Gf.Matrix3d(origin_orientation(joint.origin))
 
 
 def _inertial_in_parent_frame(joint: ElementJoint, child: ElementLink) -> ElementLink:
@@ -248,7 +251,7 @@ def apply_inertial(prim: Usd.Prim, link: ElementLink, data: ConversionData):
         set_schema_attribute(prim_over, "newton:inertia", i_body)
 
         # Derive principal axes from I_body so `physics:*` and `newton:inertia` share one source.
-        # I_body already includes origin.rpy, so do not compose rpy onto principalAxes again.
+        # I_body already includes origin.rpy or origin.quat_xyzw, so do not compose them onto principalAxes again.
         orientation, diag_inertia = _extract_inertia(i_body)
         mass_api.GetPrincipalAxesAttr().Set(orientation)
         mass_api.GetDiagonalInertiaAttr().Set(diag_inertia)
@@ -486,9 +489,10 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
 
         axis = Gf.Vec3f(joint.axis.get_with_default("xyz")) if joint.axis else Gf.Vec3f(1, 0, 0)
 
-        # If limit is omitted, set to 0.0
-        limit_lower = joint.limit.get_with_default("lower") if joint.limit is not None else 0.0
-        limit_upper = joint.limit.get_with_default("upper") if joint.limit is not None else 0.0
+        # Resolve version-aware defaults when limit attributes are omitted.
+        limit = joint.limit if joint.limit is not None else ElementLimit()
+        limit_lower = data.urdf_parser.get_limit_with_default(limit, "lower")
+        limit_upper = data.urdf_parser.get_limit_with_default(limit, "upper")
 
         physics_joint = None
         if joint.type == "fixed":
@@ -517,7 +521,7 @@ def physics_joints(parent: Usd.Prim, link: ElementLink, data: ConversionData):
             if joint.mimic and joint.mimic.joint:
                 mimic_joints_names.append(joint.name)
 
-            apply_newton_joint_api(joint, physics_joint.GetPrim())
+            apply_newton_joint_api(joint, physics_joint.GetPrim(), data)
             convert_unsupported_attributes_and_elements(joint, physics_joint.GetPrim(), data)
 
             # Store custom attributes and custom elements for the specified element.
@@ -581,18 +585,21 @@ def _convert_mimic_offset(joint_type: str, offset: float) -> float:
     return offset
 
 
-def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
+def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim, data: ConversionData):
     """
     Map URDF joint dynamics and velocity limits to NewtonJointAPI.
 
-    ``newton:velocityLimit`` is authored only for a positive ``<limit velocity>``.
-    An omitted velocity, or an explicit ``0``, is unlimited and produces no warning.
+    ``newton:velocityLimit`` is authored only for a positive finite ``<limit velocity>``.
+    An omitted velocity, an explicit ``0``, or a non-finite value (including the URDF 1.2
+    default of infinity) is unlimited and produces no warning.
     A negative velocity is also left unlimited, with a warning, because
-    NewtonJointAPI's range is ``(0, inf]``.
+    NewtonJointAPI's range is ``(0, inf]``. URDF 1.2 rejects a negative velocity
+    while parsing, so that warning applies to URDF 1.0 and 1.1.
 
     Args:
         element_joint: ElementJoint in URDF
         prim: PhysicsJoint in USD
+        data: ConversionData
     """
     damping = None
     friction = None
@@ -602,9 +609,11 @@ def apply_newton_joint_api(element_joint: ElementJoint, prim: Usd.Prim):
         damping = _convert_joint_damping(element_joint.type, element_joint.dynamics.get_with_default("damping"))
         friction = element_joint.dynamics.get_with_default("friction")
 
+    # Use the authored value, not the version default. URDF 1.0 / 1.1 default omitted
+    # velocity to 0, and URDF 1.2 defaults it to infinity; both mean unlimited.
     velocity = element_joint.limit.velocity if element_joint.limit else None
     if element_joint.type in ("revolute", "continuous", "prismatic") and velocity is not None:
-        if velocity > 0.0:
+        if math.isfinite(velocity) and velocity > 0.0:
             velocity_limit = _convert_joint_velocity_limit(element_joint.type, velocity)
         elif velocity < 0.0:
             Tf.Warn(
@@ -635,9 +644,19 @@ def convert_unsupported_attributes_and_elements(element_joint: ElementJoint, pri
         data: ConversionData
     """
     if element_joint.limit:
-        effort = element_joint.limit.get_with_default("effort")
+        # URDF 1.0 / 1.1 still author an omitted effort as 0.0. URDF 1.2 authors these custom
+        # attributes only when the source specifies them, so an omitted value is not filled with infinity.
+        version = data.urdf_parser.effective_urdf_version()
+        effort = element_joint.limit.effort if version >= (1, 2) else data.urdf_parser.get_limit_with_default(element_joint.limit, "effort")
         if effort is not None:
             prim.CreateAttribute("urdf:limit:effort", Sdf.ValueTypeNames.Float, custom=True).Set(effort)
+
+        # urdfdom ignores these before 1.2. Do not author them, so they are not mistaken for 1.2 limits.
+        if version >= (1, 2):
+            for attr_name in ("acceleration", "deceleration", "jerk"):
+                value = getattr(element_joint.limit, attr_name)
+                if value is not None:
+                    prim.CreateAttribute(f"urdf:limit:{attr_name}", Sdf.ValueTypeNames.Float, custom=True).Set(value)
 
     if element_joint.calibration:
         rising = element_joint.calibration.get_with_default("rising")

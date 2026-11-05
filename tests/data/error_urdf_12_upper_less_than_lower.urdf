@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- URDF 1.2: upper must be greater than or equal to lower. -->
+<robot name="error_urdf_12_upper_less_than_lower" version="1.2">
+  <link name="base_link"/>
+  <link name="arm_link"/>
+  <joint name="arm_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="arm_link"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="1.57" upper="-1.57" effort="1.0" velocity="1.0"/>
+  </joint>
+</robot>

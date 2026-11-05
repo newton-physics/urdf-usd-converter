@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<!-- Warn if the URDF version is not major.minor, and convert as 1.0. -->
+<robot name="warning_urdf_version_integer" version="1">
+  <link name="base_link"/>
+</robot>

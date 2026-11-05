@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- URDF 1.0: both rpy and quat_xyzw warn. quat_xyzw is ignored and rpy is used. -->
+<robot name="warning_urdf_10_rpy_and_quat_xyzw" version="1.0">
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 1" quat_xyzw="0 0.7071067811865476 0 0.7071067811865476"/>
+      <geometry>
+        <box size="0.1 0.1 0.1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

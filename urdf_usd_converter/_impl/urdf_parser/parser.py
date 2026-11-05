@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
+import math
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -10,6 +11,7 @@ from .elements import (
     ElementAxis,
     ElementBase,
     ElementCalibration,
+    ElementCapsule,
     ElementChild,
     ElementCollision,
     ElementColor,
@@ -39,6 +41,9 @@ from .undefined_data import UndefinedData
 
 __all__ = ["URDFParser"]
 
+# An omitted or unrecognized version is converted as 1.0.
+_SUPPORTED_URDF_VERSIONS = {(1, 0), (1, 1), (1, 2)}
+
 
 class URDFParser:
     def __init__(self, input_file: Path):
@@ -56,6 +61,7 @@ class URDFParser:
         self.materials: list[dict[str, str, tuple[float, float, float, float], str]] = []
 
         self.texture_paths: list[str] = []
+        self.urdf_version: tuple[int, int] | None = None
 
     def parse(self):
         """
@@ -81,6 +87,12 @@ class URDFParser:
 
         except Exception as e:
             raise RuntimeError(f"Error parsing XML: {e}")
+
+        # Warn if capsule or quat_xyzw is being used and the URDF version is earlier than 1.1.
+        self._warning_urdf_version_11()
+
+        # Warn if acceleration, deceleration, or jerk is being used and the URDF version is earlier than 1.2.
+        self._warning_urdf_version_12()
 
     def get_root_element(self) -> ElementRobot:
         """
@@ -182,6 +194,61 @@ class URDFParser:
             )
         return (float(values[0]), float(values[1]), float(values[2]), float(values[3]))
 
+    def _parse_urdf_version(self, version: str, node: ET.Element) -> tuple[int, int]:
+        """
+        Parse a robot version attribute as ``(major, minor)``.
+
+        This follows urdfdom's ``URDFVersion``: ``1.00`` is ``(1, 0)``. A malformed value, or a version
+        other than 1.0, 1.1, and 1.2, warns and is converted as 1.0.
+        """
+        match = re.fullmatch(r"(\d+)\.(\d+)", version)
+        parsed = (int(match.group(1)), int(match.group(2))) if match else None
+        if parsed not in _SUPPORTED_URDF_VERSIONS:
+            Tf.Warn(
+                self._get_error_message(
+                    f'Unsupported version "{version}". Only 1.0, 1.1, and 1.2 are supported, so this file is converted as 1.0',
+                    node,
+                )
+            )
+            return (1, 0)
+        return parsed
+
+    def effective_urdf_version(self) -> tuple[int, int]:
+        """
+        Return the version used for feature checks.
+
+        An omitted version stays unset and is 1.0. ``_parse_urdf_version`` stores 1.0 after warning
+        when the attribute cannot be used.
+        """
+        if self.urdf_version is None:
+            return (1, 0)
+        return self.urdf_version
+
+    def _normalize_quat_xyzw(self, quat: tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+        """
+        Normalize a quaternion stored as (x, y, z, w).
+
+        This follows urdfdom's parser, which normalizes quat_xyzw after parsing.
+        A zero-length quaternion is replaced with the identity (0, 0, 0, 1).
+        """
+        x, y, z, w = quat
+        n = math.sqrt(x * x + y * y + z * z + w * w)
+        if n == 0.0:
+            return (0.0, 0.0, 0.0, 1.0)
+        return (x / n, y / n, z / n, w / n)
+
+    def _validate_non_negative_finite(self, value: float | None, attr_label: str, node: ET.Element) -> None:
+        """
+        Require a non-negative finite attribute value.
+
+        URDF 1.1 capsules require radius and length to be present and non-negative
+        finite values (urdfdom).
+        """
+        if value is None:
+            raise ValueError(self._get_error_message(f"{attr_label} is required", node))
+        if not math.isfinite(value) or value < 0.0:
+            raise ValueError(self._get_error_message(f"{attr_label} must be a non-negative finite value", node))
+
     def _get_error_message(self, message: str, element: ElementBase | ET.Element) -> str:
         """
         Get an error message for an element.
@@ -263,13 +330,17 @@ class URDFParser:
         element.size = self._convert_attribute_float3(node, "size")
         element.xyz = self._convert_attribute_float3(node, "xyz")
         element.rpy = self._convert_attribute_float3(node, "rpy")
+        element.quat_xyzw = self._convert_attribute_float4(node, "quat_xyzw")
+        if element.quat_xyzw is not None:
+            element.quat_xyzw = self._normalize_quat_xyzw(element.quat_xyzw)
         if "radius" in node.attrib:
             element.radius = float(node.attrib["radius"])
         if "length" in node.attrib:
             element.length = float(node.attrib["length"])
 
-        if "version" in node.attrib:
+        if isinstance(element, ElementRobot) and "version" in node.attrib:
             element.version = node.attrib["version"]
+            self.urdf_version = self._parse_urdf_version(element.version, node)
 
         if isinstance(element, ElementUndefined):
             for key, value in node.attrib.items():
@@ -293,6 +364,10 @@ class URDFParser:
                 element.filename = node.attrib["filename"]
             else:
                 Tf.Warn(self._get_error_message("Filename is required", node))
+
+        elif isinstance(element, ElementCapsule):
+            self._validate_non_negative_finite(element.radius, "Radius", node)
+            self._validate_non_negative_finite(element.length, "Length", node)
 
         elif isinstance(element, ElementSafetyController):
             if "soft_lower_limit" in node.attrib:
@@ -339,6 +414,25 @@ class URDFParser:
                 element.effort = float(node.attrib["effort"])
             if "velocity" in node.attrib:
                 element.velocity = float(node.attrib["velocity"])
+            if "acceleration" in node.attrib:
+                element.acceleration = float(node.attrib["acceleration"])
+            if "deceleration" in node.attrib:
+                element.deceleration = float(node.attrib["deceleration"])
+            if "jerk" in node.attrib:
+                element.jerk = float(node.attrib["jerk"])
+            # URDF 1.2 requires these to be non-negative. URDF 1.0 / 1.1 still accept a
+            # negative velocity so conversion can warn and leave the joint unlimited.
+            if self.effective_urdf_version() >= (1, 2):
+                for attr_name, label in (
+                    ("effort", "Effort"),
+                    ("velocity", "Velocity"),
+                    ("acceleration", "Acceleration"),
+                    ("deceleration", "Deceleration"),
+                    ("jerk", "Jerk"),
+                ):
+                    value = getattr(element, attr_name)
+                    if value is not None and value < 0.0:
+                        raise ValueError(self._get_error_message(f"{label} must be non-negative", node))
 
         elif isinstance(element, ElementCalibration):
             if "reference_position" in node.attrib:
@@ -414,7 +508,7 @@ class URDFParser:
                 prev_element.verbose = element
 
         elif prev_element_type == ElementGeometry:
-            if node.tag == "box" or node.tag == "sphere" or node.tag == "cylinder" or node.tag == "mesh":
+            if node.tag == "box" or node.tag == "sphere" or node.tag == "cylinder" or node.tag == "mesh" or node.tag == "capsule":
                 prev_element.shape = element
 
         elif prev_element_type == ElementInertial:
@@ -527,14 +621,55 @@ class URDFParser:
                 if visual and visual.geometry:
                     geometry = visual.geometry.shape
                     if not geometry:
-                        Tf.Warn(self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", visual.geometry))
+                        Tf.Warn(
+                            self._get_error_message(
+                                "Geometry must have one of the following: box, sphere, cylinder, capsule, or mesh", visual.geometry
+                            )
+                        )
             for collision in link.collisions:
                 if collision.geometry:
                     geometry = collision.geometry.shape
                     if not geometry:
                         Tf.Warn(
-                            self._get_error_message("Geometry must have one of the following: box, sphere, cylinder, or mesh", collision.geometry)
+                            self._get_error_message(
+                                "Geometry must have one of the following: box, sphere, cylinder, capsule, or mesh", collision.geometry
+                            )
                         )
+
+        # URDF 1.1: rpy and quat_xyzw cannot both be specified on the same origin.
+        version = self.effective_urdf_version()
+        if version >= (1, 1):
+            for origin in self._iter_origins():
+                if origin.rpy is not None and origin.quat_xyzw is not None:
+                    raise ValueError(self._get_error_message("Both rpy and quat_xyzw orientations are defined. Use either one or the other", origin))
+
+        # URDF 1.2: revolute and prismatic joints require both lower and upper, and upper >= lower.
+        if version >= (1, 2):
+            for joint in self.root_element.joints:
+                if joint.type not in ("revolute", "prismatic"):
+                    continue
+                limit = joint.limit
+                if limit is None or limit.lower is None:
+                    raise ValueError(self._get_error_message("Lower is required for revolute and prismatic joints", limit or joint))
+                if limit.upper is None:
+                    raise ValueError(self._get_error_message("Upper is required for revolute and prismatic joints", limit))
+                if limit.upper < limit.lower:
+                    raise ValueError(self._get_error_message("Upper must be greater than or equal to lower", limit))
+
+    def _iter_origins(self):
+        """Yield every origin pose in the robot."""
+        for link in self.root_element.links:
+            if link.inertial and link.inertial.origin:
+                yield link.inertial.origin
+            for visual in link.visuals:
+                if visual.origin:
+                    yield visual.origin
+            for collision in link.collisions:
+                if collision.origin:
+                    yield collision.origin
+        for joint in self.root_element.joints:
+            if joint.origin:
+                yield joint.origin
 
     def _get_element_class(self, tag_name: str, prev_element_tag: str) -> type[ElementBase]:
         """
@@ -696,3 +831,76 @@ class URDFParser:
             for e in element.__dict__:
                 if isinstance(element.__dict__[e], ElementBase):
                     self._get_undefined_elements_nested(element.__dict__[e], undefined_elements)
+
+    def _warning_urdf_version_11(self) -> None:
+        """
+        If capsule or quat_xyzw is being used and the URDF version is earlier than 1.1, output a warning.
+        """
+        if self.effective_urdf_version() >= (1, 1):
+            return
+
+        # Check whether capsule or quat_xyzw is being used.
+        used_capsule = False
+        used_quat_xyzw = False
+        for link in self.root_element.links:
+            for element in (*link.visuals, *link.collisions):
+                if element.geometry and element.geometry.shape and isinstance(element.geometry.shape, ElementCapsule):
+                    used_capsule = True
+                    break
+            if used_capsule:
+                break
+        for origin in self._iter_origins():
+            if origin.quat_xyzw is not None:
+                used_quat_xyzw = True
+                break
+
+        # If capsule or quat_xyzw is being used and the URDF version is earlier than 1.1, output a warning.
+        if used_capsule or used_quat_xyzw:
+            Tf.Warn(self._get_error_message("capsule and quat_xyzw are unavailable when the URDF version is earlier than 1.1", self.root_element))
+
+    def _warning_urdf_version_12(self) -> None:
+        """
+        If acceleration, deceleration, or jerk is being used and the URDF version is earlier than 1.2, output a warning.
+
+        One warning is emitted per joint, on that joint's ``<limit>`` line.
+        """
+        if self.effective_urdf_version() >= (1, 2):
+            return
+
+        for joint in self.root_element.joints:
+            if joint.limit is None:
+                continue
+            present = [name for name in ("acceleration", "deceleration", "jerk") if getattr(joint.limit, name) is not None]
+            if not present:
+                continue
+            message = (
+                f'Joint "{joint.name}" ignores {", ".join(present)} because the URDF version is earlier than 1.2. ' "These values are not authored"
+            )
+            Tf.Warn(self._get_error_message(message, joint.limit))
+
+    def get_limit_with_default(self, limit: ElementLimit, attr_name: str) -> float | None:
+        """
+        Return the limit attribute, or its version-specific default when it is omitted.
+
+        URDF 1.2:
+        - ``lower`` is negative infinity.
+        - ``upper``, ``effort``, ``velocity``, ``acceleration``, and ``jerk`` are infinity.
+        - ``deceleration`` uses ``acceleration`` when that is set, otherwise infinity.
+
+        Earlier versions:
+        - ``lower``, ``upper``, ``effort``, and ``velocity`` are ``0.0``.
+        - ``acceleration``, ``deceleration``, and ``jerk`` have no default.
+        """
+        value = getattr(limit, attr_name)
+        if value is not None:
+            return value
+        if self.effective_urdf_version() >= (1, 2):
+            if attr_name == "lower":
+                return -math.inf
+            if attr_name in ("upper", "effort", "velocity", "acceleration", "jerk"):
+                return math.inf
+            if attr_name == "deceleration":
+                return limit.acceleration if limit.acceleration is not None else math.inf
+        elif attr_name in ("lower", "upper", "effort", "velocity"):
+            return 0.0
+        return None

@@ -8,6 +8,7 @@ from .material import bind_material, bind_mesh_material
 from .undefined import convert_undefined_elements
 from .urdf_parser.elements import (
     ElementBox,
+    ElementCapsule,
     ElementCollision,
     ElementCylinder,
     ElementMesh,
@@ -27,6 +28,8 @@ def convert_geometry(parent: Usd.Prim, name: str, safe_name: str, geometry: Elem
         prim = convert_sphere(parent, safe_name, geometry.geometry.shape, data)
     elif isinstance(geometry.geometry.shape, ElementCylinder):
         prim = convert_cylinder(parent, safe_name, geometry.geometry.shape, data)
+    elif isinstance(geometry.geometry.shape, ElementCapsule):
+        prim = convert_capsule(parent, safe_name, geometry.geometry.shape, data)
     elif isinstance(geometry.geometry.shape, ElementMesh):
         prim = convert_mesh(parent, safe_name, geometry.geometry.shape, data)
 
@@ -103,6 +106,13 @@ def convert_cylinder(parent: Usd.Prim, name: str, cylinder: ElementCylinder, dat
     length = cylinder.get_with_default("length")
     cylinder_prim = usdex.core.defineCylinder(parent, name, radius, length, UsdGeom.Tokens.z)
     return cylinder_prim
+
+
+def convert_capsule(parent: Usd.Prim, name: str, capsule: ElementCapsule, data: ConversionData) -> UsdGeom.Gprim:
+    radius = capsule.get_with_default("radius")
+    length = capsule.get_with_default("length")
+    capsule_prim = usdex.core.defineCapsule(parent, name, radius, length, UsdGeom.Tokens.z)
+    return capsule_prim
 
 
 def convert_mesh(parent: Usd.Prim, name: str, mesh: ElementMesh, data: ConversionData) -> Usd.Prim:

@@ -1,0 +1,142 @@
+<?xml version="1.0"?>
+<!-- URDF 1.2 sample: extended joint limits add acceleration, deceleration, and jerk. -->
+<robot name="urdf_12_joint_limits" version="1.2">
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+  </material>
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+  </material>
+  <material name="yellow">
+    <color rgba="1.0 1.0 0.0 1.0"/>
+  </material>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.05"/>
+      <geometry>
+        <box size="0.4 0.4 0.1"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision name="base_collision">
+      <origin xyz="0 0 0.05"/>
+      <geometry>
+        <box size="0.4 0.4 0.1"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="revolute_link">
+    <visual>
+      <origin xyz="0 0 0.25"/>
+      <geometry>
+        <box size="0.1 0.1 0.5"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision name="revolute_collision">
+      <origin xyz="0 0 0.25"/>
+      <geometry>
+        <box size="0.1 0.1 0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="prismatic_link">
+    <visual>
+      <origin xyz="0.25 0 0"/>
+      <geometry>
+        <box size="0.5 0.08 0.08"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+    <collision name="prismatic_collision">
+      <origin xyz="0.25 0 0"/>
+      <geometry>
+        <box size="0.5 0.08 0.08"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="continuous_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.08"/>
+      </geometry>
+      <material name="yellow"/>
+    </visual>
+    <collision name="continuous_collision">
+      <geometry>
+        <sphere radius="0.08"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="infinite_velocity_link">
+    <visual>
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision name="infinite_velocity_collision">
+      <geometry>
+        <sphere radius="0.05"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Angular limits use radians, radians/s, radians/s^2, and radians/s^3. -->
+  <joint name="revolute_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="revolute_link"/>
+    <origin xyz="0 0 0.1"/>
+    <axis xyz="0 1 0"/>
+    <limit
+      lower="-1.57"
+      upper="1.57"
+      effort="100.0"
+      velocity="1.0"
+      acceleration="10.0"
+      deceleration="5.0"
+      jerk="200.0"/>
+  </joint>
+
+  <!-- Linear limits use meters, meters/s, meters/s^2, and meters/s^3. -->
+  <joint name="prismatic_joint" type="prismatic">
+    <parent link="revolute_link"/>
+    <child link="prismatic_link"/>
+    <origin xyz="0 0 0.5"/>
+    <axis xyz="1 0 0"/>
+    <limit
+      lower="0.0"
+      upper="0.4"
+      effort="50.0"
+      velocity="0.5"
+      acceleration="2.0"
+      deceleration="1.5"
+      jerk="20.0"/>
+  </joint>
+
+  <!-- Only acceleration is specified. Omitted effort, deceleration, and jerk are not authored. -->
+  <joint name="continuous_joint" type="continuous">
+    <parent link="prismatic_link"/>
+    <child link="continuous_link"/>
+    <origin xyz="0.5 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit acceleration="3.0"/>
+  </joint>
+
+  <!-- An explicit infinite velocity is left unlimited. -->
+  <joint name="infinite_velocity_joint" type="continuous">
+    <parent link="continuous_link"/>
+    <child link="infinite_velocity_link"/>
+    <origin xyz="0 0 0.2"/>
+    <axis xyz="0 0 1"/>
+    <limit velocity="INF"/>
+  </joint>
+</robot>

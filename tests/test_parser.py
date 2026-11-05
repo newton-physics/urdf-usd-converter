@@ -1,12 +1,15 @@
 # SPDX-FileCopyrightText: Copyright (c) 2025 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
+import math
 import pathlib
+import re
 
 import usdex.core
 from pxr import Tf
 
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl.urdf_parser.parser import URDFParser
+from urdf_usd_converter._impl.utils import float3_to_quatd, origin_orientation
 
 
 class TestURDFParser(ConverterTestCase):
@@ -131,7 +134,7 @@ class TestURDFParser(ConverterTestCase):
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, or mesh.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, capsule, or mesh.*"),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
@@ -147,7 +150,7 @@ class TestURDFParser(ConverterTestCase):
             [
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*foo: Invalid geometry type.*"),
                 (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*material: link: Material name 'green' not found.*"),
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, or mesh.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, capsule, or mesh.*"),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
@@ -161,7 +164,7 @@ class TestURDFParser(ConverterTestCase):
         with usdex.test.ScopedDiagnosticChecker(
             self,
             [
-                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, or mesh.*"),
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Geometry must have one of the following: box, sphere, cylinder, capsule, or mesh.*"),
             ],
             level=usdex.core.DiagnosticsLevel.eWarning,
         ):
@@ -308,7 +311,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(root_element.tag, "robot")
         self.assertEqual(root_element.name, "verifying_elements")
         self.assertEqual(root_robot_name, "verifying_elements")
-        self.assertEqual(root_element.get_with_default("version"), "1.0")
+        self.assertEqual(root_element.get_with_default("version"), "1.1")
 
     def test_find_materials(self):
         # Get the root element.
@@ -380,6 +383,11 @@ class TestURDFParser(ConverterTestCase):
         self.assertTrue(inertial.origin)
         self.assertEqual(inertial.origin.get_with_default("xyz"), (0.0, 0.0, 0.3))
         self.assertEqual(inertial.origin.get_with_default("rpy"), (0.0, 0.0, 0.0))
+        quat_xyzw = inertial.origin.get_with_default("quat_xyzw")
+        self.assertAlmostEqual(quat_xyzw[0], 0.0)
+        self.assertAlmostEqual(quat_xyzw[1], 0.70710678)
+        self.assertAlmostEqual(quat_xyzw[2], 0.0)
+        self.assertAlmostEqual(quat_xyzw[3], 0.70710678)
         self.assertTrue(inertial.mass)
         self.assertEqual(inertial.mass.get_with_default("value"), 1.0)
         self.assertTrue(inertial.inertia)
@@ -473,7 +481,7 @@ class TestURDFParser(ConverterTestCase):
         self.assertTrue(visual)
         geometry = visual.geometry
         self.assertTrue(geometry)
-        self.assertEqual(geometry.shape.tag, "cylinder")
+        self.assertEqual(geometry.shape.tag, "capsule")
         self.assertEqual(geometry.shape.get_with_default("radius"), 0.5)
         self.assertEqual(geometry.shape.get_with_default("length"), 1.0)
         material = visual.material
@@ -726,3 +734,277 @@ class TestURDFParser(ConverterTestCase):
         self.assertEqual(joint.parent.link, "BaseLink")
         self.assertTrue(joint.child)
         self.assertEqual(joint.child.link, "link2")
+
+    def test_load_warning_urdf_11_capsule_quatxyz(self):
+        model_path = pathlib.Path("tests/data/warning_urdf_11_capsule_quatxyz.urdf")
+        parser = URDFParser(model_path)
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*capsule and quat_xyzw are unavailable when the URDF version is earlier than 1.1.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            parser.parse()
+
+    def test_load_error_origin_rpy_and_quat_xyzw(self):
+        model_path = pathlib.Path("tests/data/error_origin_rpy_and_quat_xyzw.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            r".*origin: Both rpy and quat_xyzw orientations are defined. Use either one or the other \(line: 7\).*",
+        ):
+            parser.parse()
+
+    def test_load_origin_rpy_and_quat_xyzw_urdf_10(self):
+        model_path = pathlib.Path("tests/data/warning_urdf_10_rpy_and_quat_xyzw.urdf")
+        parser = URDFParser(model_path)
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*capsule and quat_xyzw are unavailable when the URDF version is earlier than 1.1.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            parser.parse()
+
+        origin = parser.get_root_element().links[0].visuals[0].origin
+        self.assertEqual(origin.rpy, (0.0, 0.0, 1.0))
+        self.assertAlmostEqual(origin.quat_xyzw[1], 0.7071067811865476)
+        self.assertAlmostEqual(origin.quat_xyzw[3], 0.7071067811865476)
+        orientation = origin_orientation(origin)
+        expected = float3_to_quatd(origin.rpy)
+        self.assertAlmostEqual(orientation.GetReal(), expected.GetReal())
+        for index in range(3):
+            self.assertAlmostEqual(orientation.GetImaginary()[index], expected.GetImaginary()[index])
+
+    def test_load_warning_urdf_10_inertial_quat_xyzw(self):
+        model_path = pathlib.Path("tests/data/warning_urdf_10_inertial_quat_xyzw.urdf")
+        parser = URDFParser(model_path)
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*capsule and quat_xyzw are unavailable when the URDF version is earlier than 1.1.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            parser.parse()
+
+    def test_load_urdf_11_quat_xyzw_normalize(self):
+        model_path = pathlib.Path("tests/data/urdf_11_quat_xyzw_normalize.urdf")
+        parser = URDFParser(model_path)
+        parser.parse()
+
+        root_element = parser.get_root_element()
+        visual_origin = root_element.links[0].visuals[0].origin
+        self.assertEqual(visual_origin.quat_xyzw, (0.0, 0.0, 0.0, 1.0))
+        inertial_origin = root_element.links[0].inertial.origin
+        self.assertEqual(inertial_origin.quat_xyzw, (0.0, 0.0, 0.0, 1.0))
+
+    def test_load_error_capsule_no_radius(self):
+        model_path = pathlib.Path("tests/data/error_capsule_no_radius.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*capsule: Radius is required \(line: 7\).*"):
+            parser.parse()
+
+    def test_load_error_capsule_no_length(self):
+        model_path = pathlib.Path("tests/data/error_capsule_no_length.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*capsule: Length is required \(line: 7\).*"):
+            parser.parse()
+
+    def test_load_error_capsule_negative_radius(self):
+        model_path = pathlib.Path("tests/data/error_capsule_negative_radius.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*capsule: Radius must be a non-negative finite value \(line: 7\).*"):
+            parser.parse()
+
+    def test_load_error_capsule_non_finite_length(self):
+        model_path = pathlib.Path("tests/data/error_capsule_non_finite_length.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*capsule: Length must be a non-negative finite value \(line: 7\).*"):
+            parser.parse()
+
+    def test_load_urdf_12_joint_limits(self):
+        model_path = pathlib.Path("tests/data/urdf_12_joint_limits.urdf")
+        parser = URDFParser(model_path)
+        parser.parse()
+
+        root_element = parser.get_root_element()
+        self.assertEqual(root_element.get_with_default("version"), "1.2")
+        self.assertEqual(parser.urdf_version, (1, 2))
+        self.assertEqual(len(root_element.joints), 4)
+
+        revolute = root_element.joints[0]
+        self.assertEqual(revolute.name, "revolute_joint")
+        self.assertEqual(revolute.limit.lower, -1.57)
+        self.assertEqual(revolute.limit.upper, 1.57)
+        self.assertEqual(revolute.limit.effort, 100.0)
+        self.assertEqual(revolute.limit.velocity, 1.0)
+        self.assertEqual(revolute.limit.acceleration, 10.0)
+        self.assertEqual(revolute.limit.deceleration, 5.0)
+        self.assertEqual(revolute.limit.jerk, 200.0)
+
+        prismatic = root_element.joints[1]
+        self.assertEqual(prismatic.name, "prismatic_joint")
+        self.assertEqual(prismatic.limit.acceleration, 2.0)
+        self.assertEqual(prismatic.limit.deceleration, 1.5)
+        self.assertEqual(prismatic.limit.jerk, 20.0)
+
+        continuous = root_element.joints[2]
+        self.assertEqual(continuous.name, "continuous_joint")
+        self.assertEqual(continuous.limit.acceleration, 3.0)
+        self.assertIsNone(continuous.limit.deceleration)
+        self.assertIsNone(continuous.limit.effort)
+        self.assertIsNone(continuous.limit.velocity)
+        self.assertIsNone(continuous.limit.jerk)
+        self.assertIsNone(continuous.limit.lower)
+        self.assertIsNone(continuous.limit.upper)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "deceleration"), 3.0)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "acceleration"), 3.0)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "effort"), math.inf)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "velocity"), math.inf)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "jerk"), math.inf)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "lower"), -math.inf)
+        self.assertEqual(parser.get_limit_with_default(continuous.limit, "upper"), math.inf)
+
+        infinite_velocity = root_element.joints[3]
+        self.assertEqual(infinite_velocity.name, "infinite_velocity_joint")
+        self.assertEqual(infinite_velocity.limit.velocity, math.inf)
+
+    def test_load_warning_urdf_12_joint_limits(self):
+        model_path = pathlib.Path("tests/data/warning_urdf_12_joint_limits.urdf")
+        parser = URDFParser(model_path)
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    (
+                        '.*limit: Joint "arm_joint" ignores acceleration, deceleration, jerk '
+                        r"because the URDF version is earlier than 1.2\. These values are not authored \(line: 22\).*"
+                    ),
+                ),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            parser.parse()
+
+    def test_load_error_urdf_12_revolute_no_lower(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_revolute_no_lower.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Lower is required for revolute and prismatic joints \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_prismatic_no_upper(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_prismatic_no_upper.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Upper is required for revolute and prismatic joints \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_effort(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_effort.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Effort must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_velocity(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_velocity.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Velocity must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_acceleration(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_acceleration.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Acceleration must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_deceleration(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_deceleration.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Deceleration must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_negative_jerk(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_negative_jerk.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Jerk must be non-negative \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_error_urdf_12_upper_less_than_lower(self):
+        model_path = pathlib.Path("tests/data/error_urdf_12_upper_less_than_lower.urdf")
+        parser = URDFParser(model_path)
+
+        with self.assertRaisesRegex(RuntimeError, r".*limit: Upper must be greater than or equal to lower \(line: 10\).*"):
+            parser.parse()
+
+    def test_load_urdf_11_revolute_optional_limits(self):
+        model_path = pathlib.Path("tests/data/urdf_11_revolute_optional_limits.urdf")
+        parser = URDFParser(model_path)
+        parser.parse()
+
+        joint = parser.get_root_element().joints[0]
+        self.assertIsNone(joint.limit.lower)
+        self.assertEqual(joint.limit.upper, 1.57)
+        self.assertEqual(parser.get_limit_with_default(joint.limit, "lower"), 0.0)
+        self.assertIsNone(parser.get_limit_with_default(joint.limit, "acceleration"))
+        self.assertIsNone(parser.get_limit_with_default(joint.limit, "deceleration"))
+        self.assertIsNone(parser.get_limit_with_default(joint.limit, "jerk"))
+
+    def _assert_unsupported_version_converts_as_10(self, filename: str, version: str) -> None:
+        parser = URDFParser(pathlib.Path("tests/data") / filename)
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (
+                    Tf.TF_DIAGNOSTIC_WARNING_TYPE,
+                    (
+                        rf'.*robot: Unsupported version "{re.escape(version)}". '
+                        r"Only 1.0, 1.1, and 1.2 are supported, so this file is converted as 1.0 \(line: 3\).*"
+                    ),
+                ),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            parser.parse()
+        self.assertEqual(parser.urdf_version, (1, 0))
+        self.assertEqual(parser.get_root_element().version, version)
+
+    def test_load_warning_urdf_version_unsupported(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_unsupported.urdf", "2.0")
+
+    def test_load_warning_urdf_version_integer(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_integer.urdf", "1")
+
+    def test_load_warning_urdf_version_extra(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_extra.urdf", "1.0.0")
+
+    def test_load_warning_urdf_version_suffix(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_suffix.urdf", "1.0~pre6")
+
+    def test_load_warning_urdf_version_one_ten(self):
+        self._assert_unsupported_version_converts_as_10("warning_urdf_version_one_ten.urdf", "1.10")
+
+    def test_load_urdf_version_one_hundred(self):
+        parser = URDFParser(pathlib.Path("tests/data/urdf_version_one_hundred.urdf"))
+        with usdex.test.ScopedDiagnosticChecker(self, [], level=usdex.core.DiagnosticsLevel.eWarning):
+            parser.parse()
+        self.assertEqual(parser.get_root_element().version, "1.00")
+        self.assertEqual(parser.urdf_version, (1, 0))

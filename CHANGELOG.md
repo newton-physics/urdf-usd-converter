@@ -10,9 +10,27 @@
   - A link on a fixed joint that a mimic joint references is checked the same way
 - Added `--strict` and `Converter(strict=True)` to fail conversion instead of warning
 - Added support for Python 3.13
+- An unrecognized `<robot version>` warns and is converted as URDF 1.0
+- Added URDF 1.1 `<capsule>` geometry as `UsdGeomCapsule`
+  - `radius` and `length` are required and must be non-negative finite values
+  - `length` is the cylindrical section only, not including the hemispherical caps
+  - A `<capsule>` in a URDF older than 1.1 still converts, and a warning is emitted
+- Added URDF 1.1 `origin.quat_xyzw` as an alternative to `origin.rpy`
+  - The quaternion is `(x, y, z, w)` and is normalized after parsing
+  - It applies to link inertial, visual, and collision origins, and to joint origins
+  - Inertial orientation is baked into `physics:principalAxes` and `newton:inertia` the same way as `rpy`
+  - Specifying both `rpy` and `quat_xyzw` on the same origin is an error in URDF 1.1 and newer
+  - `quat_xyzw` in a URDF older than 1.1 still converts, and a warning is emitted. If `rpy` is also present, conversion uses `rpy` and leaves the parsed `quat_xyzw` unchanged
+- Added URDF 1.2 joint limit attributes `acceleration`, `deceleration`, and `jerk`
+  - On URDF 1.2, `urdf:limit:effort`, `urdf:limit:acceleration`, `urdf:limit:deceleration`, and `urdf:limit:jerk` are authored only when the URDF specifies them
+  - In a URDF older than 1.2, `acceleration`, `deceleration`, and `jerk` warn and are not authored. An omitted `effort` is still authored as `0.0`
+  - In URDF 1.2, revolute and prismatic joints must provide both `lower` and `upper`, with `upper` greater than or equal to `lower`. Other joint types default an omitted `lower` and `upper` to negative and positive infinity
+  - In URDF 1.2, a negative `effort`, `velocity`, `acceleration`, `deceleration`, or `jerk` is an error
 
 ## Fixes
 
+- Origin orientations are now computed in double precision
+  - Authored values may differ in the last digit or by quaternion sign (`q` and `-q` are the same rotation)
 - A fixed-joint child with only a visual is no longer authored as a rigid body without mass
   - When an ancestor is a rigid body, the prim and its visual stay, and the fixed joint is not authored
   - When no ancestor is a rigid body, the link stays a rigid body and the fixed joint is authored. That joint welds it to the world, so conversion does not warn

@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import pathlib
 
-from pxr import Gf, Usd, UsdGeom, UsdPhysics
+import usdex.test
+from pxr import Gf, Tf, Usd, UsdGeom, UsdPhysics
 
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
@@ -138,7 +139,14 @@ class TestPhysicsMesh(ConverterTestCase):
         output_dir = self.tmpDir()
 
         converter = urdf_usd_converter.Converter()
-        asset_path = converter.convert(input_path, output_dir)
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_WARNING_TYPE, ".*Unsupported mesh format:.*.dxf.*"),
+            ],
+            level=usdex.core.DiagnosticsLevel.eWarning,
+        ):
+            asset_path = converter.convert(input_path, output_dir)
 
         self.assertIsNotNone(asset_path)
         self.assertTrue(pathlib.Path(asset_path.path).exists())

@@ -99,6 +99,53 @@ class TestGeometry(ConverterTestCase):
         self.assertEqual(sphere.GetRadiusAttr().Get(), 0.5)
         self.assertEqual(UsdGeom.Imageable(sphere_prim).GetPurposeAttr().Get(), UsdGeom.Tokens.default_)
 
+    def test_urdf11_capsule(self):
+        input_path = "tests/data/urdf_11_capsule.urdf"
+        output_dir = self.tmpDir()
+
+        asset_path = urdf_usd_converter.Converter().convert(input_path, output_dir)
+        self.assertIsNotNone(asset_path)
+        self.assertTrue(pathlib.Path(asset_path.path).exists())
+
+        stage: Usd.Stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+
+        geometry_scope_prim = stage.GetDefaultPrim().GetChild("Geometry")
+        base_link_prim = geometry_scope_prim.GetChild("base_link")
+        arm_link_prim = base_link_prim.GetChild("arm_link")
+        self.assertTrue(arm_link_prim.IsA(UsdGeom.Xform))
+
+        expected_rotation = Gf.Rotation(Gf.Quatf(0.70710678, 0.0, 0.70710678, 0.0))
+        for name, purpose in (("capsule", UsdGeom.Tokens.default_), ("collision_capsule", UsdGeom.Tokens.guide)):
+            capsule_prim = arm_link_prim.GetChild(name)
+            self.assertTrue(capsule_prim.IsA(UsdGeom.Capsule))
+
+            transform = usdex.core.getLocalTransform(capsule_prim)
+            self.assertTrue(Gf.IsClose(transform.GetTranslation(), Gf.Vec3d(0.3, 0.0, 0.05), 1e-6))
+            self.assertTrue(Gf.IsClose(transform.GetScale(), Gf.Vec3d(1.0), 1e-6))
+            self.assertRotationsAlmostEqual(transform.GetRotation(), expected_rotation)
+
+            capsule = UsdGeom.Capsule(capsule_prim)
+            self.assertEqual(capsule.GetAxisAttr().Get(), UsdGeom.Tokens.z)
+            self.assertEqual(capsule.GetRadiusAttr().Get(), 0.05)
+            self.assertEqual(capsule.GetHeightAttr().Get(), 0.5)
+            self.assertEqual(UsdGeom.Imageable(capsule_prim).GetPurposeAttr().Get(), purpose)
+
+        tip_link_prim = arm_link_prim.GetChild("tip_link")
+        self.assertTrue(tip_link_prim.IsA(UsdGeom.Xform))
+        tip_transform = usdex.core.getLocalTransform(tip_link_prim)
+        self.assertTrue(Gf.IsClose(tip_transform.GetTranslation(), Gf.Vec3d(0.68, 0.0, 0.05), 1e-6))
+        self.assertRotationsAlmostEqual(tip_transform.GetRotation(), expected_rotation)
+
+        for name, purpose in (("capsule", UsdGeom.Tokens.default_), ("collision_capsule2", UsdGeom.Tokens.guide)):
+            capsule_prim = tip_link_prim.GetChild(name)
+            self.assertTrue(capsule_prim.IsA(UsdGeom.Capsule))
+            capsule = UsdGeom.Capsule(capsule_prim)
+            self.assertEqual(capsule.GetAxisAttr().Get(), UsdGeom.Tokens.z)
+            self.assertEqual(capsule.GetRadiusAttr().Get(), 0.03)
+            self.assertEqual(capsule.GetHeightAttr().Get(), 0.1)
+            self.assertEqual(UsdGeom.Imageable(capsule_prim).GetPurposeAttr().Get(), purpose)
+
     def test_visuals_collisions_in_link(self):
         input_path = "tests/data/multiple_visuals_collisions_in_link.urdf"
         output_dir = self.tmpDir()

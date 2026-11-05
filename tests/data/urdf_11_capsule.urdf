@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<!-- URDF 1.1 sample: capsule geometry requires version="1.1". -->
+<!-- length is the cylindrical portion only (hemispherical caps are not included). -->
+<robot name="urdf_11_capsule" version="1.1">
+  <material name="blue">
+    <color rgba="0.0 0.0 1.0 1.0"/>
+  </material>
+  <material name="green">
+    <color rgba="0.0 1.0 0.0 1.0"/>
+  </material>
+  <material name="red">
+    <color rgba="1.0 0.0 0.0 1.0"/>
+  </material>
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.4 0.4 0.1"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision name="collision_box">
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.4 0.4 0.1"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="arm_link">
+    <visual>
+      <!-- Total capsule length is 0.5 + 2 * 0.05 = 0.6. -->
+      <!-- A 90-degree rotation about Y maps the capsule axis onto +X for a visible non-identity quaternion. -->
+      <!-- Center at x=0.3 so the capsule spans x=0..0.6; z=0.05 keeps it resting on the base top. -->
+      <origin xyz="0.3 0 0.05" quat_xyzw="0 0.70710678 0 0.70710678"/>
+      <geometry>
+        <capsule radius="0.05" length="0.5"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision name="collision_capsule">
+      <origin xyz="0.3 0 0.05" quat_xyzw="0 0.70710678 0 0.70710678"/>
+      <geometry>
+        <capsule radius="0.05" length="0.5"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <link name="tip_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <capsule radius="0.03" length="0.1"/>
+      </geometry>
+      <material name="red"/>
+    </visual>
+    <collision name="collision_capsule2">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <capsule radius="0.03" length="0.1"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="base_to_arm" type="fixed">
+    <parent link="base_link"/>
+    <child link="arm_link"/>
+    <origin xyz="0 0 0.1" rpy="0 0 0"/>
+  </joint>
+
+  <joint name="arm_to_tip" type="fixed">
+    <parent link="arm_link"/>
+    <child link="tip_link"/>
+    <!-- The arm ends at x=0.6; the tip half-length is 0.1 / 2 + 0.03 = 0.08. -->
+    <!-- The same Y-axis quaternion keeps the tip capsule aligned with the arm along +X. -->
+    <origin xyz="0.68 0 0.05" quat_xyzw="0 0.70710678 0 0.70710678"/>
+  </joint>
+</robot>

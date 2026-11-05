@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!-- URDF 1.1: revolute joints may omit lower or upper (defaults to 0.0). -->
+<robot name="urdf_11_revolute_optional_limits" version="1.1">
+  <link name="base_link"/>
+  <link name="arm_link"/>
+  <joint name="arm_joint" type="revolute">
+    <parent link="base_link"/>
+    <child link="arm_link"/>
+    <axis xyz="0 0 1"/>
+    <limit upper="1.57" effort="1.0" velocity="1.0"/>
+  </joint>
+</robot>

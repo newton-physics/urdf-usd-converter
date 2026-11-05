@@ -14,6 +14,7 @@ __all__ = [
     "ElementBase",
     "ElementBox",
     "ElementCalibration",
+    "ElementCapsule",
     "ElementChild",
     "ElementCollision",
     "ElementColor",
@@ -92,6 +93,7 @@ class ElementPose(ElementBase):
     _defaults: ClassVar[dict[str, Any]] = {
         "xyz": (0.0, 0.0, 0.0),
         "rpy": (0.0, 0.0, 0.0),
+        "quat_xyzw": (0.0, 0.0, 0.0, 1.0),
     }
 
     def __init__(self):
@@ -100,6 +102,9 @@ class ElementPose(ElementBase):
         # attributes.
         self.xyz: tuple[float, float, float] | None = None
         self.rpy: tuple[float, float, float] | None = None
+
+        # URDF 1.1.
+        self.quat_xyzw: tuple[float, float, float, float] | None = None
 
 
 class ElementColor(ElementBase):
@@ -223,6 +228,19 @@ class ElementSphere(ElementBase):
         self.radius: float = None
 
 
+# URDF 1.1.
+class ElementCapsule(ElementBase):
+    allowed_parent_tags: ClassVar[list[str]] = ["geometry"]
+    available_tag_names: ClassVar[list[str]] = ["capsule"]
+
+    def __init__(self):
+        super().__init__()
+
+        # attributes.
+        self.radius: float = None
+        self.length: float = None
+
+
 class ElementMesh(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["geometry"]
     available_tag_names: ClassVar[list[str]] = ["mesh"]
@@ -242,7 +260,7 @@ class ElementMesh(ElementBase):
 class ElementGeometry(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["visual", "collision"]
     available_tag_names: ClassVar[list[str]] = ["geometry"]
-    available_geometry_types: ClassVar[list[str]] = ["box", "sphere", "cylinder", "mesh"]
+    available_geometry_types: ClassVar[list[str]] = ["box", "sphere", "cylinder", "capsule", "mesh"]
 
     def __init__(self):
         super().__init__()
@@ -433,12 +451,9 @@ class ElementLimit(ElementBase):
     allowed_parent_tags: ClassVar[list[str]] = ["joint"]
     available_tag_names: ClassVar[list[str]] = ["limit"]
 
-    _defaults: ClassVar[dict[str, Any]] = {
-        "lower": 0.0,
-        "upper": 0.0,
-        "effort": 0.0,
-        # velocity has no default. An omitted attribute stays unset.
-    }
+    # Version-specific defaults live in URDFParser.get_limit_with_default.
+    # Velocity has no element-level default, so an omission stays unset and is
+    # not confused with an explicit 0.
 
     def __init__(self):
         super().__init__()
@@ -448,6 +463,11 @@ class ElementLimit(ElementBase):
         self.upper: float | None = None
         self.effort: float | None = None
         self.velocity: float | None = None
+
+        # URDF 1.2.
+        self.acceleration: float | None = None
+        self.deceleration: float | None = None
+        self.jerk: float | None = None
 
 
 class ElementSafetyController(ElementBase):
