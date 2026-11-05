@@ -1,5 +1,13 @@
 # Unreleased
 
+## Breaking Changes
+
+- Renamed `inputs:DiffuseTexture` to `inputs:ColorTexture` on textured materials, following `usd-exchange` 3
+- Visual materials now include an OpenPBR (MaterialX) shader, so their Material Interface inputs have changed
+  - `diffuseColor` is now `color`, and emissive materials have an `emissiveLuminance` input
+  - `ior` is authored on the `UsdPreviewSurface` and OpenPBR shaders rather than on the Material Interface
+  - Use `--no-openpbr` to author the previous `UsdPreviewSurface` only materials
+
 ## Features
 
 - Added a warning for a link authored as a rigid body with no mass source
@@ -9,6 +17,11 @@
   - A visual-only link on a fixed joint does not warn when no ancestor is a rigid body, because that joint welds it to the world
   - A link on a fixed joint that a mimic joint references is checked the same way
 - Added `--strict` and `Converter(strict=True)` to fail conversion instead of warning
+- Added OpenPBR (MaterialX) shaders to visual materials, alongside the existing `UsdPreviewSurface` shaders
+  - Both shaders are driven by a shared Material Interface, so renderers with MaterialX support render the OpenPBR shader and all others fall back to `UsdPreviewSurface`
+  - Emissive colors use an OpenPBR `emission_luminance` of 1000 nits, the `usd-exchange` default
+  - OpenPBR limits emissive colors to 1.0, so brighter colors are normalized and the excess is carried by the luminance
+  - Added the `--no-openpbr` CLI flag and `openpbr` converter argument to author only `UsdPreviewSurface` shaders
 - Added support for Python 3.13
 - An unrecognized `<robot version>` warns and is converted as URDF 1.0
 - Added URDF 1.1 `<capsule>` geometry as `UsdGeomCapsule`

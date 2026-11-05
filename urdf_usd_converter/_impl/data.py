@@ -34,6 +34,7 @@ class ConversionData:
     references: dict[Tokens, dict[str, Usd.Prim]]
     name_cache: usdex.core.NameCache
     scene: bool
+    openpbr: bool
     comment: str
     link_hierarchy: LinkHierarchy
     mesh_cache: MeshCache
