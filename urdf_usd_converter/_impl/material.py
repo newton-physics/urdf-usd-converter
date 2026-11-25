@@ -83,11 +83,16 @@ def _copy_textures(material_cache: MaterialCache, data: ConversionData):
         local_texture_dir.mkdir(parents=True)
 
     for texture_path in material_cache.texture_paths:
-        # At this stage, the existence has already been checked.
-        if texture_path.exists():
-            unique_file_name = material_cache.texture_paths[texture_path]
+        unique_file_name = material_cache.texture_paths[texture_path]
+        local_texture_path = local_texture_dir / unique_file_name
 
-            local_texture_path = local_texture_dir / unique_file_name
+        # An image embedded in a mesh file (glTF) has no file of its own, so its bytes are written out as they are.
+        embedded_texture = data.embedded_textures.get(texture_path)
+        if embedded_texture is not None:
+            local_texture_path.write_bytes(embedded_texture)
+            Tf.Status(f"Wrote embedded texture of {texture_path.parent} to {local_texture_path}")
+        # At this stage, the existence has already been checked.
+        elif texture_path.exists():
             shutil.copyfile(texture_path, local_texture_path)
             Tf.Status(f"Copied texture {texture_path} to {local_texture_path}")
 
@@ -146,7 +151,7 @@ def _convert_pbr_material(
     material_prim = usdex.core.definePbrMaterial(
         parent,
         safe_name,
-        color=usdex.core.sRgbToLinear(material_data.diffuse_color),
+        color=_get_linear_color(material_data.diffuse_color, material_data),
         opacity=material_data.opacity,
         roughness=material_data.roughness,
         metallic=material_data.metallic,
@@ -169,6 +174,17 @@ def _convert_pbr_material(
     for texture_path, add_texture in textures:
         if texture_path:
             add_texture(material_prim, _get_texture_asset_path(texture_path, texture_paths, data))
+
+    if material_data.opacity_from_diffuse_texture and material_data.diffuse_texture_path:
+        _connect_diffuse_alpha_to_preview_opacity(material_prim)
+        _connect_diffuse_alpha_to_mtlx_opacity(material_prim)
+
+    if material_data.orm_texture_path:
+        usdex.core.addOrmTextureToPbrMaterial(material_prim, _get_texture_asset_path(material_data.orm_texture_path, texture_paths, data))
+        if not material_data.occlusion_in_orm_texture:
+            _clear_preview_occlusion(material_prim)
+
+    _set_opacity_threshold(material_prim, material_data)
 
     emissive_color = _get_linear_emissive_color(material_data)
     if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
@@ -204,7 +220,7 @@ def _convert_preview_material(
     Returns:
         The material prim.
     """
-    diffuse_color = usdex.core.sRgbToLinear(material_data.diffuse_color)
+    diffuse_color = _get_linear_color(material_data.diffuse_color, material_data)
     emissive_color = _get_linear_emissive_color(material_data)
 
     # Build kwargs for material properties
@@ -243,6 +259,16 @@ def _convert_preview_material(
     if material_data.opacity_texture_path:
         usdex.core.addOpacityTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.opacity_texture_path, texture_paths, data))
 
+    if material_data.opacity_from_diffuse_texture and material_data.diffuse_texture_path:
+        _connect_diffuse_alpha_to_preview_opacity(material_prim)
+
+    if material_data.orm_texture_path:
+        usdex.core.addOrmTextureToPreviewMaterial(material_prim, _get_texture_asset_path(material_data.orm_texture_path, texture_paths, data))
+        if not material_data.occlusion_in_orm_texture:
+            _clear_preview_occlusion(material_prim)
+
+    _set_opacity_threshold(material_prim, material_data)
+
     if emissive_color != [0, 0, 0] or material_data.emissive_texture_path:
         usdex.core.addEmissiveColorToPreviewMaterial(material_prim, emissive_color)
         if material_data.emissive_texture_path:
@@ -258,9 +284,91 @@ def _convert_preview_material(
     return material_prim
 
 
+def _get_linear_color(color: Gf.Vec3f, material_data: MaterialData) -> Gf.Vec3f:
+    # glTF colors are already linear, the others are sRGB.
+    return color if material_data.linear_color else usdex.core.sRgbToLinear(color)
+
+
 def _get_linear_emissive_color(material_data: MaterialData) -> Gf.Vec3f:
     # sRgbToLinear can return slightly negative components, which the emissive helpers reject
-    return Gf.Vec3f(*(max(0.0, c) for c in usdex.core.sRgbToLinear(material_data.emissive_color)))
+    return Gf.Vec3f(*(max(0.0, c) for c in _get_linear_color(material_data.emissive_color, material_data)))
+
+
+def _set_opacity_threshold(material_prim: UsdShade.Material, material_data: MaterialData):
+    """
+    Set the UsdPreviewSurface opacityThreshold (glTF alphaMode MASK). OpenPBR has no such input.
+    """
+    if material_data.opacity_threshold is None:
+        return
+    surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+    surface_shader.CreateInput("opacityThreshold", Sdf.ValueTypeNames.Float).Set(float(material_data.opacity_threshold))
+
+
+def _clear_preview_occlusion(material_prim: UsdShade.Material):
+    """
+    The ORM helper connects the R channel to the occlusion. Disconnect it when R is not an occlusion
+    (a glTF metallicRoughnessTexture leaves R unused). OpenPBR has no occlusion input, so only UsdPreviewSurface is changed.
+
+    TODO: Replace this with the roughness and metallic helpers once they can select a channel (planned for a future usd-exchange release).
+    """
+    surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+    occlusion = surface_shader.GetInput("occlusion")
+    if occlusion:
+        occlusion.GetAttr().ClearConnections()
+        occlusion.GetAttr().Clear()
+
+
+def _connect_diffuse_alpha_to_preview_opacity(material_prim: UsdShade.Material):
+    """
+    Connect the alpha channel of the diffuse texture to the UsdPreviewSurface opacity (glTF baseColorTexture alpha).
+
+    TODO: Replace this with the opacity helper once it can select a channel (planned for a future usd-exchange release).
+    """
+    surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
+    diffuse_color = surface_shader.GetInput("diffuseColor")
+    if not diffuse_color or not diffuse_color.HasConnectedSource():
+        return
+    texture_shader = UsdShade.Shader(diffuse_color.GetConnectedSource()[0].GetPrim())
+    alpha = texture_shader.CreateOutput("a", Sdf.ValueTypeNames.Float)
+    surface_shader.GetInput("opacity").ConnectToSource(alpha)
+
+
+def _connect_diffuse_alpha_to_mtlx_opacity(material_prim: UsdShade.Material):
+    """
+    Connect the alpha channel of the diffuse texture to the OpenPBR geometry_opacity.
+    The color3 image reader of the base color has no alpha, so a color4 image reader of the same file is added and its alpha is extracted.
+
+    TODO: Replace this with the opacity helper once it can select a channel (planned for a future usd-exchange release).
+    """
+    surface_shader: UsdShade.Shader = usdex.core.computeEffectiveMtlxSurfaceShader(material_prim)
+    base_color = surface_shader.GetInput("base_color")
+    if not base_color or not base_color.HasConnectedSource():
+        return
+    color_reader = UsdShade.Shader(base_color.GetConnectedSource()[0].GetPrim())
+
+    stage = material_prim.GetPrim().GetStage()
+    material_path = material_prim.GetPath()
+
+    alpha_reader = UsdShade.Shader.Define(stage, material_path.AppendChild("MtlxBaseColorAlphaTexture"))
+    alpha_reader.CreateIdAttr("ND_tiledimage_color4")
+    alpha_reader.CreateInput("default", Sdf.ValueTypeNames.Color4f).Set(Gf.Vec4f(1.0, 1.0, 1.0, 1.0))
+    # Read the same file with the same texture coordinates and tiling as the base color.
+    for name, value_type in (("file", Sdf.ValueTypeNames.Asset), ("texcoord", Sdf.ValueTypeNames.Float2)):
+        source = color_reader.GetInput(name)
+        if source:
+            alpha_reader.CreateInput(name, value_type).GetAttr().SetConnections(source.GetAttr().GetConnections())
+    for name in ("uvoffset", "uvtiling"):
+        source = color_reader.GetInput(name)
+        if source and source.Get() is not None:
+            alpha_reader.CreateInput(name, Sdf.ValueTypeNames.Float2).Set(source.Get())
+    color = alpha_reader.CreateOutput("out", Sdf.ValueTypeNames.Color4f)
+
+    separate = UsdShade.Shader.Define(stage, material_path.AppendChild("MtlxSeparateBaseColorAlpha"))
+    separate.CreateIdAttr("ND_separate4_color4")
+    separate.CreateInput("in", Sdf.ValueTypeNames.Color4f).ConnectToSource(color)
+    alpha = separate.CreateOutput("outa", Sdf.ValueTypeNames.Float)
+
+    surface_shader.GetInput("geometry_opacity").ConnectToSource(alpha)
 
 
 def _get_texture_asset_path(texture_path: pathlib.Path, texture_paths: dict[pathlib.Path, str], data: ConversionData) -> Sdf.AssetPath:

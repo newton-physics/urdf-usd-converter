@@ -74,11 +74,13 @@ class MaterialCache:
                 material_data.metallic_texture_path,
                 material_data.opacity_texture_path,
                 material_data.emissive_texture_path,
+                material_data.orm_texture_path,
             ]
             for texture_path in texture_paths:
                 if texture_path and texture_path not in texture_paths_list:
                     texture_paths_list.append(texture_path)
-                    if not texture_path.exists():
+                    # Images embedded in a mesh file are written out later, so they have no file to check.
+                    if texture_path not in data.embedded_textures and not texture_path.exists():
                         Tf.Warn(f"Texture file not found: {texture_path}")
 
         # Create a list of texture filenames.

@@ -43,6 +43,13 @@ class MaterialData:
         self.metallic: float = 0.0
         self.ior: float = 0.0
 
+        # True when diffuse_color and emissive_color are already linear (glTF).
+        # Otherwise they are sRGB values and are converted to linear when the material is authored.
+        self.linear_color: bool = False
+
+        # The opacity threshold (UsdPreviewSurface opacityThreshold). None leaves the threshold unset.
+        self.opacity_threshold: float | None = None
+
         self.diffuse_texture_path: pathlib.Path | None = None
         self.specular_texture_path: pathlib.Path | None = None
         self.emissive_texture_path: pathlib.Path | None = None
@@ -50,6 +57,14 @@ class MaterialData:
         self.roughness_texture_path: pathlib.Path | None = None
         self.metallic_texture_path: pathlib.Path | None = None
         self.opacity_texture_path: pathlib.Path | None = None
+
+        # When True, the alpha channel of the diffuse texture drives the opacity (glTF baseColorTexture).
+        self.opacity_from_diffuse_texture: bool = False
+
+        # A packed texture where G is roughness and B is metallic (glTF metallicRoughnessTexture).
+        # R is the occlusion only when occlusion_in_orm_texture is True. Otherwise R is unused.
+        self.orm_texture_path: pathlib.Path | None = None
+        self.occlusion_in_orm_texture: bool = False
 
     def get_display_name(self) -> str:
         """
