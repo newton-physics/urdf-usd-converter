@@ -36,6 +36,8 @@ class GltfSource:
     buffers: list[Buffer]
     base_dir: pathlib.Path
     warnings: list[str] = field(default_factory=list)
+    # Buffer index to the reason it was skipped. The buffer is empty in `buffers`.
+    skipped_buffers: dict[int, str] = field(default_factory=dict)
 
 
 def read_source(path: pathlib.Path) -> GltfSource:
@@ -58,8 +60,9 @@ def read_source(path: pathlib.Path) -> GltfSource:
         document = _loads_json(data)
         binary = None
     warnings: list[str] = []
-    buffers = _resolve_buffers(document, binary, path.parent, warnings)
-    return GltfSource(document=document, buffers=buffers, base_dir=path.parent, warnings=warnings)
+    skipped_buffers: dict[int, str] = {}
+    buffers = _resolve_buffers(document, binary, path.parent, warnings, skipped_buffers)
+    return GltfSource(document=document, buffers=buffers, base_dir=path.parent, warnings=warnings, skipped_buffers=skipped_buffers)
 
 
 def note_image_reference(uri: str, base_dir: pathlib.Path, warnings: list[str]) -> None:
@@ -170,6 +173,7 @@ def _resolve_buffers(
     glb_binary: Buffer | None,
     base_dir: pathlib.Path,
     warnings: list[str],
+    skipped_buffers: dict[int, str],
 ) -> list[Buffer]:
     buffers: list[Buffer] = []
     for index, entry in enumerate(document.get("buffers", [])):
@@ -182,7 +186,8 @@ def _resolve_buffers(
         else:
             payload, _mime = read_bytes(uri, base_dir, warnings)
         if payload is None:
-            # The URI was skipped after a warning. Keep the buffer index with no bytes.
+            # The URI was skipped after a warning. Keep the buffer index with no bytes, and remember why.
+            skipped_buffers[index] = _non_portable_message(uri) or f"{uri} could not be read"
             buffers.append(b"")
             continue
         if len(payload) < byte_length:

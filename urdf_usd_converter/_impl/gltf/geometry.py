@@ -100,13 +100,14 @@ def parse_meshes(document: dict, buffers: list[bytes], warnings: list[str]) -> l
                     f"{compression} is not supported. meshes[{mesh_index}].primitives[{primitive_index}] was skipped because it cannot be read.",
                 )
                 continue
+            extensions = primitive.get("extensions", {})
+            if "KHR_gaussian_splatting" in extensions:
+                # The primitive is skipped whatever its mode, as the concept mapping says.
+                warn_once(warnings, "KHR_gaussian_splatting is skipped.")
+                continue
             mode = int(primitive.get("mode", TRIANGLES))
             if mode not in TRIANGLE_MODES:
                 warn_once(warnings, f"Contains non-triangle primitives (mode={mode}). The converter skips them.")
-            extensions = primitive.get("extensions", {})
-            if "KHR_gaussian_splatting" in extensions:
-                # The concept mapping drops this primitive. It is still returned.
-                warn_once(warnings, "KHR_gaussian_splatting is skipped.")
             attributes = {name: cached_attribute(name, int(accessor_index)) for name, accessor_index in primitive.get("attributes", {}).items()}
             indices = None
             if "indices" in primitive:

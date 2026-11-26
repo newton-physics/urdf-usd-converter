@@ -132,5 +132,8 @@ def _view_bytes(document: dict, buffers: list[bytes], view_index: int) -> bytes:
     start = int(view.get("byteOffset", 0))
     end = start + int(view["byteLength"])
     piece = buffers[int(view["buffer"])][start:end]
+    if len(piece) != end - start:
+        # A buffer that was skipped is empty, so the image cannot be read.
+        raise GltfError("Image exceeds the bufferView range.")
     # Image payloads are owned bytes. A memoryview of the GLB buffer is copied here.
     return piece.tobytes() if isinstance(piece, memoryview) else piece

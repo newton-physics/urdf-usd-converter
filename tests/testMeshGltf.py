@@ -677,6 +677,33 @@ class TestMeshGltf(ConverterTestCase):
 
         self.assertEqual(self._meshes(stage), [])
 
+    def test_mesh_that_reads_a_skipped_buffer(self):
+        # The buffer is an external URL, so it is skipped. The mesh cannot be read, and the warning names the reason.
+        document = _gltf_document()
+        document["buffers"][0]["uri"] = "http://example.com/model.bin"
+
+        stage = self._convert_file(
+            document,
+            diagnostics=[
+                _warning(
+                    r".*could not be parsed\. Accessor exceeds the bufferView range\. Skipped buffers: buffers\[0\]: "
+                    r"External URLs are not supported: http://example\.com/model\.bin\..*"
+                )
+            ],
+        )
+
+        self.assertEqual(self._meshes(stage), [])
+
+    def test_gaussian_splatting_primitive_is_dropped(self):
+        # The second primitive has the extension, so it is skipped and only the first one is converted.
+        document = _gltf_document([{"POSITION": _POSITIONS}, {"POSITION": _POSITIONS}])
+        document["meshes"][0]["primitives"][1]["extensions"] = {"KHR_gaussian_splatting": {}}
+        document["extensionsUsed"] = ["KHR_gaussian_splatting"]
+
+        stage = self._convert_file(document, diagnostics=[_warning(".*KHR_gaussian_splatting is skipped.*")])
+
+        self.assertEqual(len(self._only_mesh(stage).GetPointsAttr().Get()), 3)
+
     def test_malformed_file(self):
         # A property that refers to an item that does not exist is reported as a parse error, not as an exception.
         document = _gltf_document(meshes=[{"primitives": [{"attributes": {"POSITION": 9}}]}])

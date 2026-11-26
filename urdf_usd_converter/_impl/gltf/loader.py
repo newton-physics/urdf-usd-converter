@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from .asset import AssetInfo, parse_asset
 from .errors import GltfError, warn_once
 from .geometry import Mesh, parse_meshes
-from .io import read_source
+from .io import GltfSource, read_source
 from .material import Material, parse_materials
 from .scene import Node, Scene, parse_nodes, parse_scenes
 from .texture import Image, Sampler, Texture, parse_images, parse_samplers, parse_textures
@@ -85,20 +85,33 @@ def _load(path: pathlib.Path) -> Gltf:
     if document.get("skins"):
         warn_once(warnings, "Skins are skipped.")
     scenes, scene = parse_scenes(document)
-    return Gltf(
-        asset=parse_asset(document),
-        scenes=scenes,
-        scene=scene,
-        nodes=parse_nodes(document),
-        meshes=parse_meshes(document, source.buffers, warnings),
-        materials=parse_materials(document, warnings),
-        textures=parse_textures(document),
-        samplers=parse_samplers(document),
-        images=parse_images(document, source.buffers, source.base_dir, warnings),
-        extensions_used=used,
-        extensions_required=required,
-        warnings=warnings,
-    )
+    try:
+        return Gltf(
+            asset=parse_asset(document),
+            scenes=scenes,
+            scene=scene,
+            nodes=parse_nodes(document),
+            meshes=parse_meshes(document, source.buffers, warnings),
+            materials=parse_materials(document, warnings),
+            textures=parse_textures(document),
+            samplers=parse_samplers(document),
+            images=parse_images(document, source.buffers, source.base_dir, warnings),
+            extensions_used=used,
+            extensions_required=required,
+            warnings=warnings,
+        )
+    except GltfError as exc:
+        raise _with_skipped_buffers(exc, source) from exc
+
+
+def _with_skipped_buffers(error: GltfError, source: GltfSource) -> GltfError:
+    """
+    Name the skipped buffers in the error. A mesh or an image may read from one of them, and the cause is not otherwise reported.
+    """
+    if not source.skipped_buffers:
+        return error
+    reasons = " ".join(f"buffers[{index}]: {reason}." for index, reason in source.skipped_buffers.items())
+    return GltfError(f"{error} Skipped buffers: {reasons}")
 
 
 def _check_extensions(document: dict, warnings: list[str]) -> tuple[list[str], list[str]]:

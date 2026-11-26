@@ -258,6 +258,26 @@ class TestGltfLoader(unittest.TestCase):
         model = self._load(_document(buffers=[{"uri": "http://example.com/model.bin", "byteLength": 4}]))
         self.assertIn("External URLs are not supported: http://example.com/model.bin", model.warnings)
 
+    def test_mesh_that_reads_a_skipped_buffer_fails_with_the_reason(self):
+        _, document = _triangle_mesh_document()
+        document["buffers"][0]["uri"] = "http://example.com/model.bin"
+        with self.assertRaisesRegex(
+            GltfError,
+            r"Accessor exceeds the bufferView range\. Skipped buffers: buffers\[0\]: External URLs are not supported: http://example\.com/model\.bin\.",
+        ):
+            self._load(document)
+
+    def test_image_in_a_skipped_buffer_fails_with_the_reason(self):
+        document = _document(
+            buffers=[{"uri": "http://example.com/model.bin", "byteLength": len(_PNG)}],
+            bufferViews=[{"buffer": 0, "byteLength": len(_PNG)}],
+            images=[{"bufferView": 0, "mimeType": "image/png"}],
+        )
+        with self.assertRaisesRegex(
+            GltfError, r"Image exceeds the bufferView range\. Skipped buffers: buffers\[0\]: External URLs are not supported"
+        ):
+            self._load(document)
+
     def test_load_error_malformed_document(self):
         # A missing property, a wrong type, and an index that refers to a missing item are all reported as GltfError.
         triangle = {"attributes": {"POSITION": 0}}
@@ -720,13 +740,14 @@ class TestGltfLoader(unittest.TestCase):
         self.assertEqual(len(model.meshes[0].primitives), 1)
         self.assertEqual(model.warnings, ["KHR_draco_mesh_compression is not supported."])
 
-    def test_gaussian_splatting_primitive_is_kept_with_warning(self):
+    def test_gaussian_splatting_primitive_is_dropped_with_warning(self):
+        # The primitive is a triangle, but it is still dropped, because the extension replaces the geometry.
         _, document = _triangle_mesh_document(extensionsUsed=["KHR_gaussian_splatting"])
         document["meshes"][0]["primitives"][0]["extensions"] = {"KHR_gaussian_splatting": {}}
 
         model = self._load(document)
 
-        self.assertEqual(len(model.meshes[0].primitives), 1)
+        self.assertEqual(model.meshes[0].primitives, [])
         self.assertEqual(model.warnings, ["KHR_gaussian_splatting is skipped."])
 
     # Materials.

@@ -108,8 +108,8 @@ def convert_gltf(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     several shapes). Otherwise the given prim is the single mesh.
 
     The glTF coordinates are the URDF mesh frame as they are. glTF +Y up is not rotated to +Z up,
-    because glTF meshes for URDF (e.g. dex-urdf) are authored in the link frame, and URDF tools such as
-    URDF Visualizer do not rotate them. A Y-up glTF is rotated with the <origin> of the URDF visual.
+    because glTF meshes for URDF are usually authored in the link frame, and other URDF tools do not rotate them.
+    A Y-up glTF is rotated with the <origin> of the URDF visual.
     """
     try:
         model = gltf.load(input_path)
