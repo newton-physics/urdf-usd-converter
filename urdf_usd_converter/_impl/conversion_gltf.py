@@ -24,14 +24,41 @@ _IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg"}
 
 
 @dataclass
+class _IndexedValues:
+    """
+    Per-vertex values stored once per unique value. The index of each vertex refers to its value.
+    """
+
+    values: np.ndarray  # (K, C) float32. Every value is referenced by at least one vertex.
+    indices: np.ndarray  # (N,) int32. The index of the value of each vertex.
+
+
+class _ValuePool:
+    """
+    Transformed unique values, appended one chunk at a time. Each chunk gets the offset of its first value.
+    """
+
+    def __init__(self):
+        self.chunks: list[np.ndarray] = []
+        self.size = 0
+
+    def add(self, values: np.ndarray) -> int:
+        offset = self.size
+        self.chunks.append(values)
+        self.size += len(values)
+        return offset
+
+
+@dataclass
 class _MergedGeometry:
     """
-    All the triangles of a glTF file merged into one mesh. This does not depend on USD.
+    All the triangles of a glTF file merged into one mesh. The geometry does not depend on USD.
+    Only the duplicate removal of the normals and UVs uses usdex, the same as the primvar index does on the stage.
     """
 
     points: np.ndarray  # (N, 3) float32. The world transform is baked.
-    normals: np.ndarray | None  # (N, 3) float32 per vertex.
-    uvs: np.ndarray | None  # (N, 2) float32 per vertex. V is flipped for USD.
+    normals: _IndexedValues | None  # (N, 3) float32 per vertex, as unique values with an index per vertex.
+    uvs: _IndexedValues | None  # (N, 2) float32 per vertex, as unique values with an index per vertex. V is flipped for USD.
     # COLOR_0 as the display color. glTF vertex colors are linear, the same as USD display colors, so they are used as they are.
     # Only the geometry of the primitives with COLOR_0 has them, and every vertex of it has a color.
     display_colors: np.ndarray | None  # (N, 3) float32 per vertex.
@@ -75,8 +102,8 @@ def convert_gltf(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     URDF treats the whole file as one geometry, so every mesh node in the default scene is merged.
     Node transforms are baked into the points, so no UsdGeomXform is authored for the nodes.
 
-    The primitives with COLOR_0 are an exception. Their vertex colors are authored as the display color,
-    which a bound material would hide, so they do not have a material and are merged into a separate mesh.
+    The primitives whose COLOR_0 is used are an exception (see _vertex_colors_to_use). Their vertex colors are authored as
+    the display color, which a bound material would hide, so they do not have a material and are merged into a separate mesh.
     Only when a file has both kinds of primitives, the two meshes are children of the given prim (as for an OBJ with
     several shapes). Otherwise the given prim is the single mesh.
 
@@ -133,15 +160,18 @@ def _define_mesh(
     """
     Define one mesh below the parent from the merged geometry, with its subsets, and store its materials.
     """
+    # The normals and UVs are already unique with an index per vertex, so index() is not needed on the expanded data.
     normals = None
     if geometry.normals is not None:
-        normals = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.vertex, convert_vec3f_array(geometry.normals))
-        normals.index()  # remove duplicates
+        normals = usdex.core.Vec3fPrimvarData(
+            UsdGeom.Tokens.vertex, convert_vec3f_array(geometry.normals.values), Vt.IntArray.FromNumpy(geometry.normals.indices)
+        )
 
     uvs = None
     if geometry.uvs is not None:
-        uvs = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.vertex, convert_vec2f_array(geometry.uvs))
-        uvs.index()  # remove duplicates
+        uvs = usdex.core.Vec2fPrimvarData(
+            UsdGeom.Tokens.vertex, convert_vec2f_array(geometry.uvs.values), Vt.IntArray.FromNumpy(geometry.uvs.indices)
+        )
 
     # The vertex colors are a display fallback. A bound material does not read them.
     display_color = None
@@ -207,17 +237,23 @@ def _merge_geometry(model: gltf.Gltf, warn: _Warner, vertex_colors: bool = False
     """
     Walk the default scene and merge the triangle primitives into one geometry.
 
-    The primitives are split by COLOR_0. With vertex_colors=False, only the primitives without COLOR_0 are merged,
-    with their materials. With vertex_colors=True, only the primitives with COLOR_0 are merged. Their vertex colors
-    are authored as the display color, and their materials are ignored with a warning.
+    The primitives are split by whether their COLOR_0 is used (see _vertex_colors_to_use). With vertex_colors=False, only the
+    primitives without a used COLOR_0 are merged, with their materials. With vertex_colors=True, only the primitives with a used
+    COLOR_0 are merged. Their vertex colors are authored as the display color, and their materials are ignored with a warning.
     """
     if model.scene is None or model.scene >= len(model.scenes):
         warn("The file has no scene")
         return None
 
     point_blocks: list[np.ndarray] = []
-    normal_blocks: list[np.ndarray | None] = []
-    uv_blocks: list[np.ndarray | None] = []
+    # Per block, the offset of its values in the normal or UV pool. None when the primitive has no such attribute.
+    normal_blocks: list[int | None] = []
+    uv_blocks: list[int | None] = []
+    normal_pool = _ValuePool()
+    uv_pool = _ValuePool()
+    # The offset in the pool of the transformed values of an accessor under a transform.
+    normal_cache: dict[tuple[int, bytes], int] = {}
+    uv_cache: dict[tuple[int, bytes | None], int] = {}
     color_blocks: list[np.ndarray] = []  # (N, 4) RGBA. The alpha is 1 for an RGB COLOR_0. Only with vertex_colors.
     has_color_alpha = False  # Whether a primitive has an RGBA COLOR_0.
     double_sided = False  # Whether a material of a merged primitive is double sided, even if the material is ignored.
@@ -271,6 +307,8 @@ def _merge_geometry(model: gltf.Gltf, warn: _Warner, vertex_colors: bool = False
                 continue
 
             colors = _checked_color_attribute(primitive.attributes.get("COLOR_0"), len(positions))
+            if colors is not None:
+                colors = _vertex_colors_to_use(colors, primitive.material, model, warn)
             if (colors is not None) != vertex_colors:
                 continue
 
@@ -320,9 +358,24 @@ def _merge_geometry(model: gltf.Gltf, warn: _Warner, vertex_colors: bool = False
                 vertex_total += block.count
 
                 point_blocks.append((positions @ matrix3.T + world_matrix[:3, 3]).astype(np.float32))
-                normal_blocks.append(_transform_normals(normals, matrix3) if normals is not None else None)
-                # The transform is applied in the glTF UV space (top-left origin), then V is flipped for USD.
-                uv_blocks.append(_flip_v(_apply_uv_transform(uvs, uv_transform)) if uvs is not None else None)
+
+                # An accessor under the same transform is transformed once and shared by the blocks that use it.
+                normal_offset = None
+                if normals is not None:
+                    normal_key = (id(normals), matrix3.tobytes())
+                    if normal_key not in normal_cache:
+                        normal_cache[normal_key] = normal_pool.add(_transform_normals(normals, matrix3))
+                    normal_offset = normal_cache[normal_key]
+                normal_blocks.append(normal_offset)
+
+                uv_offset = None
+                if uvs is not None:
+                    uv_key = (id(uvs), None if uv_transform is None else uv_transform.tobytes())
+                    if uv_key not in uv_cache:
+                        # The transform is applied in the glTF UV space (top-left origin), then V is flipped for USD.
+                        uv_cache[uv_key] = uv_pool.add(_flip_v(_apply_uv_transform(uvs, uv_transform)))
+                    uv_offset = uv_cache[uv_key]
+                uv_blocks.append(uv_offset)
                 if colors is not None:
                     color_blocks.append(_rgba(colors))
                     has_color_alpha = has_color_alpha or colors.shape[1] == 4
@@ -339,28 +392,32 @@ def _merge_geometry(model: gltf.Gltf, warn: _Warner, vertex_colors: bool = False
     # Remove the vertices that no face uses.
     used = np.zeros(len(points), dtype=bool)
     used[face_vertex_indices] = True
+    # The kept vertices. None when every vertex is used.
+    kept: np.ndarray | None = None
     if not used.all():
         remap = (np.cumsum(used) - 1).astype(np.int32)
         face_vertex_indices = remap[face_vertex_indices]
-    else:
-        remap = None
+        kept = used
 
     def select(array: np.ndarray) -> np.ndarray:
-        return np.ascontiguousarray(array if remap is None else array[used], dtype=np.float32)
+        return np.ascontiguousarray(array if kept is None else array[kept], dtype=np.float32)
+
+    block_counts = [len(block_points) for block_points in point_blocks]
 
     merged_normals = None
-    if all(block is not None for block in normal_blocks):
-        merged_normals = select(np.concatenate(normal_blocks))
-    elif any(block is not None for block in normal_blocks):
+    if all(offset is not None for offset in normal_blocks):
+        merged_normals = _pooled_values(normal_pool, normal_blocks, block_counts, kept)
+    elif any(offset is not None for offset in normal_blocks):
         warn("Only some primitives have NORMAL. The normals are ignored")
 
     merged_uvs = None
-    if any(block is not None for block in uv_blocks):
-        # Vertices of primitives without TEXCOORD_0 get (0, 0).
-        filled = [
-            block if block is not None else np.zeros((len(block_points), 2), dtype=np.float32) for block, block_points in zip(uv_blocks, point_blocks)
-        ]
-        merged_uvs = select(np.concatenate(filled))
+    if any(offset is not None for offset in uv_blocks):
+        missing = [count for offset, count in zip(uv_blocks, block_counts) if offset is None]
+        if missing:
+            # Vertices of primitives without TEXCOORD_0 get (0, 0). One run of zeros in the pool serves every such block.
+            zero_offset = uv_pool.add(np.zeros((max(missing), 2), dtype=np.float32))
+            uv_blocks = [zero_offset if offset is None else offset for offset in uv_blocks]
+        merged_uvs = _pooled_values(uv_pool, uv_blocks, block_counts, kept)
 
     merged_colors = None
     merged_opacities = None
@@ -387,6 +444,42 @@ def _merge_geometry(model: gltf.Gltf, warn: _Warner, vertex_colors: bool = False
         subsets={material: np.concatenate(runs) for material, runs in subsets.items()},
         double_sided=double_sided,
     )
+
+
+def _index_values(values: np.ndarray, components: int) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Remove the duplicate rows with the USD primvar index. This is much faster than np.unique on the same data.
+    """
+    if components == 3:
+        data = usdex.core.Vec3fPrimvarData(UsdGeom.Tokens.vertex, convert_vec3f_array(values))
+    else:
+        data = usdex.core.Vec2fPrimvarData(UsdGeom.Tokens.vertex, convert_vec2f_array(values))
+    data.index()
+    if not data.hasIndices():
+        # Every row is unique, so the values are kept in their order.
+        return np.ascontiguousarray(values, dtype=np.float32), np.arange(len(values), dtype=np.int32)
+    unique = np.asarray(data.values(), dtype=np.float32).reshape(-1, components)
+    return unique, np.asarray(data.indices(), dtype=np.int32)
+
+
+def _pooled_values(pool: _ValuePool, offsets: list[int], counts: list[int], kept: np.ndarray | None) -> _IndexedValues:
+    """
+    Remove the duplicates of the pool once, then give each vertex the index of its value.
+    Each block refers to `count` values from its offset in the pool. Only the values of the kept vertices are kept.
+    """
+    values = np.concatenate(pool.chunks)
+    # The duplicates are removed on the pool, which is smaller than the expanded vertices when blocks share values.
+    unique, inverse = _index_values(values, values.shape[1])
+    indices = np.concatenate([inverse[offset : offset + count] for offset, count in zip(offsets, counts)])
+    if kept is not None:
+        indices = indices[kept]
+        referenced = np.zeros(len(unique), dtype=bool)
+        referenced[indices] = True
+        if not referenced.all():
+            renumber = (np.cumsum(referenced) - 1).astype(np.int32)
+            unique = unique[referenced]
+            indices = renumber[indices]
+    return _IndexedValues(values=np.ascontiguousarray(unique, dtype=np.float32), indices=np.ascontiguousarray(indices, dtype=np.int32))
 
 
 def _triangle_list(mode: int, indices: np.ndarray | None, vertex_count: int) -> np.ndarray:
@@ -426,6 +519,32 @@ def _checked_color_attribute(values: np.ndarray | None, vertex_count: int) -> np
     if values is None or values.ndim != 2 or values.shape[0] != vertex_count or values.shape[1] not in (3, 4):
         return None
     return values
+
+
+def _vertex_colors_to_use(colors: np.ndarray, material_index: int | None, model: gltf.Gltf, warn: _Warner) -> np.ndarray | None:
+    """
+    Return COLOR_0 when it is authored as the display color, or None when it is ignored.
+
+    glTF multiplies the baseColorFactor, the baseColorTexture and COLOR_0. A bound material hides the display color,
+    and the two cannot be combined, so a primitive keeps one of them:
+
+    - Without a material, COLOR_0 is the display color.
+    - COLOR_0 that is all 1 changes nothing, so it is ignored. The primitive keeps its material.
+    - With a white baseColorFactor and no baseColorTexture, COLOR_0 is the whole base color. It is used instead of the material.
+    - Otherwise the base color of the material is kept, and COLOR_0 is ignored with a warning.
+    """
+    if material_index is None or not 0 <= material_index < len(model.materials):
+        return colors
+    if np.allclose(colors, 1.0):
+        return None
+    material = model.materials[material_index]
+    if material.base_color_texture is None and np.allclose(_factor(material.base_color_factor, 4, 1.0), 1.0):
+        return colors
+    warn(
+        f"{_material_label(material, material_index)} has a baseColorFactor or baseColorTexture that cannot be combined with COLOR_0. "
+        "The vertex colors are ignored"
+    )
+    return None
 
 
 def _rgba(colors: np.ndarray) -> np.ndarray:

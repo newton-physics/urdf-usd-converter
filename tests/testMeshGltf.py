@@ -519,6 +519,129 @@ class TestMeshGltf(ConverterTestCase):
 
         self.assertFalse(UsdGeom.PrimvarsAPI(self._only_mesh(stage).GetPrim()).GetPrimvar("normals").IsDefined())
 
+    def test_uvs_on_only_some_primitives(self):
+        # The vertices of a primitive without TEXCOORD_0 get (0, 0). The primitives without UVs differ in size.
+        uvs = np.array([[0, 0], [1, 0], [0, 1]], dtype=np.float32)
+        quad = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=np.float32)
+        primitives = [
+            {"POSITION": _POSITIONS, "TEXCOORD_0": uvs},
+            {"POSITION": _POSITIONS},
+            {"POSITION": quad, "indices": np.array([0, 1, 2, 0, 2, 3], dtype=np.uint16)},
+        ]
+
+        stage = self._convert_file(_gltf_document(primitives))
+
+        st = UsdGeom.PrimvarsAPI(self._only_mesh(stage).GetPrim()).GetPrimvar("st")
+        # V is flipped for USD. The vertices without UVs are (0, 0) as they are, which equals the flipped (0, 1).
+        np.testing.assert_allclose(np.array(st.ComputeFlattened()), [[0, 1], [1, 1], [0, 0]] + [[0, 0]] * 7)
+        # Equal values are stored once.
+        self.assertEqual(len(st.Get()), 3)
+
+    def test_mesh_under_several_nodes(self):
+        # One mesh under three nodes: as it is, rotated 90 degrees about X, and moved. The points and the normals follow the node,
+        # the UVs do not. The values that come out equal are stored once, even though they come from different transforms.
+        half = float(np.sqrt(0.5))
+        nodes = [
+            {"mesh": 0},
+            {"mesh": 0, "rotation": [half, 0, 0, half]},
+            {"mesh": 0, "translation": [5, 0, 0]},
+        ]
+        uvs = np.array([[0, 0], [1, 0], [0, 1]], dtype=np.float32)
+        primitive = {"POSITION": _POSITIONS, "NORMAL": _NORMALS, "TEXCOORD_0": uvs}
+
+        stage = self._convert_file(_gltf_document([primitive], scenes=[{"nodes": [0, 1, 2]}], nodes=nodes))
+
+        mesh = self._only_mesh(stage)
+        np.testing.assert_allclose(
+            np.array(mesh.GetPointsAttr().Get()),
+            [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 0], [1, 0, 0], [0, 0, 1], [5, 0, 0], [6, 0, 0], [5, 1, 0]],
+            atol=1e-6,
+        )
+        self.assertEqual(list(mesh.GetFaceVertexIndicesAttr().Get()), list(range(9)))
+
+        primvars_api = UsdGeom.PrimvarsAPI(mesh.GetPrim())
+        normals = primvars_api.GetPrimvar("normals")
+        np.testing.assert_allclose(
+            np.array(normals.ComputeFlattened()),
+            [[0, 0, 1]] * 3 + [[0, -1, 0]] * 3 + [[0, 0, 1]] * 3,
+            atol=1e-6,
+        )
+        self.assertEqual(len(normals.Get()), 2)
+
+        st = primvars_api.GetPrimvar("st")
+        np.testing.assert_allclose(np.array(st.ComputeFlattened()), [[0, 1], [1, 1], [0, 0]] * 3)
+        self.assertEqual(len(st.Get()), 3)
+
+    # COLOR_0 and the material. glTF multiplies the baseColorFactor, the baseColorTexture and COLOR_0, but only one of the
+    # material and the vertex colors can be kept. The boxes.gltf test above covers a white baseColorFactor without a texture.
+
+    def _display_color(self, mesh: UsdGeom.Mesh):
+        return UsdGeom.PrimvarsAPI(mesh.GetPrim()).GetPrimvar("displayColor").Get()
+
+    def test_vertex_colors_that_are_all_one_are_ignored(self):
+        # COLOR_0 of all 1 changes nothing in glTF, so the material is kept and nothing is lost. There is no warning.
+        # One primitive has RGB and the other RGBA. Both stay in one mesh with a subset for each material.
+        primitives = [
+            {"POSITION": _POSITIONS, "NORMAL": _NORMALS, "COLOR_0": np.ones((3, 3), dtype=np.float32), "material": 0},
+            {"POSITION": _POSITIONS, "NORMAL": _NORMALS, "COLOR_0": np.ones((3, 4), dtype=np.float32), "material": 1},
+        ]
+        materials = [
+            {"name": "dark", "pbrMetallicRoughness": {"baseColorFactor": [0.05, 0.05, 0.05, 1]}},
+            {"name": "red", "pbrMetallicRoughness": {"baseColorFactor": [0.8, 0.1, 0.1, 1]}},
+        ]
+
+        stage = self._convert_file(_gltf_document(primitives, materials=materials))
+
+        # There is no separate mesh for vertex colors.
+        mesh = self._only_mesh(stage)
+        self.assertIsNone(self._display_color(mesh))
+        self.assertEqual(len(UsdGeom.Subset.GetAllGeomSubsets(mesh)), 2)
+        self.assertEqual({child.GetName() for child in stage.GetDefaultPrim().GetChild("Materials").GetChildren()}, {"dark", "red"})
+
+    def test_vertex_colors_are_ignored_when_the_base_color_is_set(self):
+        # With a baseColorFactor other than white, or with a baseColorTexture, the material is kept and COLOR_0 is ignored.
+        colors = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+        primitives = [
+            {"POSITION": _POSITIONS, "NORMAL": _NORMALS, "COLOR_0": colors, "material": 0},
+            {"POSITION": _POSITIONS, "NORMAL": _NORMALS, "COLOR_0": colors, "material": 1},
+        ]
+        materials = [
+            {"name": "tinted", "pbrMetallicRoughness": {"baseColorFactor": [0.5, 0.5, 0.5, 1]}},
+            {"name": "textured", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
+        ]
+        document = _gltf_document(primitives, materials=materials, textures=[{"source": 0}], images=[{"uri": "data:image/png,%89PNG"}])
+
+        stage = self._convert_file(
+            document,
+            diagnostics=[
+                _warning('.*Material "tinted" has a baseColorFactor or baseColorTexture that cannot be combined with COLOR_0. The vertex colors.*'),
+                _warning('.*Material "textured" has a baseColorFactor or baseColorTexture that cannot be combined with COLOR_0. The vertex colors.*'),
+            ],
+        )
+
+        mesh = self._only_mesh(stage)
+        self.assertIsNone(self._display_color(mesh))
+        self.assertEqual(len(UsdGeom.Subset.GetAllGeomSubsets(mesh)), 2)
+        self.assertEqual({child.GetName() for child in stage.GetDefaultPrim().GetChild("Materials").GetChildren()}, {"tinted", "textured"})
+
+    def test_vertex_colors_without_material(self):
+        # Without a material, COLOR_0 is the display color, even when it is all 1 (the default material of glTF is white).
+        varied = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+        ones = np.ones((3, 3), dtype=np.float32)
+        primitives = [
+            {"POSITION": _POSITIONS, "COLOR_0": varied},
+            {"POSITION": _POSITIONS + 2, "COLOR_0": ones},
+        ]
+
+        stage = self._convert_file(_gltf_document(primitives))
+
+        mesh = self._only_mesh(stage)
+        np.testing.assert_allclose(
+            np.array(UsdGeom.PrimvarsAPI(mesh.GetPrim()).GetPrimvar("displayColor").ComputeFlattened()), np.concatenate([varied, ones])
+        )
+        self.assertEqual(len(mesh.GetPrim().GetChildren()), 0)
+        self.assertFalse(UsdShade.MaterialBindingAPI(mesh.GetPrim()).ComputeBoundMaterial()[0])
+
     # The conversion of a whole file. A file that cannot be converted warns, and the rest of the URDF is still converted.
 
     def _convert_file(self, content: bytes | dict, file_name: str = "model.gltf", diagnostics: list[tuple] | None = None) -> Usd.Stage:
