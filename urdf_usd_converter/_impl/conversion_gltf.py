@@ -94,8 +94,8 @@ def convert_gltf(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
         Tf.Warn(f'{message} in file: "{input_path}"')
 
     warn = _Warner(input_path)
-    geometry = _merge_geometry(model, input_path, warn)
-    color_geometry = _merge_geometry(model, input_path, warn, vertex_colors=True)
+    geometry = _merge_geometry(model, warn)
+    color_geometry = _merge_geometry(model, warn, vertex_colors=True)
     if geometry is None and color_geometry is None:
         Tf.Warn(f'Invalid input_path: "{input_path}" contains no meshes')
         return None
@@ -203,12 +203,7 @@ def _define_subsets(usd_mesh: UsdGeom.Mesh, geometry: _MergedGeometry):
         geom_subset.SetFamilyType(usd_mesh, UsdShade.Tokens.materialBind, UsdGeom.Tokens.partition)
 
 
-def _merge_geometry(
-    model: gltf.Gltf,
-    input_path: pathlib.Path,
-    warn: _Warner | None = None,
-    vertex_colors: bool = False,
-) -> _MergedGeometry | None:
+def _merge_geometry(model: gltf.Gltf, warn: _Warner, vertex_colors: bool = False) -> _MergedGeometry | None:
     """
     Walk the default scene and merge the triangle primitives into one geometry.
 
@@ -216,9 +211,6 @@ def _merge_geometry(
     with their materials. With vertex_colors=True, only the primitives with COLOR_0 are merged. Their vertex colors
     are authored as the display color, and their materials are ignored with a warning.
     """
-    if warn is None:
-        warn = _Warner(input_path)
-
     if model.scene is None or model.scene >= len(model.scenes):
         warn("The file has no scene")
         return None

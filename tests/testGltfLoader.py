@@ -543,29 +543,11 @@ class TestGltfLoader(unittest.TestCase):
         indices = np.array([1, 3], dtype=np.uint8).tobytes() + b"\x00\x00"
         values = np.array([50, 70], dtype=np.float32).tobytes()
         buffer = base + indices + values
+        sparse = {"count": 2, "indices": {"bufferView": 1, "componentType": UNSIGNED_BYTE}, "values": {"bufferView": 2}}
         document = {
             "accessors": [
-                {
-                    "bufferView": 0,
-                    "componentType": FLOAT,
-                    "count": 4,
-                    "type": "SCALAR",
-                    "sparse": {
-                        "count": 2,
-                        "indices": {"bufferView": 1, "componentType": UNSIGNED_BYTE},
-                        "values": {"bufferView": 2},
-                    },
-                },
-                {
-                    "componentType": FLOAT,
-                    "count": 4,
-                    "type": "SCALAR",
-                    "sparse": {
-                        "count": 2,
-                        "indices": {"bufferView": 1, "componentType": UNSIGNED_BYTE},
-                        "values": {"bufferView": 2},
-                    },
-                },
+                {"bufferView": 0, "componentType": FLOAT, "count": 4, "type": "SCALAR", "sparse": sparse},
+                {"componentType": FLOAT, "count": 4, "type": "SCALAR", "sparse": sparse},
             ],
             "bufferViews": [
                 {"buffer": 0, "byteOffset": 0, "byteLength": 16},

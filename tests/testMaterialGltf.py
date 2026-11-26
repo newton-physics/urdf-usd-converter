@@ -1,10 +1,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 The Newton Developers
 # SPDX-License-Identifier: Apache-2.0
-import base64
 import json
 import pathlib
-import struct
-import zlib
 
 import numpy as np
 import usdex.core
@@ -12,100 +9,104 @@ import usdex.test
 from pxr import Gf, Tf, Usd, UsdGeom, UsdShade
 
 import urdf_usd_converter
+from tests.testMeshGltf import _POSITIONS, _gltf_document
 from tests.util.ConverterTestCase import ConverterTestCase
+from urdf_usd_converter._impl import gltf
 
-
-def _png() -> bytes:
-    """A 1x1 RGBA PNG."""
-
-    def chunk(tag: bytes, body: bytes) -> bytes:
-        return struct.pack(">I", len(body)) + tag + body + struct.pack(">I", zlib.crc32(tag + body) & 0xFFFFFFFF)
-
-    header = struct.pack(">IIBBBBB", 1, 1, 8, 6, 0, 0, 0)
-    pixel = b"\x00\xff\x80\x40\xff"  # filter type 0, then RGBA
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(pixel)) + chunk(b"IEND", b"")
-
-
-def _data_uri(data: bytes, mime_type: str) -> str:
-    return f"data:{mime_type};base64,{base64.b64encode(data).decode()}"
+_ASSETS = pathlib.Path("tests/data/assets")
 
 
 def _warning(pattern: str) -> tuple:
     return (Tf.TF_DIAGNOSTIC_WARNING_TYPE, pattern)
 
 
+# The warnings of materials.gltf in the order they are emitted: the UV transforms and sets (while the primitives are merged), then the materials
+# (in the order of the materials). The file itself is a valid glTF, so the loader does not warn.
+_WARNINGS = [
+    _warning('.*Material "different_texture_transform" has textures with different KHR_texture_transform.*'),
+    _warning(".*Only TEXCOORD_0 and COLOR_0 are supported. The other sets are ignored.*"),
+    _warning('.*Material "uv1" has a texture that uses TEXCOORD_1. Only TEXCOORD_0 is supported, so TEXCOORD_0 is used.*'),
+    _warning('.*Material "tinted" has a baseColorFactor color that is not applied to its baseColorTexture.*'),
+    _warning('.*Material "other_occlusion" has an occlusionTexture that is not shared with its metallicRoughnessTexture.*'),
+    _warning('.*Material "mr_factors" has a metallicFactor or roughnessFactor that is not applied to its metallicRoughnessTexture.*'),
+    _warning('.*Material "normal_scaled" has a normalTexture scale that is not applied.*'),
+    _warning('.*Material "emissive_dim" has an emissiveFactor that is not applied to its emissiveTexture.*'),
+    _warning('.*Material "clamped" has a texture with a wrap mode other than REPEAT. REPEAT is used.*'),
+]
+
+# The warnings of the document of _convert_invalid in the order they are emitted: the loader (in the order of the images), then the materials.
+_INVALID_WARNINGS = [
+    _warning(".*External URLs are not supported: http://example.com/tex.png.*"),
+    _warning(".*Absolute paths are not supported: /absolute/tex.png.*"),
+    _warning('.*Material "unknown_alpha_mode" has an unknown alphaMode "TRANSLUCENT". OPAQUE is used.*'),
+    _warning(r'.*Material "unsupported_embedded_format" has an image of an unsupported format \(image/webp\)\. Only PNG and JPEG are supported.*'),
+    _warning(r'.*Material "unsupported_external_format" has an image of an unsupported format \(\.webp\)\. Only PNG and JPEG are supported.*'),
+    _warning('.*Material "no_texture" references texture 99 that does not exist. The texture is ignored.*'),
+    _warning('.*Material "no_source" references a texture without a valid image. The texture is ignored.*'),
+    _warning('.*Material "no_image" references a texture without a valid image. The texture is ignored.*'),
+]
+
+
 class TestMaterialGltf(ConverterTestCase):
     """
-    Materials of glTF meshes. The glTF files are written by the tests: one triangle per material.
+    Materials of glTF meshes. tests/data/materials_gltf.urdf references tests/data/assets/materials.gltf.
+
+    The glTF file has one triangle per material, and each test checks its own materials by name.
+    The file is a valid glTF (it opens in glTF viewers). The textures are the images of tests/data/assets. Only the embedded images are
+    in materials.bin. Some materials are made to be warned about, so every conversion has the same warnings.
     The tests check the UsdPreviewSurface network, and the OpenPBR network where it differs.
+
+    A glTF that is not valid (an image that cannot be read, a reference that does not exist, ...) is written by the tests, see _convert_invalid.
     """
 
-    def _convert(
-        self,
-        materials: list[dict],
-        textures: list[dict] | None = None,
-        images: list[dict] | None = None,
-        samplers: list[dict] | None = None,
-        diagnostics: list[tuple] | None = None,
-        openpbr: bool = True,
-        extensions: list[str] | None = None,
-        extra_files: dict[str, bytes] | None = None,
-    ) -> tuple[Usd.Stage, pathlib.Path]:
+    def _convert(self, openpbr: bool = True) -> tuple[Usd.Stage, pathlib.Path]:
         """
-        Write model.gltf (one triangle per material) and a URDF for it, then convert.
-        Returns the stage and the directory of the converted asset.
+        Convert the URDF of materials.gltf. Returns the stage and the directory of the converted asset.
         """
-        # The i-th triangle is placed at x = 2 * i, so the triangles do not touch each other.
-        buffer = b""
-        accessors = []
-        buffer_views = []
-        primitives = []
-        for i in range(len(materials)):
-            arrays = {
-                "POSITION": (np.array([[2 * i, 0, 0], [2 * i + 1, 0, 0], [2 * i, 1, 0]], dtype=np.float32), "VEC3"),
-                "NORMAL": (np.array([[0, 0, 1]] * 3, dtype=np.float32), "VEC3"),
-                "TEXCOORD_0": (np.array([[0, 0], [1, 0], [0, 1]], dtype=np.float32), "VEC2"),
-            }
-            attributes = {}
-            for name, (array, accessor_type) in arrays.items():
-                attributes[name] = len(accessors)
-                accessors.append({"bufferView": len(buffer_views), "componentType": 5126, "count": 3, "type": accessor_type})
-                if name == "POSITION":
-                    accessors[-1].update({"min": array.min(axis=0).tolist(), "max": array.max(axis=0).tolist()})
-                buffer_views.append({"buffer": 0, "byteOffset": len(buffer), "byteLength": array.nbytes})
-                buffer += array.tobytes()
-            primitives.append({"attributes": attributes, "material": i})
+        output_dir = pathlib.Path(self.tmpDir())
+        with usdex.test.ScopedDiagnosticChecker(self, _WARNINGS, level=usdex.core.DiagnosticsLevel.eWarning):
+            asset_path = urdf_usd_converter.Converter(openpbr=openpbr).convert("tests/data/materials_gltf.urdf", str(output_dir))
+        self.assertIsNotNone(asset_path)
 
-        document = {
-            "asset": {"version": "2.0"},
-            "scene": 0,
-            "scenes": [{"nodes": [0]}],
-            "nodes": [{"mesh": 0}],
-            "meshes": [{"primitives": primitives}],
-            "accessors": accessors,
-            "bufferViews": buffer_views,
-            "buffers": [{"uri": _data_uri(buffer, "application/octet-stream"), "byteLength": len(buffer)}],
-            "materials": materials,
-        }
-        if textures:
-            document["textures"] = textures
-        if images:
-            document["images"] = images
-        if samplers:
-            document["samplers"] = samplers
-        if extensions:
-            document["extensionsUsed"] = extensions
+        stage = Usd.Stage.Open(asset_path.path)
+        self.assertIsValidUsd(stage)
+        return stage, output_dir
 
+    def _convert_invalid(self) -> Usd.Stage:
+        """
+        Convert a glTF written here, with images and references that a valid glTF does not have. One triangle per material.
+        """
         source_dir = pathlib.Path(self.tmpDir())
-        (source_dir / "model.gltf").write_text(json.dumps(document), encoding="utf-8")
-        for relative_path, content in (extra_files or {}).items():
-            (source_dir / relative_path).parent.mkdir(parents=True, exist_ok=True)
-            (source_dir / relative_path).write_bytes(content)
+        # The texture that each material uses. Texture 99 does not exist, texture 4 has no image, and the image of texture 5 does not exist.
+        textures = {
+            "unsupported_embedded_format": 0,
+            "unsupported_external_format": 1,
+            "url_image": 2,
+            "absolute_image": 3,
+            "no_texture": 99,
+            "no_source": 4,
+            "no_image": 5,
+        }
+        materials = [{"name": "unknown_alpha_mode", "alphaMode": "TRANSLUCENT", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.3]}}]
+        materials += [{"name": name, "pbrMetallicRoughness": {"baseColorTexture": {"index": index}}} for name, index in textures.items()]
+        document = _gltf_document(
+            [{"POSITION": _POSITIONS, "material": index} for index in range(len(materials))],
+            materials=materials,
+            images=[
+                {"uri": "unsupported.webp"},
+                {"uri": "http://example.com/tex.png"},
+                {"uri": "/absolute/tex.png"},
+                {"uri": "data:image/webp;base64,UklGRg=="},
+            ],
+            textures=[{"source": 3}, {"source": 0}, {"source": 1}, {"source": 2}, {}, {"source": 99}],
+        )
+        (source_dir / "invalid.gltf").write_text(json.dumps(document), encoding="utf-8")
+        (source_dir / "unsupported.webp").write_bytes(b"RIFF")
         (source_dir / "robot.urdf").write_text(
             """<?xml version="1.0"?>
 <robot name="robot">
   <link name="base">
-    <visual><geometry><mesh filename="model.gltf"/></geometry></visual>
+    <visual><geometry><mesh filename="invalid.gltf"/></geometry></visual>
     <collision><geometry><box size="1 1 1"/></geometry></collision>
   </link>
 </robot>
@@ -113,14 +114,10 @@ class TestMaterialGltf(ConverterTestCase):
             encoding="utf-8",
         )
 
-        output_dir = pathlib.Path(self.tmpDir())
-        with usdex.test.ScopedDiagnosticChecker(self, diagnostics or [], level=usdex.core.DiagnosticsLevel.eWarning):
-            asset_path = urdf_usd_converter.Converter(openpbr=openpbr).convert(str(source_dir / "robot.urdf"), str(output_dir))
+        with usdex.test.ScopedDiagnosticChecker(self, _INVALID_WARNINGS, level=usdex.core.DiagnosticsLevel.eWarning):
+            asset_path = urdf_usd_converter.Converter().convert(str(source_dir / "robot.urdf"), str(self.tmpDir()))
         self.assertIsNotNone(asset_path)
-
-        stage = Usd.Stage.Open(asset_path.path)
-        self.assertIsValidUsd(stage)
-        return stage, output_dir
+        return Usd.Stage.Open(asset_path.path)
 
     def _material(self, stage: Usd.Stage, name: str) -> UsdShade.Material:
         material = UsdShade.Material(stage.GetDefaultPrim().GetChild("Materials").GetChild(name))
@@ -146,44 +143,33 @@ class TestMaterialGltf(ConverterTestCase):
     def _texture_file(self, shader: UsdShade.Shader) -> pathlib.Path:
         return pathlib.Path(self._get_input_value(shader, "file").path)
 
-    def test_embedded_image_is_written_to_textures(self):
-        # A data URI image has no file, so the bytes are written to the Textures directory under the name of the glTF file and the image.
-        png = _png()
-        stage, output_dir = self._convert(
-            [{"name": "textured", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
-            textures=[{"source": 0}],
-            images=[{"name": "tex", "mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-        )
+    def _embedded_images(self, name: str) -> list[tuple[int, bytes]]:
+        """
+        The index and the bytes of the embedded images of materials.gltf with the name.
+        """
+        model = gltf.load(_ASSETS / "materials.gltf")
+        return [(index, image.data) for index, image in enumerate(model.images) if image.name == name]
 
-        material = self._material(stage, "textured")
-        self.assertEqual(self.get_material_texture_path(material, "diffuseColor"), pathlib.Path("./Textures/model_tex.png"))
-        self.assertEqual((output_dir / "Payload" / "Textures" / "model_tex.png").read_bytes(), png)
+    def test_embedded_image_is_written_to_textures(self):
+        # An embedded image has no file, so the bytes are written to the Textures directory under the name of the glTF file and the image.
+        stage, output_dir = self._convert()
+
+        material = self._material(stage, "embedded_texture")
+        self.assertEqual(self.get_material_texture_path(material, "diffuseColor"), pathlib.Path("./Textures/materials_embedded.png"))
+        ((_, data),) = self._embedded_images("embedded")
+        self.assertEqual((output_dir / "Payload" / "Textures" / "materials_embedded.png").read_bytes(), data)
 
     def test_external_image_is_copied(self):
-        # An external image is a file relative to the glTF. A percent-encoded path is decoded.
-        png = _png()
-        stage, output_dir = self._convert(
-            [{"name": "textured", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
-            textures=[{"source": 0}],
-            images=[{"uri": "images/tex%2D1.png"}],
-            extra_files={"images/tex-1.png": png},
-        )
+        # An external image is a file relative to the glTF. A percent-encoded path (grid%2Dopacity.png) is decoded.
+        stage, output_dir = self._convert()
 
-        material = self._material(stage, "textured")
-        self.assertEqual(self.get_material_texture_path(material, "diffuseColor"), pathlib.Path("./Textures/tex-1.png"))
-        self.assertEqual((output_dir / "Payload" / "Textures" / "tex-1.png").read_bytes(), png)
+        material = self._material(stage, "external_texture")
+        self.assertEqual(self.get_material_texture_path(material, "diffuseColor"), pathlib.Path("./Textures/grid-opacity.png"))
+        self.assertEqual((output_dir / "Payload" / "Textures" / "grid-opacity.png").read_bytes(), (_ASSETS / "grid-opacity.png").read_bytes())
 
     def test_colors_are_linear(self):
         # glTF colors are already linear, so they are authored as they are.
-        stage, _ = self._convert(
-            [
-                {
-                    "name": "colored",
-                    "pbrMetallicRoughness": {"baseColorFactor": [0.5, 0.25, 0.1, 1.0], "metallicFactor": 0.25, "roughnessFactor": 0.75},
-                    "emissiveFactor": [0.2, 0.1, 0.0],
-                }
-            ]
-        )
+        stage, _ = self._convert()
 
         material = self._material(stage, "colored")
         self.assertTrue(Gf.IsClose(self.get_material_diffuse_color(material), Gf.Vec3f(0.5, 0.25, 0.1), 1e-6))
@@ -195,7 +181,7 @@ class TestMaterialGltf(ConverterTestCase):
 
     def test_defaults(self):
         # The glTF defaults are white, metallic 1.0 and roughness 1.0. There is no emission.
-        stage, _ = self._convert([{"name": "default"}])
+        stage, _ = self._convert()
 
         material = self._material(stage, "default")
         self.assertTrue(Gf.IsClose(self.get_material_diffuse_color(material), Gf.Vec3f(1.0, 1.0, 1.0), 1e-6))
@@ -205,52 +191,35 @@ class TestMaterialGltf(ConverterTestCase):
         self.assertFalse(self._preview(material).GetInput("emissiveColor"))
 
     def test_alpha_modes(self):
-        stage, _ = self._convert(
-            [
-                {"name": "opaque", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.3]}},
-                {"name": "blend", "alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.3]}},
-                {"name": "mask", "alphaMode": "MASK", "alphaCutoff": 0.4, "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.8]}},
-            ]
-        )
+        stage, _ = self._convert()
 
         # OPAQUE ignores the alpha.
-        opaque = self._material(stage, "opaque")
+        opaque = self._material(stage, "alpha_opaque")
         self.assertAlmostEqual(self.get_material_opacity(opaque), 1.0, places=6)
         self.assertFalse(self._preview(opaque).GetInput("opacityThreshold"))
 
         # BLEND uses the alpha and has no threshold.
-        blend = self._material(stage, "blend")
+        blend = self._material(stage, "alpha_blend")
         self.assertAlmostEqual(self.get_material_opacity(blend), 0.3, places=6)
         self.assertAlmostEqual(self.get_openpbr_input_value(blend, "geometry_opacity"), 0.3, places=6)
         self.assertFalse(self._preview(blend).GetInput("opacityThreshold"))
 
         # MASK uses the alpha and sets the threshold to alphaCutoff.
-        mask = self._material(stage, "mask")
+        mask = self._material(stage, "alpha_mask")
         self.assertAlmostEqual(self.get_material_opacity(mask), 0.8, places=6)
         self.assertAlmostEqual(self._get_input_value(self._preview(mask), "opacityThreshold"), 0.4, places=6)
 
     def test_unknown_alpha_mode(self):
-        stage, _ = self._convert(
-            [{"name": "unknown", "alphaMode": "TRANSLUCENT", "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.3]}}],
-            diagnostics=[_warning('.*Material "unknown" has an unknown alphaMode "TRANSLUCENT". OPAQUE is used.*')],
-        )
+        stage = self._convert_invalid()
 
-        self.assertAlmostEqual(self.get_material_opacity(self._material(stage, "unknown")), 1.0, places=6)
+        self.assertAlmostEqual(self.get_material_opacity(self._material(stage, "unknown_alpha_mode")), 1.0, places=6)
 
     def test_alpha_of_base_color_texture(self):
         # With BLEND or MASK the alpha channel of the base color texture is the opacity. The helpers only read a single channel
         # (the first one), so the alpha is connected here.
-        png = _png()
-        materials = [
-            {"name": "blend", "alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
-            {"name": "opaque", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
-        ]
-        textures = [{"source": 0}]
-        images = [{"name": "tex", "mimeType": "image/png", "uri": _data_uri(png, "image/png")}]
+        stage, _ = self._convert()
 
-        stage, _ = self._convert(materials, textures=textures, images=images)
-
-        blend = self._material(stage, "blend")
+        blend = self._material(stage, "texture_alpha_blend")
         texture, output = self._connected(self._preview(blend), "opacity")
         self.assertEqual(output, "a")
         self.assertEqual(texture.GetShaderId(), "UsdUVTexture")
@@ -269,349 +238,170 @@ class TestMaterialGltf(ConverterTestCase):
             self.assertEqual(reader.GetInput(input_name).GetAttr().GetConnections(), color_reader.GetInput(input_name).GetAttr().GetConnections())
 
         # OPAQUE ignores the alpha.
-        opaque = self._material(stage, "opaque")
+        opaque = self._material(stage, "texture_alpha_opaque")
         self.assertIsNone(self._connected(self._preview(opaque), "opacity"))
 
     def test_alpha_factor_with_base_color_texture(self):
         # An alpha of the baseColorFactor below 1 is the scalar opacity. The texture is used as it is, and there is no warning
         # because the color of the factor is white.
-        png = _png()
-        stage, _ = self._convert(
-            [
-                {
-                    "name": "half",
-                    "alphaMode": "BLEND",
-                    "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.5], "baseColorTexture": {"index": 0}},
-                },
-                {
-                    "name": "masked",
-                    "alphaMode": "MASK",
-                    "alphaCutoff": 0.25,
-                    "pbrMetallicRoughness": {"baseColorFactor": [1, 1, 1, 0.5], "baseColorTexture": {"index": 0}},
-                },
-            ],
-            textures=[{"source": 0}],
-            images=[{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            diagnostics=[],
-        )
+        stage, _ = self._convert()
 
-        for name in ("half", "masked"):
+        for name in ("texture_alpha_factor_blend", "texture_alpha_factor_mask"):
             material = self._material(stage, name)
             preview = self._preview(material)
-            self.assertAlmostEqual(self.get_material_opacity(material), 0.5, places=6)
-            self.assertIsNone(self._connected(preview, "opacity"))
-            self.assertIsNotNone(self._connected(preview, "diffuseColor"))
-            self.assertAlmostEqual(self.get_openpbr_input_value(material, "geometry_opacity"), 0.5, places=6)
-        self.assertAlmostEqual(self._get_input_value(self._preview(self._material(stage, "masked")), "opacityThreshold"), 0.25, places=6)
+            self.assertAlmostEqual(self.get_material_opacity(material), 0.5, places=6, msg=name)
+            self.assertIsNone(self._connected(preview, "opacity"), msg=name)
+            self.assertIsNotNone(self._connected(preview, "diffuseColor"), msg=name)
+            self.assertAlmostEqual(self.get_openpbr_input_value(material, "geometry_opacity"), 0.5, places=6, msg=name)
+        masked = self._preview(self._material(stage, "texture_alpha_factor_mask"))
+        self.assertAlmostEqual(self._get_input_value(masked, "opacityThreshold"), 0.25, places=6)
 
     def test_alpha_of_base_color_texture_preview_material_only(self):
-        png = _png()
-        stage, _ = self._convert(
-            [{"name": "blend", "alphaMode": "BLEND", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
-            textures=[{"source": 0}],
-            images=[{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            openpbr=False,
-        )
+        stage, _ = self._convert(openpbr=False)
 
-        material = self._material(stage, "blend")
+        material = self._material(stage, "texture_alpha_blend")
         self.assertFalse(material.GetPrim().HasAPI("MaterialXConfigAPI"))
         _, output = self._connected(self._preview(material), "opacity")
         self.assertEqual(output, "a")
 
     def test_base_color_factor_is_not_applied_to_texture(self):
         # The texture is used as it is, so the factor is not applied. Black would hide the texture, so the texture is not used then.
-        png = _png()
-        images = [{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}]
-        stage, _ = self._convert(
-            [
-                {"name": "tinted", "pbrMetallicRoughness": {"baseColorFactor": [0.5, 1, 1, 1], "baseColorTexture": {"index": 0}}},
-                {"name": "black", "pbrMetallicRoughness": {"baseColorFactor": [0, 0, 0, 1], "baseColorTexture": {"index": 0}}},
-            ],
-            textures=[{"source": 0}],
-            images=images,
-            diagnostics=[_warning('.*Material "tinted" has a baseColorFactor color that is not applied to its baseColorTexture.*')],
-        )
+        stage, _ = self._convert()
 
         self.assertIsNotNone(self._connected(self._preview(self._material(stage, "tinted")), "diffuseColor"))
         self.assertIsNone(self._connected(self._preview(self._material(stage, "black")), "diffuseColor"))
 
     def test_metallic_roughness_texture(self):
         # G is the roughness and B is the metallic. R is not an occlusion unless the occlusionTexture shares the image.
-        png = _png()
-        images = [
-            {"name": "mr", "mimeType": "image/png", "uri": _data_uri(png, "image/png")},
-            {"name": "other", "mimeType": "image/png", "uri": _data_uri(png, "image/png")},
-        ]
-        textures = [{"source": 0}, {"source": 0}, {"source": 1}]
-        stage, output_dir = self._convert(
-            [
-                {"name": "mr_only", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}},
-                {"name": "orm", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}, "occlusionTexture": {"index": 1}},
-                {"name": "other_occlusion", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}, "occlusionTexture": {"index": 2}},
-            ],
-            textures=textures,
-            images=images,
-            diagnostics=[_warning('.*Material "other_occlusion" has an occlusionTexture that is not shared with its metallicRoughnessTexture.*')],
-        )
+        # With openpbr=False only UsdPreviewSurface is authored.
+        for openpbr in (True, False):
+            with self.subTest(openpbr=openpbr):
+                stage, output_dir = self._convert(openpbr=openpbr)
 
-        for name, has_occlusion in (("mr_only", False), ("orm", True), ("other_occlusion", False)):
-            preview = self._preview(self._material(stage, name))
-            roughness_texture, roughness_output = self._connected(preview, "roughness")
-            metallic_texture, metallic_output = self._connected(preview, "metallic")
-            self.assertEqual(roughness_output, "g", msg=name)
-            self.assertEqual(metallic_output, "b", msg=name)
-            self.assertEqual(roughness_texture.GetPath(), metallic_texture.GetPath(), msg=name)
-            self.assertEqual(self._texture_file(roughness_texture), pathlib.Path("./Textures/model_mr.png"), msg=name)
-            occlusion = self._connected(preview, "occlusion")
-            if has_occlusion:
-                self.assertEqual(occlusion[1], "r", msg=name)
-            else:
-                self.assertIsNone(occlusion, msg=name)
+                for name, has_occlusion in (("mr_only", False), ("orm", True), ("other_occlusion", False)):
+                    preview = self._preview(self._material(stage, name))
+                    roughness_texture, roughness_output = self._connected(preview, "roughness")
+                    metallic_texture, metallic_output = self._connected(preview, "metallic")
+                    self.assertEqual(roughness_output, "g", msg=name)
+                    self.assertEqual(metallic_output, "b", msg=name)
+                    self.assertEqual(roughness_texture.GetPath(), metallic_texture.GetPath(), msg=name)
+                    self.assertEqual(self._texture_file(roughness_texture), pathlib.Path("./Textures/metallic_roughness.png"), msg=name)
+                    occlusion = self._connected(preview, "occlusion")
+                    if has_occlusion:
+                        self.assertEqual(occlusion[1], "r", msg=name)
+                        self.assertEqual(occlusion[0].GetPath(), roughness_texture.GetPath(), msg=name)
+                    else:
+                        # The R channel is not an occlusion, so the connection made by the ORM helper is removed.
+                        self.assertIsNone(occlusion, msg=name)
 
-            # OpenPBR has no occlusion. Roughness and metallic are separated from the same texture.
-            mtlx = usdex.core.computeEffectiveMtlxSurfaceShader(self._material(stage, name))
-            self.assertIsNotNone(self._connected(mtlx, "specular_roughness"), msg=name)
-            self.assertIsNotNone(self._connected(mtlx, "base_metalness"), msg=name)
+                    if openpbr:
+                        # OpenPBR has no occlusion. Roughness and metallic are separated from the same texture.
+                        mtlx = usdex.core.computeEffectiveMtlxSurfaceShader(self._material(stage, name))
+                        self.assertIsNotNone(self._connected(mtlx, "specular_roughness"), msg=name)
+                        self.assertIsNotNone(self._connected(mtlx, "base_metalness"), msg=name)
 
-        self.assertTrue((output_dir / "Payload" / "Textures" / "model_mr.png").exists())
-
-    def test_metallic_roughness_texture_preview_material_only(self):
-        # UsdPreviewSurface has an ORM helper that connects R to the occlusion. R is only an occlusion when the occlusionTexture shares the image.
-        png = _png()
-        images = [
-            {"name": "mr", "mimeType": "image/png", "uri": _data_uri(png, "image/png")},
-            {"name": "other", "mimeType": "image/png", "uri": _data_uri(png, "image/png")},
-        ]
-        textures = [{"source": 0}, {"source": 0}, {"source": 1}]
-        stage, _ = self._convert(
-            [
-                {"name": "mr_only", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}},
-                {"name": "orm", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}, "occlusionTexture": {"index": 1}},
-                {"name": "other_occlusion", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}, "occlusionTexture": {"index": 2}},
-            ],
-            textures=textures,
-            images=images,
-            diagnostics=[_warning('.*Material "other_occlusion" has an occlusionTexture that is not shared with its metallicRoughnessTexture.*')],
-            openpbr=False,
-        )
-
-        for name, has_occlusion in (("mr_only", False), ("orm", True), ("other_occlusion", False)):
-            preview = self._preview(self._material(stage, name))
-            roughness_texture, roughness_output = self._connected(preview, "roughness")
-            metallic_texture, metallic_output = self._connected(preview, "metallic")
-            self.assertEqual(roughness_output, "g", msg=name)
-            self.assertEqual(metallic_output, "b", msg=name)
-            self.assertEqual(roughness_texture.GetPath(), metallic_texture.GetPath(), msg=name)
-            self.assertEqual(self._texture_file(roughness_texture), pathlib.Path("./Textures/model_mr.png"), msg=name)
-            occlusion = self._connected(preview, "occlusion")
-            if has_occlusion:
-                self.assertEqual(occlusion[1], "r", msg=name)
-                self.assertEqual(occlusion[0].GetPath(), roughness_texture.GetPath(), msg=name)
-            else:
-                # The R channel is not an occlusion, so the connection made by the ORM helper is removed.
-                self.assertIsNone(occlusion, msg=name)
+                self.assertTrue((output_dir / "Payload" / "Textures" / "metallic_roughness.png").exists())
 
     def test_metallic_roughness_factors_are_not_applied_to_texture(self):
-        png = _png()
-        stage, _ = self._convert(
-            [
-                {"name": "factors", "pbrMetallicRoughness": {"metallicFactor": 0.5, "metallicRoughnessTexture": {"index": 0}}},
-                {"name": "zero", "pbrMetallicRoughness": {"metallicFactor": 0, "roughnessFactor": 0, "metallicRoughnessTexture": {"index": 0}}},
-            ],
-            textures=[{"source": 0}],
-            images=[{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            diagnostics=[
-                _warning('.*Material "factors" has a metallicFactor or roughnessFactor that is not applied to its metallicRoughnessTexture.*')
-            ],
-        )
+        stage, _ = self._convert()
 
-        self.assertIsNotNone(self._connected(self._preview(self._material(stage, "factors")), "roughness"))
+        self.assertIsNotNone(self._connected(self._preview(self._material(stage, "mr_factors")), "roughness"))
         # Both factors are 0, so the texture would not have any effect.
-        zero = self._preview(self._material(stage, "zero"))
+        zero = self._preview(self._material(stage, "mr_zero"))
         self.assertIsNone(self._connected(zero, "roughness"))
         self.assertIsNone(self._connected(zero, "metallic"))
 
     def test_normal_texture(self):
-        png = _png()
-        stage, _ = self._convert(
-            [
-                {"name": "normal", "normalTexture": {"index": 0}},
-                {"name": "scaled", "normalTexture": {"index": 0, "scale": 2.0}},
-            ],
-            textures=[{"source": 0}],
-            images=[{"name": "n", "mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            diagnostics=[_warning('.*Material "scaled" has a normalTexture scale that is not applied.*')],
-        )
+        stage, _ = self._convert()
 
-        material = self._material(stage, "normal")
-        self.assertEqual(self.get_material_texture_path(material, "normal"), pathlib.Path("./Textures/model_n.png"))
+        for name in ("normal", "normal_scaled"):
+            material = self._material(stage, name)
+            self.assertEqual(self.get_material_texture_path(material, "normal"), pathlib.Path("./Textures/normal.png"), msg=name)
 
     def test_emissive(self):
         # The default emissiveFactor is 0, which hides the texture.
-        png = _png()
-        stage, _ = self._convert(
-            [
-                {"name": "emissive", "emissiveFactor": [1, 1, 1], "emissiveTexture": {"index": 0}},
-                {"name": "no_factor", "emissiveTexture": {"index": 0}},
-                {"name": "dim", "emissiveFactor": [0.5, 0.5, 0.5], "emissiveTexture": {"index": 0}},
-            ],
-            textures=[{"source": 0}],
-            images=[{"name": "e", "mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            diagnostics=[_warning('.*Material "dim" has an emissiveFactor that is not applied to its emissiveTexture.*')],
-        )
+        stage, _ = self._convert()
 
         emissive = self._material(stage, "emissive")
-        self.assertEqual(self.get_material_texture_path(emissive, "emissiveColor"), pathlib.Path("./Textures/model_e.png"))
+        self.assertEqual(self.get_material_texture_path(emissive, "emissiveColor"), pathlib.Path("./Textures/emissive.png"))
         self.assertAlmostEqual(self.get_openpbr_input_value(emissive, "emission_luminance"), 1000.0)
 
-        self.assertIsNone(self._connected(self._preview(self._material(stage, "no_factor")), "emissiveColor"))
+        self.assertIsNone(self._connected(self._preview(self._material(stage, "emissive_no_factor")), "emissiveColor"))
 
     def test_unsupported_image_format(self):
-        stage, _ = self._convert(
-            [{"name": "webp", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
-            textures=[{"source": 0}],
-            images=[{"mimeType": "image/webp", "uri": _data_uri(b"RIFF", "image/webp")}],
-            diagnostics=[_warning(r".*Material \"webp\" has an image of an unsupported format \(image/webp\)\. Only PNG and JPEG are supported.*")],
-        )
+        # The format of an embedded image is decided by its MIME type, and the format of an external image by its suffix.
+        stage = self._convert_invalid()
 
-        self.assertIsNone(self._connected(self._preview(self._material(stage, "webp")), "diffuseColor"))
-
-    def test_unsupported_external_image_format(self):
-        # The format of an external image is decided by its suffix.
-        stage, _ = self._convert(
-            [{"name": "ext_webp", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
-            textures=[{"source": 0}],
-            images=[{"uri": "tex.webp"}],
-            extra_files={"tex.webp": b"RIFF"},
-            diagnostics=[_warning(r".*Material \"ext_webp\" has an image of an unsupported format \(\.webp\)\. Only PNG and JPEG are supported.*")],
-        )
-
-        self.assertIsNone(self._connected(self._preview(self._material(stage, "ext_webp")), "diffuseColor"))
+        for name in ("unsupported_embedded_format", "unsupported_external_format"):
+            self.assertIsNone(self._connected(self._preview(self._material(stage, name)), "diffuseColor"), msg=name)
 
     def test_image_outside_of_the_file_is_ignored(self):
         # An external URL and an absolute path cannot be resolved. The loader warns, and the texture is ignored.
-        stage, _ = self._convert(
-            [
-                {"name": "url", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
-                {"name": "absolute", "pbrMetallicRoughness": {"baseColorTexture": {"index": 1}}},
-            ],
-            textures=[{"source": 0}, {"source": 1}],
-            images=[{"uri": "http://example.com/tex.png"}, {"uri": "/absolute/tex.png"}],
-            diagnostics=[
-                _warning(".*External URLs are not supported: http://example.com/tex.png.*"),
-                _warning(".*Absolute paths are not supported: /absolute/tex.png.*"),
-            ],
-        )
+        stage = self._convert_invalid()
 
-        self.assertIsNone(self._connected(self._preview(self._material(stage, "url")), "diffuseColor"))
-        self.assertIsNone(self._connected(self._preview(self._material(stage, "absolute")), "diffuseColor"))
+        self.assertIsNone(self._connected(self._preview(self._material(stage, "url_image")), "diffuseColor"))
+        self.assertIsNone(self._connected(self._preview(self._material(stage, "absolute_image")), "diffuseColor"))
 
     def test_texture_references_that_do_not_exist(self):
         # A texture that does not exist, a texture without an image, and a texture of an image that does not exist are ignored.
-        stage, _ = self._convert(
-            [
-                {"name": "no_texture", "pbrMetallicRoughness": {"baseColorTexture": {"index": 5}}},
-                {"name": "no_source", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
-                {"name": "no_image", "pbrMetallicRoughness": {"baseColorTexture": {"index": 1}}},
-            ],
-            textures=[{}, {"source": 9}],
-            diagnostics=[
-                _warning('.*Material "no_texture" references texture 5 that does not exist. The texture is ignored.*'),
-                _warning('.*Material "no_source" references a texture without a valid image. The texture is ignored.*'),
-                _warning('.*Material "no_image" references a texture without a valid image. The texture is ignored.*'),
-            ],
-        )
+        stage = self._convert_invalid()
 
         for name in ("no_texture", "no_source", "no_image"):
             self.assertIsNone(self._connected(self._preview(self._material(stage, name)), "diffuseColor"), msg=name)
 
     def test_embedded_images_with_the_same_name(self):
         # The file name of an embedded image comes from its name, so images with the same name get their index to stay distinct.
-        first = _png()
-        second = first + b"\x00"
-        stage, output_dir = self._convert(
-            [
-                {"name": "first", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
-                {"name": "second", "pbrMetallicRoughness": {"baseColorTexture": {"index": 1}}},
-            ],
-            textures=[{"source": 0}, {"source": 1}],
-            images=[
-                {"name": "tex", "mimeType": "image/png", "uri": _data_uri(first, "image/png")},
-                {"name": "tex", "mimeType": "image/png", "uri": _data_uri(second, "image/png")},
-            ],
-        )
+        stage, output_dir = self._convert()
 
-        self.assertEqual(self.get_material_texture_path(self._material(stage, "first"), "diffuseColor"), pathlib.Path("./Textures/model_tex.png"))
-        self.assertEqual(self.get_material_texture_path(self._material(stage, "second"), "diffuseColor"), pathlib.Path("./Textures/model_tex_1.png"))
-        self.assertEqual((output_dir / "Payload" / "Textures" / "model_tex.png").read_bytes(), first)
-        self.assertEqual((output_dir / "Payload" / "Textures" / "model_tex_1.png").read_bytes(), second)
+        (_, first), (second_index, second) = self._embedded_images("same")
+        self.assertNotEqual(first, second)
+        second_name = f"materials_same_{second_index}.png"
+        self.assertEqual(
+            self.get_material_texture_path(self._material(stage, "same_name_first"), "diffuseColor"), pathlib.Path("./Textures/materials_same.png")
+        )
+        self.assertEqual(
+            self.get_material_texture_path(self._material(stage, "same_name_second"), "diffuseColor"), pathlib.Path(f"./Textures/{second_name}")
+        )
+        self.assertEqual((output_dir / "Payload" / "Textures" / "materials_same.png").read_bytes(), first)
+        self.assertEqual((output_dir / "Payload" / "Textures" / second_name).read_bytes(), second)
 
     def test_sampler_wrap_mode(self):
-        png = _png()
-        stage, _ = self._convert(
-            [{"name": "clamped", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
-            textures=[{"source": 0, "sampler": 0}],
-            images=[{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            samplers=[{"wrapS": 33071, "wrapT": 33071}],
-            diagnostics=[_warning('.*Material "clamped" has a texture with a wrap mode other than REPEAT. REPEAT is used.*')],
-        )
+        stage, _ = self._convert()
 
         self.assertEqual(self.get_material_wrap_mode(self._material(stage, "clamped")), "repeat")
 
     def test_material_names(self):
         # A name that is empty or shared gets its index, so the materials stay distinguishable. The display name is the original one.
-        stage, _ = self._convert([{"name": "shared"}, {"name": "shared"}, {}, {"name": "unique"}])
+        # The first materials of materials.gltf are for the names, so their indices are 0 to 6.
+        stage, _ = self._convert()
 
         scope = stage.GetDefaultPrim().GetChild("Materials")
-        self.assertEqual([child.GetName() for child in scope.GetChildren()], ["shared_0", "shared_1", "Material_2", "unique"])
+        self.assertEqual([child.GetName() for child in scope.GetChildren()][:4], ["shared_0", "shared_1", "Material_2", "unique"])
         self.assertEqual(usdex.core.getDisplayName(scope.GetChild("shared_0")), "shared")
         self.assertEqual(usdex.core.getDisplayName(scope.GetChild("shared_1")), "shared")
 
     def test_material_names_do_not_collide(self):
         # An index added to a shared name must not equal the name of another material.
-        stage, _ = self._convert([{"name": "a"}, {"name": "a"}, {"name": "a_0"}])
+        # The materials 4 and 5 are named "a", and the material 6 is named "a_4", which is what the material 4 would get.
+        stage, _ = self._convert()
 
         scope = stage.GetDefaultPrim().GetChild("Materials")
-        self.assertEqual([child.GetName() for child in scope.GetChildren()], ["a_0_", "a_1", "a_0"])
-
-    def test_single_material_binds_the_mesh(self):
-        # With one material there is no subset, and the mesh is bound directly.
-        # (The subsets of several materials are checked with boxes.gltf in testMeshGltf.)
-        stage, _ = self._convert([{"name": "only"}])
-
-        meshes = [prim for prim in stage.Traverse() if prim.IsA(UsdGeom.Mesh)]
-        self.assertEqual(len(meshes), 1)
-        self.check_material_binding(meshes[0], self._material(stage, "only"))
+        self.assertEqual([child.GetName() for child in scope.GetChildren()][4:7], ["a_4_", "a_5", "a_4"])
 
     def test_texture_transform_must_be_shared(self):
         # Only one st primvar exists, so one transform is baked. Textures with different transforms warn.
-        png = _png()
-        transform = {"extensions": {"KHR_texture_transform": {"offset": [0.5, 0.0]}}}
-        stage, _ = self._convert(
-            [
-                {
-                    "name": "different",
-                    "pbrMetallicRoughness": {"baseColorTexture": {"index": 0, **transform}, "metallicRoughnessTexture": {"index": 0}},
-                },
-            ],
-            textures=[{"source": 0}],
-            images=[{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            extensions=["KHR_texture_transform"],
-            diagnostics=[_warning('.*Material "different" has textures with different KHR_texture_transform.*')],
-        )
+        stage, _ = self._convert()
 
-        # The transform of the base color texture is baked: u' = u + 0.5.
-        mesh = next(prim for prim in stage.Traverse() if prim.IsA(UsdGeom.Mesh))
+        # The transform of the base color texture is baked: u' = u + 0.5. Only the triangle of this material has it.
+        mesh = UsdGeom.Mesh(next(prim for prim in stage.Traverse() if prim.IsA(UsdGeom.Mesh)))
+        names = [child.GetName() for child in stage.GetDefaultPrim().GetChild("Materials").GetChildren()]
+        subset = UsdGeom.Subset.GetAllGeomSubsets(mesh)[names.index("different_texture_transform")]
+        face = subset.GetIndicesAttr().Get()[0]
+        vertices = list(mesh.GetFaceVertexIndicesAttr().Get())[3 * face : 3 * face + 3]
         st = np.array(UsdGeom.PrimvarsAPI(mesh).GetPrimvar("st").ComputeFlattened())
-        np.testing.assert_allclose(sorted(map(tuple, st)), sorted([(0.5, 1.0), (1.5, 1.0), (0.5, 0.0)]), atol=1e-6)
+        np.testing.assert_allclose(sorted(map(tuple, st[vertices])), sorted([(0.5, 1.0), (1.5, 1.0), (0.5, 0.0)]), atol=1e-6)
 
     def test_texcoord_other_than_zero(self):
-        png = _png()
-        stage, _ = self._convert(
-            [{"name": "uv1", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0, "texCoord": 1}}}],
-            textures=[{"source": 0}],
-            images=[{"mimeType": "image/png", "uri": _data_uri(png, "image/png")}],
-            diagnostics=[_warning('.*Material "uv1" has a texture that uses TEXCOORD_1. Only TEXCOORD_0 is supported, so TEXCOORD_0 is used.*')],
-        )
+        stage, _ = self._convert()
 
         self.assertIsNotNone(self._connected(self._preview(self._material(stage, "uv1")), "diffuseColor"))
