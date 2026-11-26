@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<robot name="materials_gltf">
+  <link name="base">
+    <visual>
+      <geometry>
+        <mesh filename="assets/materials.gltf" />
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

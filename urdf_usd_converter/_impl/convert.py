@@ -113,6 +113,7 @@ class Converter:
             resolved_file_paths={},
             material_data_list=[],
             mesh_material_references={},
+            embedded_textures={},
             undefined_elements=parser.get_undefined_elements(),
         )
 

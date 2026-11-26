@@ -50,6 +50,7 @@ Newton is an extensible physics engine focussed on robot learning and developmen
 |  OBJ | A simple data-format that represents 3D geometry as plain text |
 |  STL | A simple data-format that describes a raw, unstructured triangulated surface. There is plane text and binary. |
 | DAE | dae format; COLLADA XML scene format. |
+| glTF | GL Transmission Format; a JSON-based 3D scene format by Khronos. The file extension is 'gltf', or 'glb' for the binary container. |
 | Sensor | A device that understands its surroundings and obtains the information it needs to operate appropriately. |
 | Actuator | A device that uses energy such as electricity, hydraulics, or air pressure to create mechanical movement (e.g a motor) |
 | rpy | Roll(x) / Pitch(y) / Yaw(z) |
@@ -67,7 +68,7 @@ The following table describes the main data structure & serialization concepts f
 | URDF | OpenUSD | Description |
 | :---- | :---- | :---- |
 | [URDF](#urdf--usda--usdc) | USDA / USDC | Serialized source content describing the robot in 3D space & physics default state |
-| [OBJ / STL / DAE](#reference-mesh-files) | USDC | Serialized mesh topology |
+| [OBJ / STL / DAE / glTF](#reference-mesh-files) | USDC | Serialized mesh topology |
 |  | [SdfLayer / UsdStage](#sdflayer--usdstage) | In-memory representation of the content |
 | PNG / JPG | PNG / JPG / EXR (and others) | Image files referenced as textures to be rendered on meshes |
 
@@ -89,7 +90,7 @@ URDF assumes that all geometry in the referenced file represents a single geomet
 
 Any visual materials in the referenced file (including MTL sidecar files in the case of OBJ) should be processed & converted to UsdShade equivalents. See [material](#material) for more details.
 
-Any other information in the referenced files should be discarded.
+Any other information in the referenced files should be discarded. For glTF, only the meshes of the default scene are used, with the node transforms applied to the geometry. The scene hierarchy, animations, skins, cameras, and lights are discarded.
 
 ### SdfLayer / UsdStage
 
@@ -121,6 +122,12 @@ URDF uses a right-handed coordinate system with the Z up axis.
 USD also uses a right-handed coordinate system, but the Up Axis is configurable. Either Y or Z are supported.
 
 To ease data conversion it is recommended to always use Z, by authoring `upAxis = “Z”` in the layer metadata.
+
+##### Up Axis of Mesh Files
+
+The up axis of a referenced mesh file is a separate matter from the up axis of the layer. glTF is defined with +Y up, but URDF has no way to say which convention a mesh was authored in, and neither does glTF. Meshes for URDF are commonly authored in the link frame, so a glTF file that is +Z up in the link frame looks the same as one that is +Y up. A converter cannot tell the intent, so a rotation applied by the converter would have to be unconditional, and would break the assets that are already correct.
+
+It is recommended to use the coordinates of the glTF file as they are, with the node transforms applied, and to rotate a +Y up glTF explicitly with the `<origin>` of the visual, for example `<origin rpy="1.5707963 0 0"/>`. The rotation is then visible in the URDF and works the same way in every tool. URDF tools do not agree on this. For example, RViz2 Rolling rotates a glTF to +Z up, while other tools, including Newton, use the vertices as they are.
 
 #### Linear Units
 The linear metrics in USD are configurable and the default values are centimeters. To ease data conversion it is recommended to use meters instead, by authoring `metersPerUnit = 1.0` in the layer metadata.
@@ -637,7 +644,7 @@ Since the mesh will be converted to a specific SdfPath (possibly within an exter
 
 The `mesh.filename` may be an absolute or relative local filesystem path or it may be specified as a [ROS2 package](#appendix-a-ros2-packages) URI (e.g. `package://<package_name>/<relative_path>`). In the case of a ROS2 Package, see [Resolving Package URIs](#resolving-package-uris) for possible solutions.
 
-In either case, the file should be parsed & converted to a `UsdGeomMesh`. Direct concept mappings for STL/OBJ/DAE are beyond the scope of this document. Recall that URDF requires the file to contain only a single triangulated mesh, greatly reducing scope of the mapping process for these formats. It is also important to consider [texture coordinate](#texture-coordinates) conventions between the various formats.
+In either case, the file should be parsed & converted to a `UsdGeomMesh`. Direct concept mappings for STL/OBJ/DAE/glTF are beyond the scope of this document. Recall that URDF requires the file to contain only a single triangulated mesh, greatly reducing scope of the mapping process for these formats. It is also important to consider [texture coordinate](#texture-coordinates) conventions between the various formats.
 
 ###### *Property: scale*
 
@@ -653,7 +660,7 @@ In USD, (0,0) is in the lower left corner of the UV tile, so the vertical “t�
 
 `st = GfVec2f(texcoord[0], 1.0 - texcoord[1])`
 
-Note however, that if reading texcoords directly from an OBJ source file, this v-flip is unnecessary, as its conventions match USD already.
+Note however, that if reading texcoords directly from an OBJ source file, this v-flip is unnecessary, as its conventions match USD already. glTF has its origin at the top left, so the v-flip is required.
 
 Note also STL format does not include texture coordinates, and textures are therefore unsupported on STL meshes.
 
@@ -748,7 +755,7 @@ Once the file has been copied into place, to determine how to author it onto a t
 
 ###### *Mesh Textures*
 
-For mesh geometry, rendering should use a standard texture mapping approach, using a [texcoord primvar](#texture-coordinates) as converted from the source OBJ or DAE file.
+For mesh geometry, rendering should use a standard texture mapping approach, using a [texcoord primvar](#texture-coordinates) as converted from the source OBJ, DAE, or glTF file.
 
 In USD this maps to a standard file/image shader with a primvar reader texture driving the texcoords. This is an intricate network of UsdShadeShader prims in each render context:
 
@@ -784,16 +791,28 @@ In addition to direct URDF materials, [referenced mesh files](#reference-mesh-fi
 
 * OBJ files can have MTL sidecar files, which can assign a shader to each of the shapes within the OBJ. Since all shapes within one OBJ are merged into a single mesh in URDF, the MTL shader assignments can also be thought of as mesh subset assignments.  
 * DAE files can contain an intricate combination of texture & shader effects applied to a particular subset of each mesh’s vertices or faces.
+* glTF files can have a PBR material on each primitive. Since all primitives of the default scene are merged into a single mesh in URDF, the primitive-to-material assignments can also be thought of as mesh subset assignments.
 
-Mapping the material & shader concepts of these reference formats is outside the scope of this document, other than to say that USD uses PBR materials, but OBJ and DAE files often use Phong shading as the default. In this case, appropriate conversion is necessary, but it may be advisable to only support the key material parameters passed from URDF: diffuse color/texture, emissive color/texture, and opacity.
+Mapping the material & shader concepts of these reference formats is outside the scope of this document, other than to say that USD uses PBR materials, but OBJ and DAE files often use Phong shading as the default. In this case, appropriate conversion is necessary, but it may be advisable to only support the key material parameters passed from URDF: diffuse color/texture, emissive color/texture, and opacity. glTF materials are already PBR (metallic-roughness), so they do not need a Phong conversion; their base color, metallic, roughness, normal, occlusion, and emissive parameters and textures map to the corresponding PBR inputs.
 
 Whether supporting a partial or a full material conversion, they should be converted to appropriate `UsdShadeMaterial` and `UsdShadeShader` prims, stored alongside the native URDF materials in a library, and bound to the UsdGeom prims using an applied `MaterialBindingAPI`.
 
 In USD, the subset concept maps to `UsdGeomSubset` Prims, which should be children of the `UsdGeomMesh` (see [mesh](#element-mesh)). Each `UsdGeomSubset` can have a `MaterialBindingAPI` applied to it, targeting a different `UsdShadeMaterial`. There is some runtime cost associated with Subsets, so if only one material is applied to the entire mesh, it is preferable to avoid Subset prims & recommended to use a material binding to the mesh itself.
 
-If embedded materials are assigned to meshes or a subset of faces in the OBJ/DAE files, they should be converted to `UsdShadeMaterials` and bound to the appropriate `UsdGeomMesh` or `UsdGeomSubset`. If URDF materials also exist for these meshes/subsets, they should be ignored. Native URDF materials should only be bound to meshes or subsets which do not already receive material bindings from the embedded OBJ/DAE files.
+If embedded materials are assigned to meshes or a subset of faces in the OBJ/DAE/glTF files, they should be converted to `UsdShadeMaterials` and bound to the appropriate `UsdGeomMesh` or `UsdGeomSubset`. If URDF materials also exist for these meshes/subsets, they should be ignored. Native URDF materials should only be bound to meshes or subsets which do not already receive material bindings from the embedded OBJ/DAE/glTF files.
 
 See [material](#material) for further guidance.
+
+##### Vertex Colors (glTF)
+
+A glTF primitive can have vertex colors (`COLOR_0`). glTF multiplies them with the base color factor and the base color texture of the material. USD has no direct equivalent: the `displayColor` primvar is only a display fallback that a bound material hides, and combining it with a material needs a vertex color node in the shader network. A primitive therefore keeps either its material or its vertex colors:
+
+| glTF primitive | USD |
+| :---- | :---- |
+| No material | `COLOR_0` is authored as the `displayColor` primvar (and the alpha of an RGBA `COLOR_0` as `displayOpacity`). |
+| `COLOR_0` is all 1 | `COLOR_0` is ignored and the material is kept, because multiplying by 1 changes nothing. |
+| Base color factor (1, 1, 1, 1) and no base color texture | `COLOR_0` is the whole base color, so it is authored as `displayColor`. The material is not bound to these faces, because it would hide the display color, and a warning is given. |
+| Otherwise | The material is kept and `COLOR_0` is ignored, with a warning. |
 
 ### joint
 

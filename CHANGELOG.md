@@ -1,3 +1,10 @@
+# Unreleased
+
+## Features
+
+- Added glTF (`.glb` and `.gltf`) mesh support
+  - Only the meshes of the default scene are converted, with the node transforms applied to the geometry
+
 # 0.4.0
 
 ## Breaking Changes
