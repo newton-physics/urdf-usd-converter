@@ -326,8 +326,6 @@ def _connect_diffuse_alpha_to_preview_opacity(material_prim: UsdShade.Material):
     """
     surface_shader: UsdShade.Shader = usdex.core.computeEffectivePreviewSurfaceShader(material_prim)
     diffuse_color = surface_shader.GetInput("diffuseColor")
-    if not diffuse_color or not diffuse_color.HasConnectedSource():
-        return
     texture_shader = UsdShade.Shader(diffuse_color.GetConnectedSource()[0].GetPrim())
     alpha = texture_shader.CreateOutput("a", Sdf.ValueTypeNames.Float)
     surface_shader.GetInput("opacity").ConnectToSource(alpha)
@@ -342,8 +340,6 @@ def _connect_diffuse_alpha_to_mtlx_opacity(material_prim: UsdShade.Material):
     """
     surface_shader: UsdShade.Shader = usdex.core.computeEffectiveMtlxSurfaceShader(material_prim)
     base_color = surface_shader.GetInput("base_color")
-    if not base_color or not base_color.HasConnectedSource():
-        return
     color_reader = UsdShade.Shader(base_color.GetConnectedSource()[0].GetPrim())
 
     stage = material_prim.GetPrim().GetStage()

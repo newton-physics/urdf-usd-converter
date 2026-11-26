@@ -135,26 +135,14 @@ def _compression_name(document: dict, primitive: dict) -> str | None:
 
 
 def _meshopt_name(document: dict, accessor_index: int) -> str | None:
-    accessors = document.get("accessors", [])
-    if accessor_index < 0 or accessor_index >= len(accessors):
+    """Return the meshopt extension on the bufferView of this accessor, if any."""
+    accessor = document["accessors"][accessor_index]
+    if "bufferView" not in accessor:
         return None
-    accessor = accessors[accessor_index]
-    view_indices: list[int] = []
-    if "bufferView" in accessor:
-        view_indices.append(int(accessor["bufferView"]))
-    sparse = accessor.get("sparse") or {}
-    for side in ("indices", "values"):
-        entry = sparse.get(side) or {}
-        if "bufferView" in entry:
-            view_indices.append(int(entry["bufferView"]))
-    views = document.get("bufferViews", [])
-    for view_index in view_indices:
-        if view_index < 0 or view_index >= len(views):
-            continue
-        extensions = views[view_index].get("extensions") or {}
-        for name in _MESHOPT:
-            if name in extensions:
-                return name
+    extensions = document["bufferViews"][int(accessor["bufferView"])].get("extensions") or {}
+    for name in _MESHOPT:
+        if name in extensions:
+            return name
     return None
 
 

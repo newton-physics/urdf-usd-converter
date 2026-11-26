@@ -375,6 +375,42 @@ class TestMaterialGltf(ConverterTestCase):
 
         self.assertTrue((output_dir / "Payload" / "Textures" / "model_mr.png").exists())
 
+    def test_metallic_roughness_texture_preview_material_only(self):
+        # UsdPreviewSurface has an ORM helper that connects R to the occlusion. R is only an occlusion when the occlusionTexture shares the image.
+        png = _png()
+        images = [
+            {"name": "mr", "mimeType": "image/png", "uri": _data_uri(png, "image/png")},
+            {"name": "other", "mimeType": "image/png", "uri": _data_uri(png, "image/png")},
+        ]
+        textures = [{"source": 0}, {"source": 0}, {"source": 1}]
+        stage, _ = self._convert(
+            [
+                {"name": "mr_only", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}},
+                {"name": "orm", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}, "occlusionTexture": {"index": 1}},
+                {"name": "other_occlusion", "pbrMetallicRoughness": {"metallicRoughnessTexture": {"index": 0}}, "occlusionTexture": {"index": 2}},
+            ],
+            textures=textures,
+            images=images,
+            diagnostics=[_warning('.*Material "other_occlusion" has an occlusionTexture that is not shared with its metallicRoughnessTexture.*')],
+            openpbr=False,
+        )
+
+        for name, has_occlusion in (("mr_only", False), ("orm", True), ("other_occlusion", False)):
+            preview = self._preview(self._material(stage, name))
+            roughness_texture, roughness_output = self._connected(preview, "roughness")
+            metallic_texture, metallic_output = self._connected(preview, "metallic")
+            self.assertEqual(roughness_output, "g", msg=name)
+            self.assertEqual(metallic_output, "b", msg=name)
+            self.assertEqual(roughness_texture.GetPath(), metallic_texture.GetPath(), msg=name)
+            self.assertEqual(self._texture_file(roughness_texture), pathlib.Path("./Textures/model_mr.png"), msg=name)
+            occlusion = self._connected(preview, "occlusion")
+            if has_occlusion:
+                self.assertEqual(occlusion[1], "r", msg=name)
+                self.assertEqual(occlusion[0].GetPath(), roughness_texture.GetPath(), msg=name)
+            else:
+                # The R channel is not an occlusion, so the connection made by the ORM helper is removed.
+                self.assertIsNone(occlusion, msg=name)
+
     def test_metallic_roughness_factors_are_not_applied_to_texture(self):
         png = _png()
         stage, _ = self._convert(
@@ -440,6 +476,76 @@ class TestMaterialGltf(ConverterTestCase):
 
         self.assertIsNone(self._connected(self._preview(self._material(stage, "webp")), "diffuseColor"))
 
+    def test_unsupported_external_image_format(self):
+        # The format of an external image is decided by its suffix.
+        stage, _ = self._convert(
+            [{"name": "ext_webp", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}}],
+            textures=[{"source": 0}],
+            images=[{"uri": "tex.webp"}],
+            extra_files={"tex.webp": b"RIFF"},
+            diagnostics=[_warning(r".*Material \"ext_webp\" has an image of an unsupported format \(\.webp\)\. Only PNG and JPEG are supported.*")],
+        )
+
+        self.assertIsNone(self._connected(self._preview(self._material(stage, "ext_webp")), "diffuseColor"))
+
+    def test_image_outside_of_the_file_is_ignored(self):
+        # An external URL and an absolute path cannot be resolved. The loader warns, and the texture is ignored.
+        stage, _ = self._convert(
+            [
+                {"name": "url", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
+                {"name": "absolute", "pbrMetallicRoughness": {"baseColorTexture": {"index": 1}}},
+            ],
+            textures=[{"source": 0}, {"source": 1}],
+            images=[{"uri": "http://example.com/tex.png"}, {"uri": "/absolute/tex.png"}],
+            diagnostics=[
+                _warning(".*External URLs are not supported: http://example.com/tex.png.*"),
+                _warning(".*Absolute paths are not supported: /absolute/tex.png.*"),
+            ],
+        )
+
+        self.assertIsNone(self._connected(self._preview(self._material(stage, "url")), "diffuseColor"))
+        self.assertIsNone(self._connected(self._preview(self._material(stage, "absolute")), "diffuseColor"))
+
+    def test_texture_references_that_do_not_exist(self):
+        # A texture that does not exist, a texture without an image, and a texture of an image that does not exist are ignored.
+        stage, _ = self._convert(
+            [
+                {"name": "no_texture", "pbrMetallicRoughness": {"baseColorTexture": {"index": 5}}},
+                {"name": "no_source", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
+                {"name": "no_image", "pbrMetallicRoughness": {"baseColorTexture": {"index": 1}}},
+            ],
+            textures=[{}, {"source": 9}],
+            diagnostics=[
+                _warning('.*Material "no_texture" references texture 5 that does not exist. The texture is ignored.*'),
+                _warning('.*Material "no_source" references a texture without a valid image. The texture is ignored.*'),
+                _warning('.*Material "no_image" references a texture without a valid image. The texture is ignored.*'),
+            ],
+        )
+
+        for name in ("no_texture", "no_source", "no_image"):
+            self.assertIsNone(self._connected(self._preview(self._material(stage, name)), "diffuseColor"), msg=name)
+
+    def test_embedded_images_with_the_same_name(self):
+        # The file name of an embedded image comes from its name, so images with the same name get their index to stay distinct.
+        first = _png()
+        second = first + b"\x00"
+        stage, output_dir = self._convert(
+            [
+                {"name": "first", "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}}},
+                {"name": "second", "pbrMetallicRoughness": {"baseColorTexture": {"index": 1}}},
+            ],
+            textures=[{"source": 0}, {"source": 1}],
+            images=[
+                {"name": "tex", "mimeType": "image/png", "uri": _data_uri(first, "image/png")},
+                {"name": "tex", "mimeType": "image/png", "uri": _data_uri(second, "image/png")},
+            ],
+        )
+
+        self.assertEqual(self.get_material_texture_path(self._material(stage, "first"), "diffuseColor"), pathlib.Path("./Textures/model_tex.png"))
+        self.assertEqual(self.get_material_texture_path(self._material(stage, "second"), "diffuseColor"), pathlib.Path("./Textures/model_tex_1.png"))
+        self.assertEqual((output_dir / "Payload" / "Textures" / "model_tex.png").read_bytes(), first)
+        self.assertEqual((output_dir / "Payload" / "Textures" / "model_tex_1.png").read_bytes(), second)
+
     def test_sampler_wrap_mode(self):
         png = _png()
         stage, _ = self._convert(
@@ -460,6 +566,13 @@ class TestMaterialGltf(ConverterTestCase):
         self.assertEqual([child.GetName() for child in scope.GetChildren()], ["shared_0", "shared_1", "Material_2", "unique"])
         self.assertEqual(usdex.core.getDisplayName(scope.GetChild("shared_0")), "shared")
         self.assertEqual(usdex.core.getDisplayName(scope.GetChild("shared_1")), "shared")
+
+    def test_material_names_do_not_collide(self):
+        # An index added to a shared name must not equal the name of another material.
+        stage, _ = self._convert([{"name": "a"}, {"name": "a"}, {"name": "a_0"}])
+
+        scope = stage.GetDefaultPrim().GetChild("Materials")
+        self.assertEqual([child.GetName() for child in scope.GetChildren()], ["a_0_", "a_1", "a_0"])
 
     def test_single_material_binds_the_mesh(self):
         # With one material there is no subset, and the mesh is bound directly.

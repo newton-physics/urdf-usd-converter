@@ -64,9 +64,19 @@ def load(path: str | pathlib.Path) -> Gltf:
         The loaded glTF document.
 
     Raises:
-        GltfError: If the file cannot be read.
+        GltfError: If the file cannot be read, or if it is malformed (e.g. a required property is missing or an index is out of range).
     """
-    source = read_source(pathlib.Path(path))
+    try:
+        return _load(pathlib.Path(path))
+    except GltfError:
+        raise
+    except (KeyError, IndexError, TypeError, ValueError) as exc:
+        # A malformed document surfaces as one of these when a property is missing, has the wrong type, or refers to a missing item.
+        raise GltfError(f"The glTF file is malformed: {type(exc).__name__}: {exc}") from exc
+
+
+def _load(path: pathlib.Path) -> Gltf:
+    source = read_source(path)
     document = source.document
     warnings = source.warnings
     used, required = _check_extensions(document, warnings)

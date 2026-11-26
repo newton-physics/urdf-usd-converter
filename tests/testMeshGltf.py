@@ -12,7 +12,74 @@ from pxr import Gf, Tf, Usd, UsdGeom, UsdShade
 import urdf_usd_converter
 from tests.util.ConverterTestCase import ConverterTestCase
 from urdf_usd_converter._impl import gltf
-from urdf_usd_converter._impl.conversion_gltf import _merge_geometry, _triangle_list
+from urdf_usd_converter._impl.conversion_gltf import _define_mesh, _merge_geometry, _MergedGeometry, _triangle_list, _Warner
+
+_POSITIONS = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]], dtype=np.float32)
+
+
+def _warning(pattern: str) -> tuple:
+    return (Tf.TF_DIAGNOSTIC_WARNING_TYPE, pattern)
+
+
+def _node(mesh: int | None = 0, children: tuple = (), scale: tuple = (1.0, 1.0, 1.0)) -> gltf.Node:
+    return gltf.Node(
+        name=None,
+        children=list(children),
+        mesh=mesh,
+        matrix=None,
+        translation=np.zeros(3),
+        rotation=np.array([0.0, 0.0, 0.0, 1.0]),
+        scale=np.array(scale, dtype=np.float64),
+    )
+
+
+def _primitive(*, mode: int = 4, indices: tuple | None = (0, 1, 2), material: int | None = None, **attributes: np.ndarray) -> gltf.Primitive:
+    """A triangle by default. The attributes are added to POSITION."""
+    attributes.setdefault("POSITION", _POSITIONS)
+    return gltf.Primitive(
+        mode=mode, attributes=attributes, indices=None if indices is None else np.array(indices, dtype=np.uint16), material=material
+    )
+
+
+def _model(nodes: list[gltf.Node], primitives: list[gltf.Primitive], scene: int | None = 0) -> gltf.Gltf:
+    """A model with one mesh of the primitives. The root of the scene is the first node."""
+    return gltf.Gltf(
+        asset=gltf.AssetInfo(version="2.0"),
+        scenes=[gltf.Scene(name=None, nodes=[0])],
+        scene=scene,
+        nodes=nodes,
+        meshes=[gltf.Mesh(name=None, primitives=primitives)],
+        materials=[],
+        textures=[],
+        samplers=[],
+        images=[],
+    )
+
+
+def _gltf_document(*, plain: bool = True, colored: bool = False, **sections) -> dict:
+    """A glTF with a triangle (plain) and a triangle with COLOR_0 (colored) in one mesh. The sections replace the default ones."""
+    colors = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+    buffer = _POSITIONS.tobytes() + colors.tobytes()
+    primitives = []
+    if plain:
+        primitives.append({"attributes": {"POSITION": 0}})
+    if colored:
+        primitives.append({"attributes": {"POSITION": 0, "COLOR_0": 1}})
+    document = {
+        "asset": {"version": "2.0"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": [{"mesh": 0}],
+        "meshes": [{"primitives": primitives}],
+        "accessors": [
+            {"bufferView": 0, "componentType": 5126, "count": 3, "type": "VEC3", "min": [0, 0, 0], "max": [1, 1, 0]},
+            {"bufferView": 1, "componentType": 5126, "count": 3, "type": "VEC3"},
+        ],
+        "bufferViews": [{"buffer": 0, "byteOffset": 0, "byteLength": 36}, {"buffer": 0, "byteOffset": 36, "byteLength": 36}],
+        "buffers": [{"uri": "data:application/octet-stream;base64," + base64.b64encode(buffer).decode(), "byteLength": len(buffer)}],
+    }
+    document.update(sections)
+    return document
 
 
 class TestMeshGltf(ConverterTestCase):
@@ -423,3 +490,184 @@ class TestMeshGltf(ConverterTestCase):
         a, b, c = geometry.points[geometry.face_vertex_indices]
         normal = np.cross(b - a, c - a)
         self.assertGreater(normal[2], 0.0)
+
+    # Geometry that cannot be merged is skipped with a warning (the file still converts).
+
+    def _merge(self, model: gltf.Gltf, warnings: list[str] | None = None) -> _MergedGeometry | None:
+        with usdex.test.ScopedDiagnosticChecker(
+            self, [_warning(f".*{message}.*") for message in warnings or []], level=usdex.core.DiagnosticsLevel.eWarning
+        ):
+            return _merge_geometry(model, pathlib.Path("memory.gltf"))
+
+    def test_scene_that_does_not_exist(self):
+        for scene in (None, 5):
+            with self.subTest(scene=scene):
+                self.assertIsNone(self._merge(_model([_node()], [_primitive()], scene=scene), ["The file has no scene"]))
+
+    def test_node_that_is_referenced_twice_or_does_not_exist(self):
+        # The first node is its own child, and the child 7 does not exist. Each node is visited once, so there is no endless loop.
+        model = _model([_node(children=(0, 7))], [_primitive()])
+
+        geometry = self._merge(
+            model,
+            [
+                "Node 0 is referenced more than once or does not exist. It is skipped",
+                "Node 7 is referenced more than once or does not exist. It is skipped",
+            ],
+        )
+
+        self.assertEqual(len(geometry.points), 3)
+
+    def test_mesh_that_does_not_exist(self):
+        self.assertIsNone(self._merge(_model([_node(mesh=3)], [_primitive()]), ["Node 0 references a mesh that does not exist. It is skipped"]))
+
+    def test_singular_transform(self):
+        # A node scaled to zero in one axis cannot be inverted for the normals, so its meshes are skipped.
+        self.assertIsNone(
+            self._merge(_model([_node(scale=(0.0, 1.0, 1.0))], [_primitive()]), ["A node has a singular transform. Its meshes are skipped"])
+        )
+
+    def test_primitives_that_are_skipped(self):
+        primitives = [
+            _primitive(mode=0),  # POINTS is not geometry. The loader warns about it, so there is no warning here.
+            gltf.Primitive(mode=4, attributes={}, indices=np.array([0, 1, 2], dtype=np.uint16), material=None),  # No POSITION.
+            _primitive(indices=(0, 1)),  # Not even one triangle. Nothing to skip silently.
+            _primitive(indices=(0, 1, 9)),  # The vertex 9 does not exist.
+            _primitive(),
+        ]
+
+        geometry = self._merge(
+            _model([_node()], primitives),
+            ["A primitive has no POSITION. It is skipped", "A primitive has a vertex index out of range. It is skipped"],
+        )
+
+        # Only the valid triangle is merged.
+        self.assertEqual(len(geometry.points), 3)
+        self.assertEqual(geometry.face_vertex_indices.tolist(), [0, 1, 2])
+
+    def test_attribute_sets_other_than_zero(self):
+        primitive = _primitive(TEXCOORD_1=np.zeros((3, 2), dtype=np.float32), COLOR_1=np.zeros((3, 3), dtype=np.float32))
+
+        geometry = self._merge(_model([_node()], [primitive]), ["Only TEXCOORD_0 and COLOR_0 are supported. The other sets are ignored"])
+
+        self.assertIsNone(geometry.uvs)
+        self.assertIsNone(geometry.display_colors)
+
+    def test_material_that_does_not_exist(self):
+        geometry = self._merge(
+            _model([_node()], [_primitive(material=3)]),
+            ["A primitive references material 3 that does not exist. It is treated as having no material"],
+        )
+
+        self.assertEqual(list(geometry.subsets), [None])
+
+    def test_unused_vertices_are_removed(self):
+        # The vertex 2 is not used by any face. It is removed, and the indices, the normals and the UVs follow.
+        positions = np.array([[0, 0, 0], [1, 0, 0], [5, 5, 5], [0, 1, 0]], dtype=np.float32)
+        normals = np.array([[0, 0, 1]] * 4, dtype=np.float32)
+        uvs = np.array([[0, 0], [1, 0], [0.5, 0.5], [0, 1]], dtype=np.float32)
+
+        geometry = self._merge(_model([_node()], [_primitive(indices=(0, 1, 3), POSITION=positions, NORMAL=normals, TEXCOORD_0=uvs)]))
+
+        np.testing.assert_allclose(geometry.points, [[0, 0, 0], [1, 0, 0], [0, 1, 0]])
+        self.assertEqual(geometry.face_vertex_indices.tolist(), [0, 1, 2])
+        self.assertEqual(geometry.normals.shape, (3, 3))
+        # V is flipped for USD.
+        np.testing.assert_allclose(geometry.uvs, [[0, 1], [1, 1], [0, 0]])
+
+    def test_normals_on_only_some_primitives(self):
+        primitives = [_primitive(NORMAL=np.array([[0, 0, 1]] * 3, dtype=np.float32)), _primitive()]
+
+        geometry = self._merge(_model([_node()], primitives), ["Only some primitives have NORMAL. The normals are ignored"])
+
+        self.assertIsNone(geometry.normals)
+
+    # The conversion of a whole file. A file that cannot be converted warns, and the rest of the URDF is still converted.
+
+    def _convert_file(self, content: bytes | dict, file_name: str = "model.gltf", diagnostics: list[tuple] | None = None) -> Usd.Stage:
+        source_dir = pathlib.Path(self.tmpDir())
+        (source_dir / file_name).write_bytes(content if isinstance(content, bytes) else json.dumps(content).encode())
+        (source_dir / "robot.urdf").write_text(
+            f"""<?xml version="1.0"?>
+<robot name="robot">
+  <link name="base">
+    <visual><geometry><mesh filename="{file_name}"/></geometry></visual>
+    <collision><geometry><box size="1 1 1"/></geometry></collision>
+  </link>
+</robot>
+""",
+            encoding="utf-8",
+        )
+
+        with usdex.test.ScopedDiagnosticChecker(self, diagnostics or [], level=usdex.core.DiagnosticsLevel.eWarning):
+            asset_path = urdf_usd_converter.Converter().convert(str(source_dir / "robot.urdf"), str(self.tmpDir()))
+        self.assertIsNotNone(asset_path)
+        return Usd.Stage.Open(asset_path.path)
+
+    @staticmethod
+    def _meshes(stage: Usd.Stage) -> list[Usd.Prim]:
+        return [prim for prim in stage.Traverse() if prim.IsA(UsdGeom.Mesh)]
+
+    def test_file_that_cannot_be_parsed(self):
+        stage = self._convert_file(b"{", diagnostics=[_warning(".*could not be parsed. Cannot parse glTF JSON.*")])
+
+        self.assertEqual(self._meshes(stage), [])
+
+    def test_malformed_file(self):
+        # A property that refers to an item that does not exist is reported as a parse error, not as an exception.
+        document = _gltf_document(meshes=[{"primitives": [{"attributes": {"POSITION": 9}}]}])
+
+        stage = self._convert_file(document, diagnostics=[_warning(".*could not be parsed. The glTF file is malformed.*")])
+
+        self.assertEqual(self._meshes(stage), [])
+
+    def test_loader_warnings_are_reported_with_the_file(self):
+        document = _gltf_document(animations=[{"channels": [], "samplers": []}])
+
+        stage = self._convert_file(document, diagnostics=[_warning('.*Animations are skipped. in file: ".*model.gltf".*')])
+
+        self.assertEqual(len(self._meshes(stage)), 1)
+
+    def test_file_without_meshes(self):
+        stage = self._convert_file(_gltf_document(nodes=[{}]), diagnostics=[_warning(".*contains no meshes.*")])
+
+        self.assertEqual(self._meshes(stage), [])
+
+    def test_display_name_keeps_the_unsafe_mesh_name(self):
+        # A hyphen cannot be used in a prim name. The prim name is made safe, and the display name keeps the file name.
+        stage = self._convert_file(_gltf_document(), file_name="my-model.gltf")
+
+        (mesh,) = self._meshes(stage)
+        self.assertNotEqual(mesh.GetName(), "my-model")
+        self.assertTrue(Tf.IsValidIdentifier(mesh.GetName()))
+        self.assertEqual(usdex.core.getDisplayName(mesh), "my-model")
+
+    def test_mesh_that_usd_exchange_rejects(self):
+        # A point that no face uses is invalid topology for definePolyMesh. _merge_geometry always removes such points,
+        # so no glTF file reaches this failure. The test calls _define_mesh directly with such a geometry.
+        # usd-exchange rejects it for real (no mock), which is reported as a runtime error, and _define_mesh warns and returns None.
+        source = pathlib.Path("memory.gltf")
+        geometry = _MergedGeometry(
+            points=np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [5, 5, 5]], dtype=np.float32),
+            normals=None,
+            uvs=None,
+            display_colors=None,
+            display_opacities=None,
+            face_vertex_indices=np.array([0, 1, 2], dtype=np.int32),
+            subsets={None: np.array([0], dtype=np.int32)},
+            double_sided=False,
+        )
+        stage = Usd.Stage.CreateInMemory()
+        parent = usdex.core.defineXform(stage, "/Root").GetPrim()
+
+        with usdex.test.ScopedDiagnosticChecker(
+            self,
+            [
+                (Tf.TF_DIAGNOSTIC_RUNTIME_ERROR_TYPE, ".*invalid topology: Some points are not referenced by the faces"),
+                _warning('.*Failed to convert mesh "/Root/unused" from memory.gltf.*'),
+            ],
+        ):
+            mesh = _define_mesh(parent, "unused", "unused", geometry, _model([_node()], []), source, None, _Warner(source))
+
+        self.assertIsNone(mesh)
+        self.assertFalse(stage.GetPrimAtPath("/Root/unused").IsValid())

@@ -258,6 +258,33 @@ class TestGltfLoader(unittest.TestCase):
         model = self._load(_document(buffers=[{"uri": "http://example.com/model.bin", "byteLength": 4}]))
         self.assertIn("External URLs are not supported: http://example.com/model.bin", model.warnings)
 
+    def test_load_error_malformed_document(self):
+        # A missing property, a wrong type, and an index that refers to a missing item are all reported as GltfError.
+        triangle = {"attributes": {"POSITION": 0}}
+        accessor = {"bufferView": 0, "componentType": FLOAT, "count": 1, "type": "VEC3"}
+        view = {"buffer": 0, "byteLength": 12}
+        cases = {
+            "accessor index out of range": {
+                "meshes": [{"primitives": [{"attributes": {"POSITION": 5}}]}],
+                "accessors": [accessor],
+                "bufferViews": [view],
+            },
+            "bufferView index out of range": {
+                "meshes": [{"primitives": [triangle]}],
+                "accessors": [dict(accessor, bufferView=7)],
+                "bufferViews": [view],
+            },
+            "accessor without count": {
+                "meshes": [{"primitives": [triangle]}],
+                "accessors": [{"bufferView": 0, "componentType": FLOAT, "type": "VEC3"}],
+                "bufferViews": [view],
+            },
+            "wrong type": {"meshes": [{"primitives": [triangle]}], "accessors": [dict(accessor, count=None)], "bufferViews": [view]},
+        }
+        for name, sections in cases.items():
+            with self.subTest(name), self.assertRaisesRegex(GltfError, "The glTF file is malformed"):
+                self._load(_document(buffers=[{"byteLength": 12, "uri": "data:application/octet-stream;base64,AAAAAAAAAAAAAAAA"}], **sections))
+
     def test_load_error_data_uri(self):
         with self.assertRaisesRegex(GltfError, "Malformed data URI"):
             self._load(_document(buffers=[{"uri": "data:application/octet-stream;base64", "byteLength": 4}]))
@@ -558,7 +585,21 @@ class TestGltfLoader(unittest.TestCase):
         cases = {
             "Unsupported accessor.type: VEC5": {"componentType": FLOAT, "count": 1, "type": "VEC5"},
             "Unsupported componentType: 5124": {"bufferView": 0, "componentType": 5124, "count": 1, "type": "SCALAR"},
-            "FLOAT accessors cannot be normalized": {"bufferView": 0, "componentType": FLOAT, "count": 1, "type": "SCALAR", "normalized": True},
+            "componentType cannot be normalized: 5126": {"bufferView": 0, "componentType": FLOAT, "count": 1, "type": "SCALAR", "normalized": True},
+            "componentType cannot be normalized: 5125": {
+                "bufferView": 0,
+                "componentType": UNSIGNED_INT,
+                "count": 1,
+                "type": "SCALAR",
+                "normalized": True,
+            },
+            "Unsupported componentType for sparse indices: 5126": {
+                "bufferView": 0,
+                "componentType": FLOAT,
+                "count": 1,
+                "type": "SCALAR",
+                "sparse": {"count": 1, "indices": {"bufferView": 0, "componentType": FLOAT}, "values": {"bufferView": 0}},
+            },
             "Accessor exceeds the bufferView range": {"bufferView": 0, "componentType": FLOAT, "count": 3, "type": "SCALAR"},
         }
         for message, accessor in cases.items():
@@ -602,6 +643,17 @@ class TestGltfLoader(unittest.TestCase):
 
         self.assertIsNone(loaded.indices)
         self.assertEqual(loaded.material, 2)
+
+    def test_primitive_with_accessor_without_buffer_view(self):
+        # An accessor without a bufferView is all zeros. It has no bufferView that could carry a compression extension.
+        _, document = _triangle_mesh_document()
+        position_accessor = document["accessors"][document["meshes"][0]["primitives"][0]["attributes"]["POSITION"]]
+        del position_accessor["bufferView"]
+
+        model = self._load(document)
+
+        self.assertEqual(model.warnings, [])
+        np.testing.assert_array_equal(model.meshes[0].primitives[0].attributes["POSITION"], np.zeros((3, 3)))
 
     def test_primitive_modes(self):
         _, document = _triangle_mesh_document()

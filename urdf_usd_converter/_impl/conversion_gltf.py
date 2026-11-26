@@ -107,6 +107,7 @@ def convert_gltf(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
         safe_names = data.name_cache.getPrimNames(prim, names)
         for geometry_part, safe_name, name in zip((geometry, color_geometry), safe_names, names):
             if not _define_mesh(prim, safe_name, name, geometry_part, model, input_path, data, warn):
+                # Not reached with glTF input: _merge_geometry only returns valid geometry.
                 return None
         return prim
 
@@ -114,6 +115,7 @@ def convert_gltf(prim: Usd.Prim, input_path: pathlib.Path, data: ConversionData)
     safe_name = prim.GetName()
     name = data.mesh_cache.get_name_from_safe_name(safe_name)
     if not _define_mesh(prim.GetParent(), safe_name, name, geometry or color_geometry, model, input_path, data, warn):
+        # Not reached with glTF input: _merge_geometry only returns valid geometry.
         return None
     return prim
 
@@ -623,9 +625,7 @@ class _TextureResolver:
             self._data.embedded_textures[path] = image.data
             return path
 
-        if image.uri is None:
-            return None
-
+        # The loader gives every image either its data or a file uri. This one is a file reference.
         # The loader has already warned about an external URL, an absolute path, and a missing file.
         uri = unquote(image.uri)
         if "://" in uri or pathlib.PurePosixPath(uri).is_absolute() or pathlib.PureWindowsPath(uri).is_absolute():

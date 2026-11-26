@@ -31,6 +31,12 @@ _DTYPE = {
     FLOAT: np.float32,
 }
 
+# componentType values that may be used for sparse indices.
+_SPARSE_INDEX_TYPES = (UNSIGNED_BYTE, UNSIGNED_SHORT, UNSIGNED_INT)
+
+# Divisor that maps each normalizable componentType to [0, 1] (unsigned) or [-1, 1] (signed).
+_NORMALIZE_DIVISOR = {BYTE: 127.0, UNSIGNED_BYTE: 255.0, SHORT: 32767.0, UNSIGNED_SHORT: 65535.0}
+
 # Component count for each accessor.type. MAT2 is 2x2, so 4 components.
 _COMPONENTS = {"SCALAR": 1, "VEC2": 2, "VEC3": 3, "VEC4": 4, "MAT2": 4, "MAT3": 9, "MAT4": 16}
 
@@ -73,8 +79,8 @@ def read_accessor(
         raise GltfError(f"Unsupported componentType: {component_type}")
     dtype = np.dtype(_DTYPE[component_type]).newbyteorder("<")
     normalized = bool(accessor.get("normalized", False))
-    if normalized and component_type == FLOAT:
-        raise GltfError("FLOAT accessors cannot be normalized.")
+    if normalized and component_type not in _NORMALIZE_DIVISOR:
+        raise GltfError(f"componentType cannot be normalized: {component_type}")
 
     if count == 0:
         values = np.zeros((0, components), dtype=dtype)
@@ -153,7 +159,7 @@ def _apply_sparse(
     sparse_count = int(sparse["count"])
     indices_def = sparse["indices"]
     index_type = int(indices_def["componentType"])
-    if index_type not in _DTYPE:
+    if index_type not in _SPARSE_INDEX_TYPES:
         raise GltfError(f"Unsupported componentType for sparse indices: {index_type}")
     indices = _read_view(
         document,
@@ -181,13 +187,7 @@ def _apply_sparse(
 
 def _normalize(values: np.ndarray, component_type: int) -> np.ndarray:
     """Convert a normalized integer to float32. Signed values clamp at -1."""
-    source = values.astype(np.float32, copy=False)
-    if component_type == BYTE:
-        return np.maximum(source / np.float32(127.0), np.float32(-1.0))
-    if component_type == UNSIGNED_BYTE:
-        return source / np.float32(255.0)
-    if component_type == SHORT:
-        return np.maximum(source / np.float32(32767.0), np.float32(-1.0))
-    if component_type == UNSIGNED_SHORT:
-        return source / np.float32(65535.0)
-    raise GltfError(f"componentType cannot be normalized: {component_type}")
+    normalized = values.astype(np.float32, copy=False) / np.float32(_NORMALIZE_DIVISOR[component_type])
+    if component_type in (BYTE, SHORT):
+        return np.maximum(normalized, np.float32(-1.0))
+    return normalized
